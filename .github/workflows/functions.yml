@@ -41,7 +41,7 @@ jobs:
 
       # The functions check the login token and the allowed e-mail themselves.
       - name: Deploy nintendo-login
-        run: supabase functions deploy nintendo-login --project-ref "$PROJECT_REF" --no-verify-jwt
+        run: supabase functions deploy nintendo-login --project-ref "$PROJECT_REF" --no-verify-jwt --yes
 
       - name: Set function secrets
         env:
@@ -50,5 +50,5 @@ jobs:
           if [ -z "$KEY" ]; then echo "The secret CREDENTIALS_ENCRYPTION_KEY is missing"; exit 1; fi
           umask 077
           printf 'GB_CREDENTIALS_ENCRYPTION_KEY=%s\n' "$KEY" > "$RUNNER_TEMP/functions.env"
-          supabase secrets set --env-file "$RUNNER_TEMP/functions.env" --project-ref "$PROJECT_REF"
+          supabase secrets set --env-file "$RUNNER_TEMP/functions.env" --project-ref "$PROJECT_REF" --yes
           rm -f "$RUNNER_TEMP/functions.env"
