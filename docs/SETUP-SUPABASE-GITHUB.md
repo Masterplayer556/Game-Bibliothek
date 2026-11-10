@@ -66,6 +66,7 @@ Die Seite selbst ist immer öffentlich erreichbar. Ohne Login zeigt sie nur das 
 | `SUPABASE_SECRET_KEY` | Secret key (`sb_secret_…`) | <https://supabase.com/dashboard/project/vvgvlrwhnirooxoukbze/settings/api-keys> |
 | `CREDENTIALS_ENCRYPTION_KEY` | 32 Byte, base64 | In der App anmelden → Karte «Schlüssel für die Verschlüsselung» → «Schlüssel erzeugen» |
 | `ALLOWED_EMAIL` | deine Login-E-Mail | Nur nötig, wenn das Projekt mehr als einen Nutzer hat |
+| `SUPABASE_ACCESS_TOKEN` | Zugangstoken (`sbp_…`) | <https://supabase.com/dashboard/account/tokens> → «Generate new token» → auf das Projekt «Kalender / Game Bibliothek» beschränken. Erlaubt dem Workflow, Edge Functions hochzuladen (ab Phase 2). |
 
 Den geheimen Schlüssel nie in einen Chat oder ins Repo kopieren. Den `CREDENTIALS_ENCRYPTION_KEY` zusätzlich an einem sicheren Ort ablegen (Passwort-Manager). Geht er verloren, müssen PlayStation und Nintendo neu verbunden werden.
 
@@ -87,6 +88,7 @@ Den geheimen Schlüssel nie in einen Chat oder ins Repo kopieren. Den `CREDENTIA
 | `SUPABASE_SECRET_KEY` | GitHub-Secret | Voller Zugriff für das Sync-Skript. Nie im Browser. | Phase 1 |
 | `CREDENTIALS_ENCRYPTION_KEY` | GitHub-Secret, später auch Supabase-Secret | Verschlüsselt PlayStation- und Nintendo-Tokens | Phase 2 |
 | `ALLOWED_EMAIL` | GitHub-Secret | Wählt den Nutzer, wenn es mehrere gibt | optional |
+| `SUPABASE_ACCESS_TOKEN` | GitHub-Secret | Edge Functions hochladen (nur dieses Projekt) | Phase 2 |
 | `STEAM_API_KEY`, `STEAM_ID` | GitHub-Secrets | Steam | Phase 5 |
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | GitHub-Secrets | Cover und Genres | Phase 7 |
 
