@@ -2,7 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AdapterInfo } from "../src/core/adapter-catalog";
 import { decryptSecret, encryptSecret } from "../src/core/crypto";
-import type { SyncBatch } from "../src/core/types";
+import { DB_SCHEMA, type SyncBatch } from "../src/core/types";
 import { fetchAll, persistBatch, type PersistSummary } from "../src/data/persist";
 import type {
   AdapterRunResult,
@@ -14,12 +14,15 @@ import type {
 } from "./types";
 
 export function createServiceClient(env: Readonly<Record<string, string | undefined>>): SupabaseClient {
-  const url = env.SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
   const key = env.SUPABASE_SECRET_KEY;
   if (!url || !key) {
     throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY must be set (see .env.example)");
   }
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: DB_SCHEMA },
+  }) as unknown as SupabaseClient;
 }
 
 /** The single user all data belongs to. */

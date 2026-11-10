@@ -3,6 +3,7 @@
 //
 //   npm run check:rls
 import { createClient } from "@supabase/supabase-js";
+import { DB_SCHEMA } from "../src/core/types";
 import { loadLocalEnv } from "../sync/env";
 
 const TABLES = [
@@ -26,20 +27,38 @@ async function main(): Promise<void> {
   if (!url || !key) {
     throw new Error("NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set");
   }
-  const anon = createClient(url, key, { auth: { persistSession: false } });
+  const anon = createClient(url, key, {
+    auth: { persistSession: false },
+    db: { schema: DB_SCHEMA },
+  });
   let problems = 0;
+
+  // The schema must be exposed in the API settings, otherwise nothing can be checked.
+  const probe = await anon.from(TABLES[0]!).select("*").limit(1);
+  if (probe.error?.code === "PGRST106") {
+    console.error(
+      `The schema "${DB_SCHEMA}" is not exposed yet. Add it under Project Settings → Data API → ` +
+        "Exposed schemas (step 2 of docs/SETUP-SUPABASE-GITHUB.md), then run this check again.",
+    );
+    process.exit(1);
+  }
 
   for (const table of TABLES) {
     const read = await anon.from(table).select("*").limit(1);
     const readable = !read.error && (read.data?.length ?? 0) > 0;
     const write = await anon.from(table).insert({}).select();
-    // 42501 = permission denied / row level security. Anything else is not a clear "no".
-    const writable = write.error?.code !== "42501";
-    const state = readable || writable ? "PROBLEM" : "ok";
-    if (readable || writable) problems++;
+    // 42501 = permission denied / row level security: the only clear "no".
+    const writeDenied = write.error?.code === "42501";
+    const bad = readable || !writeDenied;
+    if (bad) problems++;
+    const writeText = writeDenied
+      ? "denied"
+      : write.error
+        ? `UNCLEAR (${write.error.code ?? "no code"})`
+        : "ALLOWED";
     console.log(
-      `${state.padEnd(8)}${table.padEnd(24)}read: ${read.error ? "denied" : readable ? "ROWS VISIBLE" : "no rows"}, ` +
-        `write: ${writable ? "ALLOWED" : "denied"}`,
+      `${(bad ? "PROBLEM" : "ok").padEnd(8)}${table.padEnd(24)}` +
+        `read: ${read.error ? "denied" : readable ? "ROWS VISIBLE" : "no rows"}, write: ${writeText}`,
     );
   }
 
@@ -52,7 +71,7 @@ async function main(): Promise<void> {
   }
 
   if (problems > 0) {
-    console.error(`${problems} problem(s): data is exposed without login!`);
+    console.error(`${problems} problem(s): not every table is clearly locked without login.`);
     process.exit(1);
   }
   console.log("All tables are locked without login.");
