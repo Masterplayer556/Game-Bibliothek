@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DB_SCHEMA } from "../../src/core/types";
 
 const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
 
@@ -22,6 +23,9 @@ const SUPABASE_STUB = `
   grant usage on schema public to anon, authenticated, service_role;
   -- Worst case: project defaults that hand every new table to the API roles.
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  -- A table of the other app that shares the project. The migration must not touch it.
+  create table public.other_app_table (id int primary key, note text);
+  insert into public.other_app_table values (1, 'kalender');
 `;
 
 export function migrationFiles(): string[] {
@@ -133,7 +137,7 @@ class Query implements PromiseLike<Result> {
 
   private async execute(): Promise<Result> {
     const params: unknown[] = [];
-    const table = `public.${this.table}`;
+    const table = `${DB_SCHEMA}.${this.table}`;
     let sql: string;
 
     if (this.action === "select") {
@@ -209,7 +213,7 @@ export function createTestClient(db: PGlite): SupabaseClient {
     from: (table: string) => new Query(db, table),
     rpc: async (name: string) => {
       try {
-        await db.query(`select public.${name}()`);
+        await db.query(`select ${DB_SCHEMA}.${name}()`);
         return { data: null, error: null };
       } catch (error) {
         return { data: null, error: { message: (error as Error).message } };

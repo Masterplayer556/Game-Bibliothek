@@ -27,6 +27,9 @@ export type ConnectionStatus = (typeof CONNECTION_STATUSES)[number];
 export const GAME_STATUSES = ["backlog", "playing", "completed", "dropped"] as const;
 export type GameStatus = (typeof GAME_STATUSES)[number];
 
+/** Postgres schema that holds every table of this app (the project may be shared). */
+export const DB_SCHEMA = "game_bibliothek";
+
 /** Source id used for demo rows, so they can be deleted in one go. */
 export const DEMO_SOURCE = "demo";
 

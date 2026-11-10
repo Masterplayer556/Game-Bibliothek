@@ -18,7 +18,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Nächster Schritt
 
-**Phase 2 – Nintendo**, sobald Marcel das OK gibt. Vorher sinnvoll: Supabase-Projekt anlegen und die Schritte aus `SETUP-SUPABASE-GITHUB.md` ausführen, damit Phase 2 gegen eine echte Datenbank geprüft werden kann.
+**Phase 2 – Nintendo**, sobald Marcel das OK gibt. Vorher sinnvoll: die offenen Schritte aus `SETUP-SUPABASE-GITHUB.md` (Schema freigeben, GitHub Pages, Secrets), damit Phase 2 gegen die echte Datenbank geprüft werden kann.
 
 **Modell-Empfehlung:** Fable 5.2, `/effort high`. Begründung: inoffizielle Nintendo-API ohne echte Beispieldaten, Login über eine Edge Function und der Schutz vor Doppelzählungen beim Import.
 
@@ -29,7 +29,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 - **Persistenz** (`src/data/persist.ts`): schreibt einen `SyncBatch`; von Sync-Skript und Browser benutzt.
 - **Sync** (`sync/`): Adapter-Schnittstelle (`types.ts`), Runner mit Fehlerabfang pro Adapter (`runner.ts`), Registry (noch leer), Metadaten-Schnittstelle, Supabase-Store, Kommandozeile (`index.ts`).
 - **Skripte** (`scripts/`): `seed-demo.ts`, `check-rls.ts`.
-- **Datenbank**: `supabase/migrations/0001_init.sql` (alle Tabellen, RLS, Rechte, `delete_demo_data()`). **Noch nicht ausgeführt.**
+- **Datenbank**: `supabase/migrations/0001_init.sql` (alle Tabellen, RLS, Rechte, `delete_demo_data()`), alles in den Schemas `game_bibliothek` und `game_bibliothek_private`. Der Schema-Name steht in `DB_SCHEMA` (`src/core/types.ts`); alle Supabase-Clients sind darauf eingestellt.
 - **Workflows**: `ci.yml` (lint, test, build bei jedem Pull Request), `deploy.yml` (GitHub Pages), `sync.yml` (nur manuell, Cron folgt in Phase 8), `tools.yml` (check-rls, seed-demo, clear-demo).
 - **Tests**: 73, darunter Migration, Row Level Security und Persistenz gegen ein echtes Postgres im Speicher (PGlite).
 - **Anleitungen**: `SETUP-SUPABASE-GITHUB.md`, `ADDING-A-PLATFORM.md`.
@@ -39,7 +39,9 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 - TypeScript ist auf Version 6 festgelegt, weil `typescript-eslint` Version 7 noch nicht unterstützt.
 - Tailwind 4: Token-Namen dürfen sich zwischen den Gruppen nicht überschneiden (`--spacing-page` und `--container-page` kollidierten bei `max-w-page`).
 - `supabase/testing/database.ts` enthält einen kleinen Ersatz für den Supabase-Client. Er kann nur die Aufrufe, die `src/data` und `sync/store.ts` benutzen. Neue Abfrage-Arten dort ergänzen.
-- Der echte Weg über die Supabase-API (PostgREST) ist erst geprüft, wenn das Projekt existiert: einmal «Demo-Daten laden» in der App.
+- **Migration ausgeführt am 10.11.2026** (von Claude, per SQL, ohne Eintrag in der Migrations-Historie des Projekts, damit die Kalender-App nicht gestört wird). Geprüft: 11 Tabellen, überall RLS, keine Regel für `platform_credentials`, eine erlaubte E-Mail (der bestehende Nutzer des Projekts), Kalender-Tabellen unverändert. Spätere Migrationen genauso ausführen.
+- Der echte Weg über die Supabase-API (PostgREST) ist erst geprüft, wenn das Schema freigegeben ist: einmal «Demo-Daten laden» in der App und `check-rls`. Bis dahin meldet `check-rls` «schema is not exposed».
+- Sicherheitshinweise des Projekts nach der Migration: zwei Info-Meldungen «RLS ohne Regel» für `platform_credentials` und `allowed_emails` (beide gewollt) und die Warnung «Leaked Password Protection» (Projekt-Einstellung, bestand schon vorher).
 - Minecraft: Java Edition gibt es nicht auf Steam. In den Demo-Daten ist es ein manueller Eintrag (PC) und wird über den Titel mit Minecraft auf Switch und PS5 zusammengeführt.
 - Die Demo-Daten für Steam und PS5 sind Snapshots, die für Nintendo Tageswerte auf zwei Konsolen.
 
@@ -47,7 +49,9 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 - Repo: **öffentlich**, `Masterplayer556/Game-Bibliothek`
 - Adresse: `https://masterplayer556.github.io/Game-Bibliothek/`, `basePath` = `/Game-Bibliothek`
-- Supabase: **neues** Projekt (noch nicht angelegt). Im Konto sind bereits zwei aktive Gratis-Projekte («Kalender (CC)», «Drive Pool»); der Gratis-Plan erlaubt nur zwei.
+- Supabase: **kein neues Projekt.** Beide Gratis-Projekte («Kalender (CC)», «Drive Pool») werden gebraucht. Game Bibliothek läuft im Projekt «Kalender / Game Bibliothek» (früher «Kalender (CC)», `vvgvlrwhnirooxoukbze`, Frankfurt) in eigenen Schemas mit.
+- Supabase-Regel (geändert am 10.11.2026): **Claude darf SQL selbst ausführen.** Nur was eine Bestätigung braucht oder scheitert, geht mit Link und Text an Marcel.
+- Edge Functions: per Workflow deployen. Öffentliche Werte in `.env.production`: in Ordnung.
 - Jugendschutz-App: **noch nicht** mit den Konsolen verknüpft
 - Profile: Nur Marcel spielt. Es gibt mehrere Konten auf den Konsolen, alle gehören ihm; aktuell nutzt er eines.
 - Bedienung: **alles über GitHub und die App, auch vom Handy.** Kein Node.js auf dem PC voraussetzen.
@@ -85,8 +89,9 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 ## Offene Punkte
 
 
-- [ ] Marcel: Supabase-Projekt anlegen (vorher eines der zwei bestehenden pausieren oder anders entscheiden) und den Namen nennen. Danach trägt Claude Adresse und öffentlichen Schlüssel in `.env.production` ein.
-- [ ] Marcel: Schritte 2 bis 6 aus `SETUP-SUPABASE-GITHUB.md` (Migration, Login, GitHub Pages, Secrets, Prüfung).
+- [ ] Marcel: Supabase-Projekt in «Kalender / Game Bibliothek» umbenennen (Project Settings → General). Claude kann das nicht.
+- [ ] Marcel: Schritte 2, 4 und 5 aus `SETUP-SUPABASE-GITHUB.md` (Schema `game_bibliothek` freigeben, GitHub Pages einschalten, Secrets setzen), danach Schritt 6 (Prüfen).
+- [ ] Phase 2: Workflow «Edge Functions deployen»; Secrets der Functions mit Präfix `GB_`.
 - [ ] Import nach dem 13.06.2025: Gerät ist unbekannt. Vorschlag für Phase 2: importierte Tage ab diesem Datum einem Gerät «Switch (unbekannt)» zuordnen, Jugendschutz-Daten haben ohnehin Vorrang.
 - [ ] Marcel: Jugendschutz-App mit **beiden** Konsolen verknüpfen, möglichst bald, damit bis Phase 2 Daten da sind.
 - [ ] Phase 2: Einheit von `playingTime`, Anzahl Tage in `fetchDailySummaries` und Gültigkeit des Session-Tokens mit echten Daten prüfen.
