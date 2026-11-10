@@ -1,0 +1,21 @@
+{
+  "dailySummaries": [
+    {
+      "deviceId": "cccc3333dddd4444",
+      "date": "2026-11-09",
+      "playingTime": 25,
+      "playedApps": [
+        { "applicationId": "0100CCCC00003000", "title": "Miitopia", "imageUri": { "medium": "https://example.invalid/miitopia.jpg" } }
+      ],
+      "devicePlayers": [
+        {
+          "playerId": "p-main",
+          "nickname": "Main",
+          "playingTime": 25,
+          "playedApps": [ { "applicationId": "0100CCCC00003000", "playingTime": 25 } ]
+        }
+      ],
+      "anonymousPlayer": { "playingTime": 5, "playedApps": [ { "applicationId": "0100F2C0115B6000", "playingTime": 5 } ] }
+    }
+  ]
+}

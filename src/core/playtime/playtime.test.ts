@@ -122,6 +122,27 @@ describe("resolveDailyRows", () => {
     expect(days.map((d) => d.date).sort()).toEqual(["2024-05-01", "2026-03-11"]);
   });
 
+  it("drops an import row when a sibling platform entry of the same game has native data", () => {
+    // Import created its own entry ("import:minecraft"); the console reports the real one.
+    const days = resolveDailyRows([
+      daily({ platformGameId: "real", gameKey: "game-1", deviceId: "switch2", minutes: 50 }),
+      daily({ platformGameId: "imported", gameKey: "game-1", deviceId: "unknown", minutes: 45, source: "nintendo-import" }),
+      daily({ platformGameId: "imported", gameKey: "game-1", date: "2024-01-01", minutes: 30, source: "nintendo-import" }),
+    ]);
+    expect(days.map((d) => [d.platformGameId, d.date, d.minutes]).sort()).toEqual([
+      ["imported", "2024-01-01", 30],
+      ["real", "2026-03-10", 50],
+    ]);
+  });
+
+  it("keeps two editions of one game that were both played natively on the same day", () => {
+    const days = resolveDailyRows([
+      daily({ platformGameId: "base", gameKey: "game-1", deviceId: "switch2", minutes: 20 }),
+      daily({ platformGameId: "switch2-edition", gameKey: "game-1", deviceId: "switch2", minutes: 40 }),
+    ]);
+    expect(days.reduce((sum, d) => sum + d.minutes, 0)).toBe(60);
+  });
+
   it("never counts the same game, device and day twice", () => {
     const days = resolveDailyRows([daily({ minutes: 60 }), daily({ minutes: 80, source: "demo" })]);
     expect(days).toHaveLength(1);

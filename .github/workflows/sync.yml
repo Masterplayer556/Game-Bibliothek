@@ -47,6 +47,10 @@ jobs:
           STEAM_ID: ${{ secrets.STEAM_ID }}
           IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
           IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+          # optional overrides, set as repository variables if Nintendo changes something
+          NINTENDO_APP_VERSION: ${{ vars.NINTENDO_APP_VERSION }}
+          NINTENDO_APP_BUILD: ${{ vars.NINTENDO_APP_BUILD }}
+          NINTENDO_PLAYTIME_UNIT: ${{ vars.NINTENDO_PLAYTIME_UNIT }}
           INPUT_MODE: ${{ inputs.mode }}
           INPUT_ADAPTER: ${{ inputs.adapter }}
           INPUT_RUN_ID: ${{ inputs.run_id }}

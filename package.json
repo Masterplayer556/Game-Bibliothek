@@ -14,7 +14,8 @@
     "sync": "tsx sync/index.ts",
     "seed:demo": "tsx scripts/seed-demo.ts",
     "clear:demo": "tsx scripts/seed-demo.ts --clear",
-    "check:rls": "tsx scripts/check-rls.ts"
+    "check:rls": "tsx scripts/check-rls.ts",
+    "setup:nintendo": "tsx scripts/setup-nintendo.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

@@ -7,7 +7,12 @@ import type { ConnectionStatus } from "@/core/types";
 import { COUNTED_TABLES, loadDemoData, loadOverview, removeDemoData, type Overview } from "@/lib/overview";
 import { getSupabase } from "@/lib/supabase";
 import { KeyGenerator } from "./KeyGenerator";
+import { NintendoConnect } from "./NintendoConnect";
+import { NintendoImport } from "./NintendoImport";
 import { Button, Card, Notice } from "./ui";
+
+/** Adapters up to this phase exist. */
+const BUILT_UP_TO_PHASE = 2;
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -146,7 +151,9 @@ export function Dashboard({ session }: { session: Session }) {
                 <p className="text-xs text-muted">
                   {connection
                     ? `Letzter erfolgreicher Sync: ${formatDate(connection.last_success_at)}`
-                    : `Wird in Phase ${adapter.availableFromPhase} gebaut.`}
+                    : adapter.availableFromPhase <= BUILT_UP_TO_PHASE
+                      ? "Bereit zum Verbinden."
+                      : `Wird in Phase ${adapter.availableFromPhase} gebaut.`}
                 </p>
                 {missing.length > 0 ? (
                   <p className="text-xs text-warning">Fehlende GitHub-Secrets: {missing.join(", ")}</p>
@@ -159,6 +166,9 @@ export function Dashboard({ session }: { session: Session }) {
           })}
         </ul>
       </Card>
+
+      <NintendoConnect onDone={refresh} />
+      <NintendoImport userId={session.user.id} onDone={refresh} />
 
       <KeyGenerator />
     </>

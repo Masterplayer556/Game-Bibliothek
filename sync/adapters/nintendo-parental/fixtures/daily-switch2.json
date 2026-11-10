@@ -1,0 +1,43 @@
+{
+  "dailySummaries": [
+    {
+      "deviceId": "aaaa1111bbbb2222",
+      "date": "2026-11-10",
+      "playingTime": 95,
+      "players": [
+        {
+          "profile": { "playerId": "p-main", "nickname": "Main", "imageUri": "https://example.invalid/mii1.png" },
+          "playingTime": 80,
+          "playedGames": [
+            { "meta": { "applicationId": "0100f2c0115b6000", "title": "The Legend of Zelda: Tears of the Kingdom – Nintendo Switch 2 Edition", "imageUri": { "small": "https://example.invalid/totk-s.jpg", "large": "https://example.invalid/totk-l.jpg" } }, "playingTime": 50 },
+            { "meta": { "applicationId": "0100AAAA00001000", "title": "Donkey Kong Bananza", "imageUri": "https://example.invalid/dkb.jpg" }, "playingTime": 30 }
+          ]
+        },
+        {
+          "profile": { "playerId": "p-second", "nickname": "Zweit" },
+          "playingTime": 15,
+          "playedGames": [
+            { "meta": { "applicationId": "0100F2C0115B6000" }, "playingTime": 15 }
+          ]
+        }
+      ]
+    },
+    {
+      "deviceId": "aaaa1111bbbb2222",
+      "date": "2026-11-09",
+      "playingTime": 40,
+      "players": [
+        {
+          "profile": { "playerId": "p-main", "nickname": "Main" },
+          "playingTime": 40,
+          "playedGames": [
+            { "meta": { "applicationId": "0100BBBB00002000" }, "playingTime": 40 },
+            { "meta": { "applicationId": "0100AAAA00001000" }, "playingTime": 0 }
+          ]
+        }
+      ]
+    },
+    { "deviceId": "aaaa1111bbbb2222", "date": "2026-11-08", "playingTime": 0, "players": [] },
+    { "deviceId": "aaaa1111bbbb2222", "date": "not-a-date", "playingTime": 10, "players": [] }
+  ]
+}

@@ -63,6 +63,8 @@ export interface SyncResult {
   /** First day this source has data for. */
   dataSince?: LocalDate | null;
   warnings?: string[];
+  /** Extra facts for the platform card (stored in platform_connections.details). */
+  details?: Record<string, unknown>;
 }
 
 export interface PlatformAdapter extends AdapterInfo {

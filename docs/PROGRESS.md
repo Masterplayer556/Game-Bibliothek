@@ -8,7 +8,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 |---|---|---|
 | 0 | Plan | fertig (10.11.2026) |
 | 1 | Grundgerüst | fertig und eingerichtet (10.11.2026) |
-| 2 | Nintendo | offen |
+| 2 | Nintendo | gebaut (10.11.2026), Test mit echten Daten offen |
 | 3 | App mit Demo-Daten | offen |
 | 4 | Jahresrückblick | offen |
 | 5 | Steam | offen |
@@ -18,23 +18,24 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Nächster Schritt
 
-**Phase 2 – Nintendo.** Alles ist vorbereitet; Start nach OK von Marcel.
+1. **Marcel:** Workflow «Edge Functions deployen» starten, in der App «Nintendo verbinden», dann Workflow «Sync» starten (Anleitung: `SETUP-NINTENDO.md`).
+2. **Claude:** nach dem ersten echten Sync die offenen Nintendo-Punkte prüfen (siehe unten) und nötigenfalls korrigieren.
+3. Danach **Phase 3 – App mit Demo-Daten**.
 
-**Modell-Empfehlung:** Fable 5.2, `/effort high`. Begründung: inoffizielle Nintendo-API ohne echte Beispieldaten, Login über eine Edge Function und der Schutz vor Doppelzählungen beim Import. (Phase 0 und 1 liefen auf Fable; die Vorbereitung danach auf Opus 5.5.)
+**Modell-Empfehlung:**
+- Für die Prüfung mit echten Nintendo-Daten (Schritt 2): Fable 5.2, `/effort high`, falls der erste Sync scheitert oder die Zahlen nicht stimmen. Läuft er sauber durch, reicht Opus 5.5.
+- Für Phase 3: Opus 5.5, `/effort high`. Klar beschriebene UI-Seiten auf fertiger Logik.
 
-### Plan für Phase 2
+## Was in Phase 2 gebaut wurde
 
-1. **Client** `sync/adapters/nintendo-parental/client.ts`: Nintendo-Account-Login (PKCE, Client-ID `54789befb391a838`), Session-Token → Access-Token, Endpunkte der Jugendschutz-API v2 (siehe `ARCHITECTURE.md` Abschnitt 1). `fetch` wird übergeben, damit Tests ohne Netz laufen.
-2. **Adapter** `nintendo-parental`: Konsolen über `fetchOwnedDevices` (`platformGeneration` P00 = Switch 1, P01 = Switch 2), Tageswerte über `fetchDailySummaries`, ältere Monate über `fetchMonthlySummary`. Alle Profile einer Konsole zusammenzählen, Profil-ID in `details`. Kein `totalPlaytimeMinutes` (wird aus Tageswerten berechnet). Abgelaufener Session-Token → `AdapterError("auth_expired")`. In die Registry eintragen.
-3. **Login in der App** (kein Terminal): Edge Function `nintendo-login` erzeugt den Login-Link (PKCE-Verifier verschlüsselt zwischenspeichern), nimmt den kopierten `npf54789befb391a838://auth#…`-Link entgegen, tauscht ihn gegen den Session-Token und speichert ihn verschlüsselt in `platform_credentials`. Prüft Login-Token und erlaubte E-Mail selbst. Secrets der Function mit Präfix `GB_` (`GB_CREDENTIALS_ENCRYPTION_KEY`). Karte «Nintendo verbinden» auf der Startseite. `npm run setup:nintendo` als zweiter Weg.
-4. **Workflow** `.github/workflows/functions.yml`: deployt Edge Functions mit `SUPABASE_ACCESS_TOKEN` (projektbezogener Token, nur «Kalender / Game Bibliothek») und setzt die `GB_`-Secrets aus den GitHub-Secrets.
-5. **Import** `nintendo-import`: CSV-Vorlage (`Spiel;Datum;Minuten;Gerät`), Parser mit Tests, `Für kurze Zeit` = 5 Minuten geschätzt. Gerät: vor dem 13.06.2025 Switch 1, danach Gerät «Switch (unbekannt)», sofern nicht angegeben. Die Oberfläche (Screenshot/Video-Erkennung) kommt nach Phase 3; in Phase 2 nur Parser, Persistenz und Schutz vor Doppelzählungen.
-6. **Tests mit Fixtures** für Client, Adapter, Import; Fixtures nach den Datenformaten in `pynintendoparental` gebaut, nach dem ersten echten Sync mit (anonymisierten) echten Antworten ergänzen.
-7. **Doku**: `docs/SETUP-NINTENDO.md`, Abschnitt «Was spätere Phasen über Nintendo wissen müssen» unten in dieser Datei.
-
-### Für den Test mit echten Daten
-
-Nur die **Switch 2** ist (bzw. wird) verknüpft; auf der Switch 1 spielt Marcel nicht mehr. Mehrere Konsolen werden trotzdem unterstützt und mit Fixtures getestet. Die Jugendschutz-App zeichnet erst ab der Verknüpfung auf; Tage davor kommen aus dem Import.
+- **Nintendo-Client** (`src/core/nintendo/auth.ts`, `api.ts`): Login (PKCE) und Jugendschutz-API v2. Beide Dateien importieren nichts, weil die Edge Function sie als Kopie benutzt (Deno).
+- **Adapter** `sync/adapters/nintendo-parental/`: alle verknüpften Konsolen, Tageswerte pro Spiel, alle Profile zusammengezählt. In der Registry eingetragen. Fixtures und Tests.
+- **Edge Function** `supabase/functions/nintendo-login/`: schliesst den Login ab und speichert den Session-Token verschlüsselt. Prüft Login-Token und erlaubte E-Mail selbst (`--no-verify-jwt`).
+- **Workflow** `functions.yml`: kopiert den geteilten Code nach `supabase/functions/_shared/` (nicht im Repo), deployt die Function und setzt `GB_CREDENTIALS_ENCRYPTION_KEY`.
+- **Import** `src/core/nintendo/import.ts`: CSV-Parser und Batch-Aufbau; Vorlage unter `public/vorlagen/`.
+- **App**: Karten «Nintendo verbinden» und «Nintendo-Historie importieren» (`src/components/Nintendo*.tsx`, Logik in `src/lib/nintendo.ts`).
+- **Migration** `0002_is_allowed_email.sql`: ausgeführt am 10.11.2026.
+- `npm run setup:nintendo` als zweiter Weg mit Terminal.
 
 ## Was in Phase 1 gebaut wurde
 
@@ -102,8 +103,7 @@ Nur die **Switch 2** ist (bzw. wird) verknüpft; auf der Switch 1 spielt Marcel 
 
 ## Offene Punkte
 
-- [ ] Phase 2: Einheit von `playingTime`, Anzahl Tage in `fetchDailySummaries` und Gültigkeit des Session-Tokens mit echten Daten prüfen.
-- [ ] Phase 2: Import nach dem 13.06.2025 ohne Geräteangabe → Gerät «Switch (unbekannt)»; Jugendschutz-Daten haben Vorrang.
+- [ ] Nach dem ersten echten Nintendo-Sync: Einheit, Anzahl Tage, Token-Gültigkeit und Titel prüfen (`platform_connections.details`), Fixtures mit anonymisierten echten Antworten ergänzen.
 - [ ] Phase 5 / 7: Steam-Cover-Adressen und IGDB-Rate-Limit prüfen (in Phase 0 nicht neu recherchiert).
 - [ ] Phase 8: Selbst-Wiedereinschalten des Cron-Workflows testen (60-Tage-Regel).
 - [ ] Nach Phase 3: Import der Nintendo-Store-Historie per Screenshot/Video (siehe Entscheidung 15).
@@ -119,4 +119,25 @@ Nur die **Switch 2** ist (bzw. wird) verknüpft; auf der Switch 1 spielt Marcel 
 
 ## Was spätere Phasen über Nintendo wissen müssen
 
-Wird in Phase 2 ergänzt.
+**Daten in der Datenbank**
+- Plattform `nintendo`, zwei Quellen (`source`): `nintendo-parental` (Jugendschutz-API) und `nintendo-import` (CSV).
+- Nintendo-Einträge haben **nur Tageswerte** (`daily_playtime`), keine Snapshots. `platform_games.total_playtime_minutes`, `first_played_at` und `last_played_at` werden daraus berechnet (`recomputeDailyTotals` in `src/data/persist.ts`) und liegen fertig in der Tabelle.
+- `achievements_unlocked` und `achievements_total` sind `null`: als «keine Erfolge» anzeigen, nicht als 0/0.
+- `external_id`: bei der Jugendschutz-API die Application-ID in Grossbuchstaben (z. B. `0100F2C0115B6000`), beim Import `import:<titel>`. «Nintendo Switch 2 Edition» ist ein eigener Plattform-Eintrag, hängt aber über den Titel am selben Spiel (`game_id`).
+- Geräte (`devices`): echte Konsolen mit Nintendos Geräte-ID und Art `switch1`/`switch2`; vom Import zusätzlich `import:switch1`, `import:switch2`, `import:switch-unknown` (Art `other`, «Switch (unbekannt)»). Für Auswertungen nach Gerät die **Art** (`kind`) verwenden, nicht die ID.
+- `daily_playtime.details.players`: Minuten pro Profil. `estimated` ist beim Import für «Für kurze Zeit» gesetzt.
+
+**Regel beim Lesen (wichtig für Statistiken)**
+- Rohzeilen nie direkt summieren. Immer `resolveDailyRows` bzw. `buildPlayedDays` aus `src/core/playtime` benutzen und dabei `gameKey = game_id` setzen. Nur so wird ein Tag, den Import und Konsole beide kennen, einmal gezählt.
+- Import-Zeilen werden nie gelöscht. Sie zählen einfach nicht, sobald eine andere Quelle für dasselbe Spiel und denselben Tag Daten hat.
+
+**Verbindung**
+- Session-Token verschlüsselt in `platform_credentials` (`adapter_id = nintendo-parental`, `kind = session_token`).
+- `platform_connections.details` nach einem Sync: `unit` (erkannte Einheit), `days`, `devices`, `warnings`. `data_since` ist der früheste je gesehene Tag.
+
+**Noch nicht mit echten Daten geprüft**
+- Einheit von `playingTime`: Der Adapter nimmt Minuten an und erkennt Sekunden, sobald ein Wert über 1440 liegt. Erzwingen mit der GitHub-Variable `NINTENDO_PLAYTIME_UNIT` (`minutes` oder `seconds`).
+- Welcher Token akzeptiert wird: zuerst der ID-Token, bei Ablehnung der Access-Token.
+- Wie viele Tage `fetchDailySummaries` zurückliefert, und die Gültigkeit des Session-Tokens (steht nach dem Login in `token_expires_at`).
+- Ältere Monate über `fetchMonthlySummary` sind nicht eingebaut: Das Format ist unbekannt, und die Monatsübersicht hat keine Werte pro Tag und Spiel.
+- Die Edge Function ist nur in ihren Teilen getestet (Login-Logik, Verschlüsselung), nicht als Ganzes.

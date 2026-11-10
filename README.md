@@ -6,6 +6,7 @@ Das Projekt ist im Aufbau. Der aktuelle Stand steht in [`docs/PROGRESS.md`](docs
 
 - App: <https://masterplayer556.github.io/Game-Bibliothek/>
 - Einrichtung: [`docs/SETUP-SUPABASE-GITHUB.md`](docs/SETUP-SUPABASE-GITHUB.md)
+- Nintendo verbinden: [`docs/SETUP-NINTENDO.md`](docs/SETUP-NINTENDO.md)
 - Architektur: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Neue Plattform hinzufügen: [`docs/ADDING-A-PLATFORM.md`](docs/ADDING-A-PLATFORM.md)
 

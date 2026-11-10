@@ -13,7 +13,7 @@ export default function HomePage() {
     <main className="mx-auto flex w-full max-w-content flex-col gap-page p-page">
       <header>
         <h1 className="text-2xl font-bold">Game Bibliothek</h1>
-        <p className="text-sm text-muted">Grundgerüst: Login und Datenbank.</p>
+        <p className="text-sm text-muted">Grundgerüst: Login, Datenbank und Nintendo.</p>
       </header>
 
       {!isSupabaseConfigured ? (

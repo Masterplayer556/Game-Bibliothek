@@ -141,7 +141,17 @@ export class SupabaseSyncStore implements SyncStore {
     if (patch.lastSyncAt !== undefined) row.last_sync_at = patch.lastSyncAt;
     if (patch.lastSuccessAt !== undefined) row.last_success_at = patch.lastSuccessAt;
     if (patch.lastError !== undefined) row.last_error = patch.lastError;
-    if (patch.dataSince != null) row.data_since = patch.dataSince;
+    if (patch.dataSince != null) {
+      // Keep the earliest day ever seen: the window a source reports moves forward.
+      const { data: current } = await this.db
+        .from("platform_connections")
+        .select("data_since")
+        .eq("user_id", this.userId)
+        .eq("adapter_id", adapter.id)
+        .maybeSingle();
+      const known = (current?.data_since as string | null | undefined) ?? null;
+      row.data_since = known && known < patch.dataSince ? known : patch.dataSince;
+    }
     if (patch.tokenExpiresAt !== undefined) row.token_expires_at = patch.tokenExpiresAt;
     if (patch.details !== undefined) row.details = patch.details;
     const { error } = await this.db
