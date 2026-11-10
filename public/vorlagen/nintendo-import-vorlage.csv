@@ -1,0 +1,9 @@
+Spiel;Datum;Dauer;Gerät
+# Eine Zeile pro Spiel und Tag, so wie es die Nintendo-Store-App unter «Spielaktivitäten» zeigt.
+# Dauer: wie in der App («1 Std. 15 Min.», «45 Min.», «Für kurze Zeit») oder einfach Minuten (75).
+# Gerät: leer lassen, «Switch 1» oder «Switch 2». Leer = vor dem 13.06.2025 Switch 1, danach unbekannt.
+# Zeilen mit # am Anfang und diese Beispiele kannst du löschen.
+Minecraft for Nintendo Switch;17.02.2026;1 Std. 15 Min.;
+Minecraft for Nintendo Switch;14.02.2026;45 Min.;
+Minecraft for Nintendo Switch;04.01.2026;Für kurze Zeit;Switch 2
+Miitopia;01.05.2024;90;

@@ -9,3 +9,6 @@ next-env.d.ts
 coverage/
 .DS_Store
 supabase/.temp/
+
+# copies of src/core made by the deploy workflow
+supabase/functions/_shared/

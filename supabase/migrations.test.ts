@@ -234,6 +234,31 @@ describe("row level security", () => {
     ).rejects.toThrow(/permission denied/);
   });
 
+  it("lets only the service role ask whether an e-mail is allowed", async () => {
+    const asService = async (email: string) => {
+      await db.exec("begin");
+      try {
+        await db.exec("set local role service_role");
+        const r = await db.query<{ ok: boolean }>(
+          "select game_bibliothek.is_allowed_email($1) as ok",
+          [email],
+        );
+        return r.rows[0]!.ok;
+      } finally {
+        await db.exec("rollback");
+      }
+    };
+    expect(await asService("OWNER@example.com")).toBe(true);
+    expect(await asService("stranger@example.com")).toBe(false);
+    for (const role of ["anon", "authenticated"] as const) {
+      await expect(
+        as(role, role === "anon" ? null : owner, () =>
+          db.query("select game_bibliothek.is_allowed_email('owner@example.com')"),
+        ),
+      ).rejects.toThrow(/permission denied/);
+    }
+  });
+
   it("deletes demo data and leftover games through delete_demo_data()", async () => {
     const left = await as("authenticated", owner, async () => {
       await db.query("select game_bibliothek.delete_demo_data()");

@@ -92,6 +92,6 @@ Den geheimen Schlüssel nie in einen Chat oder ins Repo kopieren. Den `CREDENTIA
 | `STEAM_API_KEY`, `STEAM_ID` | GitHub-Secrets | Steam | Phase 5 |
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | GitHub-Secrets | Cover und Genres | Phase 7 |
 
-Die Secrets der Edge Functions (ab Phase 2) bekommen das Präfix `GB_`, damit sie sich nicht mit Secrets des Kalenders überschneiden.
+Die Secrets der Edge Functions haben das Präfix `GB_`, damit sie sich nicht mit Secrets des Kalenders überschneiden. Der Workflow [Edge Functions deployen](https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/functions.yml) setzt sie aus den GitHub-Secrets; von Hand ist nichts einzutragen.
 
 PlayStation- und Nintendo-Tokens stehen in keiner Variable. Sie liegen verschlüsselt in der Datenbank.

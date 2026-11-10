@@ -1,0 +1,9 @@
+{
+  "parentalControlSetting": {
+    "whitelistedApplicationList": [
+      { "applicationId": "0100BBBB00002000", "title": "Pokémon Pokopia", "imageUri": "https://example.invalid/pokopia.jpg", "safeLaunch": "NONE" },
+      { "applicationId": "0100F2C0115B6000", "title": "The Legend of Zelda: Tears of the Kingdom – Nintendo Switch 2 Edition", "imageUri": "https://example.invalid/totk.jpg" }
+    ],
+    "playTimerRegulations": { "timerMode": "DAILY" }
+  }
+}

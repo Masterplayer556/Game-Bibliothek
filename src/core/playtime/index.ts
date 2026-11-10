@@ -9,7 +9,9 @@
 // 4. Real per-day data wins over snapshots. The two are never added together.
 // 5. Overlapping per-day sources: an import (Nintendo Store history) is a per-game, per-day
 //    value without a reliable device. If any native source has data for the same game and
-//    day, the import row is ignored.
+//    day, the import row is ignored. "Same game" means the same cross-platform game
+//    (`gameKey`), because an import and a native source may have created separate platform
+//    entries for it.
 // 6. Days, weeks (Monday start) and months are Europe/Zurich.
 import { monthKey, toLocalDate, weekStart } from "../time";
 import type { LocalDate } from "../types";
@@ -24,6 +26,11 @@ export interface SnapshotRow {
 
 export interface DailyRow {
   platformGameId: string;
+  /**
+   * Groups platform entries that are the same game for rule 5 (use the id of the linked
+   * game). Defaults to the platform entry itself.
+   */
+  gameKey?: string | null;
   deviceId: string | null;
   date: LocalDate;
   minutes: number;
@@ -105,11 +112,11 @@ export function isImportSource(source: string): boolean {
   return source.endsWith("-import");
 }
 
-/** Rule 5: one value per game, device and day; imports only where nothing else exists. */
+/** Rule 5: one value per platform entry, device and day; imports only where nothing else exists. */
 export function resolveDailyRows(rows: readonly DailyRow[]): PlayedDay[] {
   const byGameDate = new Map<string, DailyRow[]>();
   for (const row of rows) {
-    const key = `${row.platformGameId}|${row.date}`;
+    const key = `${row.gameKey ?? row.platformGameId}|${row.date}`;
     const list = byGameDate.get(key);
     if (list) list.push(row);
     else byGameDate.set(key, [row]);
@@ -119,14 +126,14 @@ export function resolveDailyRows(rows: readonly DailyRow[]): PlayedDay[] {
   for (const group of byGameDate.values()) {
     const native = group.filter((r) => !isImportSource(r.source));
     const chosen = native.length > 0 ? native : group;
-    // Same game, day and device from two sources of equal rank: keep the larger value.
-    const byDevice = new Map<string, DailyRow>();
+    // Same platform entry, day and device from two sources of equal rank: keep the larger value.
+    const unique = new Map<string, DailyRow>();
     for (const row of chosen) {
-      const key = row.deviceId ?? "";
-      const existing = byDevice.get(key);
-      if (!existing || row.minutes > existing.minutes) byDevice.set(key, row);
+      const key = `${row.platformGameId}|${row.deviceId ?? ""}`;
+      const existing = unique.get(key);
+      if (!existing || row.minutes > existing.minutes) unique.set(key, row);
     }
-    for (const row of byDevice.values()) {
+    for (const row of unique.values()) {
       out.push({
         platformGameId: row.platformGameId,
         deviceId: row.deviceId,

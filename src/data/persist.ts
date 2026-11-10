@@ -307,13 +307,53 @@ export async function persistBatch(
 /**
  * For sources that only know per-day values (Nintendo): lifetime total, first and last
  * played are the sum / range of the per-day rows that count (see resolveDailyRows).
+ *
+ * An import and a native source can have separate platform entries for the same game.
+ * Which rows count is therefore decided per linked game, and the totals of all entries of
+ * the affected games on that platform are recomputed.
  */
 export async function recomputeDailyTotals(
   db: SupabaseClient,
   userId: string,
   platformGameIds: readonly string[],
 ): Promise<void> {
+  if (platformGameIds.length === 0) return;
+
+  // 1. The games behind the given entries
+  const requested: { id: string; game_id: string | null; platform: string }[] = [];
   for (const ids of chunks(platformGameIds, 100)) {
+    const { data, error } = await db
+      .from("platform_games")
+      .select("id, game_id, platform")
+      .eq("user_id", userId)
+      .in("id", ids);
+    fail("read", error);
+    requested.push(...((data ?? []) as typeof requested));
+  }
+  const gameIds = [...new Set(requested.map((r) => r.game_id).filter((id): id is string => !!id))];
+  const platforms = new Set(requested.map((r) => r.platform));
+
+  // 2. Every entry of those games on the same platform(s)
+  const entries = new Map<string, { gameKey: string; previousTotal: number | null }>();
+  for (const row of requested) entries.set(row.id, { gameKey: row.game_id ?? row.id, previousTotal: null });
+  for (const ids of chunks(gameIds, 100)) {
+    const { data, error } = await db
+      .from("platform_games")
+      .select("id, game_id, platform")
+      .eq("user_id", userId)
+      .in("game_id", ids);
+    fail("read", error);
+    for (const row of (data ?? []) as typeof requested) {
+      if (platforms.has(row.platform)) {
+        entries.set(row.id, { gameKey: row.game_id ?? row.id, previousTotal: null });
+      }
+    }
+  }
+
+  // 3. Their per-day rows, resolved per game
+  const allIds = [...entries.keys()];
+  const dailyRows: Parameters<typeof resolveDailyRows>[0][number][] = [];
+  for (const ids of chunks(allIds, 100)) {
     const rows = await fetchAll<{
       platform_game_id: string;
       device_id: string;
@@ -329,41 +369,43 @@ export async function recomputeDailyTotals(
         .order("id")
         .range(from, to),
     );
-    const days = resolveDailyRows(
-      rows.map((r) => ({
+    for (const r of rows) {
+      dailyRows.push({
         platformGameId: r.platform_game_id,
+        gameKey: entries.get(r.platform_game_id)?.gameKey,
         deviceId: r.device_id,
         date: r.play_date,
         minutes: r.minutes,
         source: r.source,
-      })),
-    );
-    const totals = new Map<string, { minutes: number; first: string; last: string }>();
-    for (const day of days) {
-      const t = totals.get(day.platformGameId);
-      if (!t) {
-        totals.set(day.platformGameId, { minutes: day.minutes, first: day.date, last: day.date });
-      } else {
-        t.minutes += day.minutes;
-        if (day.date < t.first) t.first = day.date;
-        if (day.date > t.last) t.last = day.date;
-      }
+      });
     }
-    for (const id of ids) {
-      const t = totals.get(id);
-      if (!t) continue;
-      const { error } = await db
-        .from("platform_games")
-        .update({
+  }
+
+  const totals = new Map<string, { minutes: number; first: string; last: string }>();
+  for (const day of resolveDailyRows(dailyRows)) {
+    const t = totals.get(day.platformGameId);
+    if (!t) {
+      totals.set(day.platformGameId, { minutes: day.minutes, first: day.date, last: day.date });
+    } else {
+      t.minutes += day.minutes;
+      if (day.date < t.first) t.first = day.date;
+      if (day.date > t.last) t.last = day.date;
+    }
+  }
+
+  // 4. Write the totals. Entries whose rows no longer count drop to zero.
+  for (const id of allIds) {
+    const t = totals.get(id);
+    const patch = t
+      ? {
           total_playtime_minutes: t.minutes,
           // noon UTC keeps the calendar day stable in Europe/Zurich
           first_played_at: `${t.first}T12:00:00Z`,
           last_played_at: `${t.last}T12:00:00Z`,
-        })
-        .eq("id", id)
-        .eq("user_id", userId);
-      fail("playtime totals", error);
-    }
+        }
+      : { total_playtime_minutes: 0 };
+    const { error } = await db.from("platform_games").update(patch).eq("id", id).eq("user_id", userId);
+    fail("playtime totals", error);
   }
 }
 

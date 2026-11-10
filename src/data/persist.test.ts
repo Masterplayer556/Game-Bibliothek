@@ -192,16 +192,93 @@ describe("persistBatch on later runs", () => {
   });
 });
 
+describe("import and console data for the same game", () => {
+  const total = async (externalId: string) =>
+    (
+      await rows<{ total: number }>(
+        "select total_playtime_minutes as total from game_bibliothek.platform_games where external_id = $1",
+        [externalId],
+      )
+    )[0]?.total;
+
+  it("counts an overlapping day once, even when both sources created their own entry", async () => {
+    // 1. The history is imported first: the game only exists as an import entry.
+    await persistBatch(
+      db,
+      USER,
+      {
+        ...emptyBatch("nintendo", "nintendo-import"),
+        devices: [{ externalId: "import:switch-unknown", kind: "other", label: "Switch (unbekannt)" }],
+        games: [{ externalId: "import:testspiel-alpha", title: "Testspiel Alpha" }],
+        dailyPlaytime: [
+          { gameExternalId: "import:testspiel-alpha", deviceExternalId: "import:switch-unknown", date: "2026-11-01", minutes: 45 },
+          { gameExternalId: "import:testspiel-alpha", deviceExternalId: "import:switch-unknown", date: "2026-11-02", minutes: 60 },
+        ],
+      },
+      NOW,
+    );
+    expect(await total("import:testspiel-alpha")).toBe(105);
+
+    // 2. Later the console reports the same game under its real id, overlapping on one day.
+    await persistBatch(
+      db,
+      USER,
+      {
+        ...emptyBatch("nintendo", "nintendo-parental"),
+        devices: [{ externalId: "console-s2", kind: "switch2", label: "Switch 2" }],
+        games: [{ externalId: "0100TEST00000001", title: "Testspiel Alpha – Nintendo Switch 2 Edition" }],
+        dailyPlaytime: [
+          { gameExternalId: "0100TEST00000001", deviceExternalId: "console-s2", date: "2026-11-02", minutes: 58 },
+          { gameExternalId: "0100TEST00000001", deviceExternalId: "console-s2", date: "2026-11-03", minutes: 20 },
+        ],
+      },
+      NOW,
+    );
+
+    // Both entries belong to one game …
+    const linked = await rows<{ n: number }>(`
+      select count(distinct game_id)::int as n from game_bibliothek.platform_games
+      where external_id in ('import:testspiel-alpha', '0100TEST00000001')`);
+    expect(linked[0]!.n).toBe(1);
+    // … the console wins on 02.11., the import keeps 01.11.
+    expect(await total("0100TEST00000001")).toBe(78);
+    expect(await total("import:testspiel-alpha")).toBe(45);
+    // nothing was deleted: the import row is still stored
+    const stored = await rows(
+      "select 1 from game_bibliothek.daily_playtime where source = 'nintendo-import' and play_date = '2026-11-02'",
+    );
+    expect(stored).toHaveLength(1);
+  });
+
+  it("is safe to import the same file twice", async () => {
+    const batch: SyncBatch = {
+      ...emptyBatch("nintendo", "nintendo-import"),
+      games: [{ externalId: "import:testspiel-alpha", title: "Testspiel Alpha" }],
+      dailyPlaytime: [
+        { gameExternalId: "import:testspiel-alpha", deviceExternalId: "import:switch-unknown", date: "2026-11-01", minutes: 45 },
+      ],
+    };
+    await persistBatch(db, USER, batch, NOW);
+    await persistBatch(db, USER, batch, NOW);
+    expect(await total("import:testspiel-alpha")).toBe(45);
+    expect(await total("0100TEST00000001")).toBe(78);
+  });
+});
+
 describe("deleteDemoData", () => {
   it("removes demo rows and keeps real ones", async () => {
     await deleteDemoData(db);
     const left = await rows<{ source: string; n: number }>(
       "select source, count(*)::int as n from game_bibliothek.platform_games group by 1",
     );
-    expect(left).toEqual([{ source: "steam", n: 1 }]);
-    expect(await rows("select 1 from game_bibliothek.daily_playtime")).toHaveLength(0);
-    expect(await rows("select 1 from game_bibliothek.devices")).toHaveLength(0);
-    // the game the real Steam entry is linked to survives, leftovers are gone
-    expect(await rows("select 1 from game_bibliothek.games")).toHaveLength(1);
+    expect(left.sort((a, b) => a.source.localeCompare(b.source))).toEqual([
+      { source: "nintendo-import", n: 1 },
+      { source: "nintendo-parental", n: 1 },
+      { source: "steam", n: 1 },
+    ]);
+    expect(await rows("select 1 from game_bibliothek.daily_playtime where source = 'demo'")).toHaveLength(0);
+    expect(await rows("select 1 from game_bibliothek.devices where source = 'demo'")).toHaveLength(0);
+    // games that still have a real entry survive, leftovers are gone
+    expect(await rows("select 1 from game_bibliothek.games")).toHaveLength(2);
   });
 });

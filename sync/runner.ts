@@ -109,7 +109,7 @@ export async function runAdapters(options: RunOptions): Promise<AdapterRunResult
         lastError: null,
         dataSince: result.dataSince,
         tokenExpiresAt: result.tokenExpiresAt,
-        details: { warnings: result.warnings?.length ?? 0 },
+        details: { ...result.details, warnings: result.warnings ?? [] },
       });
       log.info(
         `${adapter.id}: ok (${summary.games} games, ${summary.newGames} new, ${summary.snapshots} snapshots, ` +

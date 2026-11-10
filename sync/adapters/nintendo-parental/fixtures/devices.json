@@ -1,0 +1,17 @@
+{
+  "ownedDevices": [
+    {
+      "deviceId": "aaaa1111bbbb2222",
+      "label": "Wohnzimmer",
+      "platformGeneration": "P01",
+      "parentalControlSettingState": { "updatedAt": 1794000000 },
+      "device": { "id": "aaaa1111bbbb2222", "platformGeneration": "P01", "timeZone": "Europe/Zurich" }
+    },
+    {
+      "deviceId": "cccc3333dddd4444",
+      "label": "Alte Switch",
+      "parentalControlSettingState": { "updatedAt": 1794000000 },
+      "device": { "id": "cccc3333dddd4444", "platformGeneration": "P00", "timeZone": "Europe/Zurich" }
+    }
+  ]
+}
