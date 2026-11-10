@@ -6,7 +6,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 | Phase | Inhalt | Status |
 |---|---|---|
-| 0 | Plan | fertig (10.11.2026), wartet auf OK und den Entscheid zum Historie-Import |
+| 0 | Plan | fertig (10.11.2026), wartet auf OK |
 | 1 | Grundgerüst | offen |
 | 2 | Nintendo | offen |
 | 3 | App mit Demo-Daten | offen |
@@ -51,10 +51,20 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 13. **Kein lokales Terminal nötig** (überschreibt `ARCHITECTURE.md`, wo `npm run setup:nintendo` noch der Hauptweg ist): Der Nintendo-Login läuft in der App über eine Edge Function. Demo-Daten laden, RLS-Prüfung und das Deployen der Edge Functions sind manuell startbare GitHub-Workflows. Die `npm`-Skripte bleiben als zweiter Weg bestehen.
 14. **Nintendo-Profile:** Alle Profile einer Konsole werden zusammengezählt, die Profil-ID wird mitgespeichert.
 
+15. **Alte Nintendo-Historie (von Marcel bestätigt, ihm wichtig):** Import aus der Nintendo-Store-App über die **Ansicht pro Spiel**. Layout laut Beispiel-Screenshots (10.11.2026):
+    - Kopf: Titel, «Zuerst gespielt», «Zuletzt gespielt», «Spieltage» (z. B. `316 T.`), «Spielzeit» (z. B. `685 Std. oder länger`, gerundet).
+    - Darunter Liste, eine Zeile pro Tag: links Datum `TT.MM.JJJJ`, rechts `1 Std. 15 Min.`, `45 Min.` oder `Für kurze Zeit` (unter 15 Minuten). Beim Scrollen bleibt der Titel oben stehen.
+    - Die Liste reicht bis zum ersten Spieltag zurück (im Beispiel 2021). Das Gerät steht nicht pro Tag dabei.
+    - Umsetzung: Texterkennung im Browser (`tesseract.js`), Eingabe als viele Screenshots **oder** als Bildschirmaufnahme beim Scrollen (Einzelbilder werden im Browser herausgezogen). Doppelte Tage sind harmlos (Schlüssel Spiel + Gerät + Tag).
+    - Kontrolle: Anzahl erkannter Tage gegen «Spieltage», Summe gegen «Spielzeit». Abweichungen werden angezeigt.
+    - `Für kurze Zeit` zählt als 5 Minuten und gilt als geschätzt.
+    - Einträge wie YouTube oder die Nintendo-64-App lassen sich als «kein Spiel» ausblenden.
+    - Geplant als eigener Schritt **nach Phase 3** (braucht die Oberfläche). Der Startwert pro Spiel von Hand bleibt als schnelle Alternative.
+
 ## Offene Punkte
 
-- [ ] **Entscheid von Marcel offen:** alte Nintendo-Historie. Vorschlag: (a) Startwert pro Spiel und Gerät von Hand, (b) Screenshot-Import mit Texterkennung direkt im Browser (`tesseract.js`), mit Kontrolltabelle vor dem Speichern. Kein Abtippen durch Claude im Chat. Dafür 2–3 Beispiel-Screenshots der «Spielaktivität» nötig.
 
+- [ ] Marcel: Wann kam die Switch 2 dazu, und hat das «…»-Menü der Store-App einen Konsolen-Filter? (Nötig, um importierte Tage einem Gerät zuzuordnen.)
 - [ ] Marcel: Supabase-Projekt anlegen (Region Zürich oder Frankfurt) und den Projektnamen nennen.
 - [ ] Marcel: Jugendschutz-App mit **beiden** Konsolen verknüpfen, möglichst bald, damit bis Phase 2 Daten da sind.
 - [ ] Phase 2: Einheit von `playingTime`, Anzahl Tage in `fetchDailySummaries` und Gültigkeit des Session-Tokens mit echten Daten prüfen.
