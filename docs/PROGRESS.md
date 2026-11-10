@@ -7,7 +7,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | Phase | Inhalt | Status |
 |---|---|---|
 | 0 | Plan | fertig (10.11.2026) |
-| 1 | Grundgerüst | fertig (10.11.2026), Einrichtung durch Marcel offen |
+| 1 | Grundgerüst | fertig und eingerichtet (10.11.2026) |
 | 2 | Nintendo | offen |
 | 3 | App mit Demo-Daten | offen |
 | 4 | Jahresrückblick | offen |
@@ -18,9 +18,23 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Nächster Schritt
 
-**Phase 2 – Nintendo**, sobald Marcel das OK gibt. Vorher sinnvoll: die offenen Schritte aus `SETUP-SUPABASE-GITHUB.md` (Schema freigeben, GitHub Pages, Secrets), damit Phase 2 gegen die echte Datenbank geprüft werden kann.
+**Phase 2 – Nintendo.** Alles ist vorbereitet; Start nach OK von Marcel.
 
-**Modell-Empfehlung:** Fable 5.2, `/effort high`. Begründung: inoffizielle Nintendo-API ohne echte Beispieldaten, Login über eine Edge Function und der Schutz vor Doppelzählungen beim Import.
+**Modell-Empfehlung:** Fable 5.2, `/effort high`. Begründung: inoffizielle Nintendo-API ohne echte Beispieldaten, Login über eine Edge Function und der Schutz vor Doppelzählungen beim Import. (Phase 0 und 1 liefen auf Fable; die Vorbereitung danach auf Opus 5.5.)
+
+### Plan für Phase 2
+
+1. **Client** `sync/adapters/nintendo-parental/client.ts`: Nintendo-Account-Login (PKCE, Client-ID `54789befb391a838`), Session-Token → Access-Token, Endpunkte der Jugendschutz-API v2 (siehe `ARCHITECTURE.md` Abschnitt 1). `fetch` wird übergeben, damit Tests ohne Netz laufen.
+2. **Adapter** `nintendo-parental`: Konsolen über `fetchOwnedDevices` (`platformGeneration` P00 = Switch 1, P01 = Switch 2), Tageswerte über `fetchDailySummaries`, ältere Monate über `fetchMonthlySummary`. Alle Profile einer Konsole zusammenzählen, Profil-ID in `details`. Kein `totalPlaytimeMinutes` (wird aus Tageswerten berechnet). Abgelaufener Session-Token → `AdapterError("auth_expired")`. In die Registry eintragen.
+3. **Login in der App** (kein Terminal): Edge Function `nintendo-login` erzeugt den Login-Link (PKCE-Verifier verschlüsselt zwischenspeichern), nimmt den kopierten `npf54789befb391a838://auth#…`-Link entgegen, tauscht ihn gegen den Session-Token und speichert ihn verschlüsselt in `platform_credentials`. Prüft Login-Token und erlaubte E-Mail selbst. Secrets der Function mit Präfix `GB_` (`GB_CREDENTIALS_ENCRYPTION_KEY`). Karte «Nintendo verbinden» auf der Startseite. `npm run setup:nintendo` als zweiter Weg.
+4. **Workflow** `.github/workflows/functions.yml`: deployt Edge Functions mit `SUPABASE_ACCESS_TOKEN` (projektbezogener Token, nur «Kalender / Game Bibliothek») und setzt die `GB_`-Secrets aus den GitHub-Secrets.
+5. **Import** `nintendo-import`: CSV-Vorlage (`Spiel;Datum;Minuten;Gerät`), Parser mit Tests, `Für kurze Zeit` = 5 Minuten geschätzt. Gerät: vor dem 13.06.2025 Switch 1, danach Gerät «Switch (unbekannt)», sofern nicht angegeben. Die Oberfläche (Screenshot/Video-Erkennung) kommt nach Phase 3; in Phase 2 nur Parser, Persistenz und Schutz vor Doppelzählungen.
+6. **Tests mit Fixtures** für Client, Adapter, Import; Fixtures nach den Datenformaten in `pynintendoparental` gebaut, nach dem ersten echten Sync mit (anonymisierten) echten Antworten ergänzen.
+7. **Doku**: `docs/SETUP-NINTENDO.md`, Abschnitt «Was spätere Phasen über Nintendo wissen müssen» unten in dieser Datei.
+
+### Für den Test mit echten Daten
+
+Nur die **Switch 2** ist (bzw. wird) verknüpft; auf der Switch 1 spielt Marcel nicht mehr. Mehrere Konsolen werden trotzdem unterstützt und mit Fixtures getestet. Die Jugendschutz-App zeichnet erst ab der Verknüpfung auf; Tage davor kommen aus dem Import.
 
 ## Was in Phase 1 gebaut wurde
 
@@ -40,7 +54,6 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 - Tailwind 4: Token-Namen dürfen sich zwischen den Gruppen nicht überschneiden (`--spacing-page` und `--container-page` kollidierten bei `max-w-page`).
 - `supabase/testing/database.ts` enthält einen kleinen Ersatz für den Supabase-Client. Er kann nur die Aufrufe, die `src/data` und `sync/store.ts` benutzen. Neue Abfrage-Arten dort ergänzen.
 - **Migration ausgeführt am 10.11.2026** (von Claude, per SQL, ohne Eintrag in der Migrations-Historie des Projekts, damit die Kalender-App nicht gestört wird). Geprüft: 11 Tabellen, überall RLS, keine Regel für `platform_credentials`, eine erlaubte E-Mail (der bestehende Nutzer des Projekts), Kalender-Tabellen unverändert. Spätere Migrationen genauso ausführen.
-- Der echte Weg über die Supabase-API (PostgREST) ist erst geprüft, wenn das Schema freigegeben ist: einmal «Demo-Daten laden» in der App und `check-rls`. Bis dahin meldet `check-rls` «schema is not exposed».
 - Sicherheitshinweise des Projekts nach der Migration: zwei Info-Meldungen «RLS ohne Regel» für `platform_credentials` und `allowed_emails` (beide gewollt) und die Warnung «Leaked Password Protection» (Projekt-Einstellung, bestand schon vorher).
 - Minecraft: Java Edition gibt es nicht auf Steam. In den Demo-Daten ist es ein manueller Eintrag (PC) und wird über den Titel mit Minecraft auf Switch und PS5 zusammengeführt.
 - Die Demo-Daten für Steam und PS5 sind Snapshots, die für Nintendo Tageswerte auf zwei Konsolen.
@@ -52,6 +65,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 - Supabase: **kein neues Projekt.** Beide Gratis-Projekte («Kalender (CC)», «Drive Pool») werden gebraucht. Game Bibliothek läuft im Projekt «Kalender / Game Bibliothek» (früher «Kalender (CC)», `vvgvlrwhnirooxoukbze`, Frankfurt) in eigenen Schemas mit.
 - Supabase-Regel (geändert am 10.11.2026): **Claude darf SQL selbst ausführen.** Nur was eine Bestätigung braucht oder scheitert, geht mit Link und Text an Marcel.
 - Edge Functions: per Workflow deployen. Öffentliche Werte in `.env.production`: in Ordnung.
+- Konsolen: Nur die **Switch 2** wird mit der Jugendschutz-App verknüpft, weil auf der Switch 1 nicht mehr gespielt wird. Die Switch 1 kann später jederzeit dazukommen.
 - Jugendschutz-App: **noch nicht** mit den Konsolen verknüpft
 - Profile: Nur Marcel spielt. Es gibt mehrere Konten auf den Konsolen, alle gehören ihm; aktuell nutzt er eines.
 - Bedienung: **alles über GitHub und die App, auch vom Handy.** Kein Node.js auf dem PC voraussetzen.
@@ -88,15 +102,20 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Offene Punkte
 
-
-- [ ] Marcel: Supabase-Projekt in «Kalender / Game Bibliothek» umbenennen (Project Settings → General). Claude kann das nicht.
-- [ ] Marcel: Schritte 2, 4 und 5 aus `SETUP-SUPABASE-GITHUB.md` (Schema `game_bibliothek` freigeben, GitHub Pages einschalten, Secrets setzen), danach Schritt 6 (Prüfen).
-- [ ] Phase 2: Workflow «Edge Functions deployen»; Secrets der Functions mit Präfix `GB_`.
-- [ ] Import nach dem 13.06.2025: Gerät ist unbekannt. Vorschlag für Phase 2: importierte Tage ab diesem Datum einem Gerät «Switch (unbekannt)» zuordnen, Jugendschutz-Daten haben ohnehin Vorrang.
-- [ ] Marcel: Jugendschutz-App mit **beiden** Konsolen verknüpfen, möglichst bald, damit bis Phase 2 Daten da sind.
 - [ ] Phase 2: Einheit von `playingTime`, Anzahl Tage in `fetchDailySummaries` und Gültigkeit des Session-Tokens mit echten Daten prüfen.
+- [ ] Phase 2: Import nach dem 13.06.2025 ohne Geräteangabe → Gerät «Switch (unbekannt)»; Jugendschutz-Daten haben Vorrang.
 - [ ] Phase 5 / 7: Steam-Cover-Adressen und IGDB-Rate-Limit prüfen (in Phase 0 nicht neu recherchiert).
 - [ ] Phase 8: Selbst-Wiedereinschalten des Cron-Workflows testen (60-Tage-Regel).
+- [ ] Nach Phase 3: Import der Nintendo-Store-Historie per Screenshot/Video (siehe Entscheidung 15).
+- [ ] Optional, Marcel: Schutz gegen geleakte Passwörter im Supabase-Projekt einschalten (betrifft auch den Kalender).
+
+## Einrichtung (erledigt am 10.11.2026)
+
+- Supabase-Projekt «Kalender / Game Bibliothek» (`vvgvlrwhnirooxoukbze`): Migration `0001_init.sql` ausgeführt, erlaubte E-Mail eingetragen, Schema `game_bibliothek` in der Data API freigegeben.
+- `check-rls` von aussen: alle 11 Tabellen und `delete_demo_data()` ohne Login gesperrt.
+- GitHub Pages aktiv: <https://masterplayer556.github.io/Game-Bibliothek/>. Login am Handy funktioniert.
+- Demo-Daten über die App geladen (37 Spiele, 41 Plattform-Einträge, 337 Tageswerte, 614 Snapshots, 849 Erfolge, 2 Geräte). Damit ist auch der Weg über die echte Supabase-API geprüft.
+- GitHub-Secrets gesetzt: `SUPABASE_SECRET_KEY`, `CREDENTIALS_ENCRYPTION_KEY`, `SUPABASE_ACCESS_TOKEN` (projektbezogen, nur dieses Projekt).
 
 ## Was spätere Phasen über Nintendo wissen müssen
 
