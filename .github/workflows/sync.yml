@@ -1,0 +1,54 @@
+name: Sync
+
+# Manual start only for now. The schedule (every 6 hours) is added in phase 8.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "sync = Daten holen, test = nur Verbindung testen"
+        type: choice
+        options: [sync, test]
+        default: sync
+      adapter:
+        description: "Nur diesen Adapter (leer = alle), z. B. steam"
+        type: string
+        default: ""
+      run_id:
+        description: "Intern: ID aus sync_runs (wird von der App gesetzt)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The script logs counts and states only: logs of a public repository are public.
+      - name: Run sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.CREDENTIALS_ENCRYPTION_KEY }}
+          ALLOWED_EMAIL: ${{ secrets.ALLOWED_EMAIL }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          STEAM_ID: ${{ secrets.STEAM_ID }}
+          IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_ADAPTER: ${{ inputs.adapter }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          npm run sync -- --mode="$INPUT_MODE" --adapter="$INPUT_ADAPTER" --run-id="$INPUT_RUN_ID" --trigger=manual

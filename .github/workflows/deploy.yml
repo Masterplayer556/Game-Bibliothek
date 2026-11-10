@@ -1,0 +1,51 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Public values only. Repository variables win over the committed .env.production.
+      - name: Public build settings
+        env:
+          BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          SB_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          SB_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          echo "NEXT_PUBLIC_BASE_PATH=${BASE_PATH:-/$REPO_NAME}" >> "$GITHUB_ENV"
+          if [ -n "$SB_URL" ]; then echo "NEXT_PUBLIC_SUPABASE_URL=$SB_URL" >> "$GITHUB_ENV"; fi
+          if [ -n "$SB_KEY" ]; then echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$SB_KEY" >> "$GITHUB_ENV"; fi
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

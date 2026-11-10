@@ -218,3 +218,17 @@ Einen einfacheren Weg ohne Edge Functions gibt es nicht: Der GitHub-Token und de
 | Sony ändert den NPSSO-Weg | mittel | Nur `psn-api` nutzen, Fehler klar anzeigen |
 | Öffentliche Actions-Logs verraten Daten | hoch, wenn man nicht aufpasst | Logger schreibt nur Zahlen (Abschnitt 4) |
 | Jemand registriert sich in deinem Supabase-Projekt | hoch, wenn vergessen | Registrierung ausschalten ist Schritt 1 der Anleitung; RLS prüft zusätzlich die E-Mail |
+
+---
+
+## 11. Änderungen seit Phase 0
+
+Diese Punkte gelten vor dem Text weiter oben.
+
+- **Kein Terminal nötig.** Der Nintendo-Login läuft in der App über eine Edge Function statt über `npm run setup:nintendo`. Demo-Daten lädt ein Knopf in der App. Sync, Sicherheitsprüfung und Demo-Daten gibt es zusätzlich als manuell startbare Workflows.
+- **Öffentliche Werte im Repo.** Adresse und öffentlicher Schlüssel des Supabase-Projekts stehen in `.env.production`. GitHub-Variablen mit demselben Namen haben Vorrang.
+- **Adapter-Katalog.** `src/core/adapter-catalog.ts` beschreibt alle Quellen einmal, für App und Sync. Die Registry (`sync/registry.ts`) enthält nur die fertigen Adapter.
+- **Snapshots speichern «zuletzt gespielt»** (`playtime_snapshots.last_played_at`). Nur so lässt sich Regel 3 der Spielzeit auch für ältere Abschnitte anwenden.
+- **Import ist geräteunabhängig.** Die Nintendo-Store-Historie kennt kein Gerät pro Tag. Hat eine andere Quelle für dasselbe Spiel und denselben Tag Daten, zählt der Import-Wert nicht, egal auf welchem Gerät. Ein Import übernimmt nie einen bestehenden Eintrag.
+- **Persistenz in `src/data/persist.ts`.** Dieselbe Funktion schreibt für das Sync-Skript, die Demo-Daten im Browser und später den Import.
+- **Tests gegen echtes Postgres.** Migration, Row Level Security und Persistenz laufen in den Tests gegen eine Postgres-Instanz im Speicher (PGlite).
