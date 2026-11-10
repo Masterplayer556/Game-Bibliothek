@@ -1,7 +1,11 @@
 name: Sync
 
-# Manual start only for now. The schedule (every 6 hours) is added in phase 8.
+# Runs every 6 hours and can be started by hand from the Actions tab.
+# Note: GitHub pauses schedules in public repositories after 60 days without repository
+# activity; the safeguard against that follows in phase 8.
 on:
+  schedule:
+    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -54,5 +58,6 @@ jobs:
           INPUT_MODE: ${{ inputs.mode }}
           INPUT_ADAPTER: ${{ inputs.adapter }}
           INPUT_RUN_ID: ${{ inputs.run_id }}
+          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: |
-          npm run sync -- --mode="$INPUT_MODE" --adapter="$INPUT_ADAPTER" --run-id="$INPUT_RUN_ID" --trigger=manual
+          npm run sync -- --mode="${INPUT_MODE:-sync}" --adapter="$INPUT_ADAPTER" --run-id="$INPUT_RUN_ID" --trigger="$TRIGGER"
