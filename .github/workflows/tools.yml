@@ -1,0 +1,41 @@
+name: Tools
+
+# Helpers that would otherwise need a terminal. Start them from the Actions tab.
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "check-rls = Sicherheit prüfen, seed-demo = Demo-Daten laden, clear-demo = Demo-Daten löschen"
+        type: choice
+        options: [check-rls, seed-demo, clear-demo]
+        default: check-rls
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run task
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ALLOWED_EMAIL: ${{ secrets.ALLOWED_EMAIL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          TASK: ${{ inputs.task }}
+        run: |
+          case "$TASK" in
+            check-rls) npm run check:rls ;;
+            seed-demo) npm run seed:demo ;;
+            clear-demo) npm run clear:demo ;;
+            *) echo "Unknown task"; exit 1 ;;
+          esac
