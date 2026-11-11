@@ -76,12 +76,13 @@ describe("demo data", () => {
       for (const game of batch.games) {
         const snapshots = batch
           .snapshots!.filter((s) => s.gameExternalId === game.externalId)
-          .map((s) => ({ platformGameId: game.externalId, takenAt: s.takenAt, totalMinutes: s.totalMinutes }));
+          .map((s) => ({ platformGameId: game.externalId, takenAt: s.takenAt, totalMinutes: s.totalMinutes, lastPlayedAt: s.lastPlayedAt }));
         const { days, warnings } = snapshotsToDays(snapshots);
         expect(warnings).toEqual([]);
         const played = days.reduce((sum, d) => sum + d.minutes, 0);
         expect(snapshots[0]!.totalMinutes + played).toBe(game.totalPlaytimeMinutes);
-        expect(days.every((d) => !d.estimated || d.minutes > 0)).toBe(true);
+        // the demo knows when each session happened, so nothing is estimated
+        expect(days.every((d) => !d.estimated)).toBe(true);
       }
     }
   });

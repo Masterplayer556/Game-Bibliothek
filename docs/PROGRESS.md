@@ -8,8 +8,8 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 |---|---|---|
 | 0 | Plan | fertig (10.11.2026) |
 | 1 | Grundgerüst | fertig und eingerichtet (10.11.2026) |
-| 2 | Nintendo | gebaut (10.11.2026), Test mit echten Daten offen |
-| 3 | App mit Demo-Daten | offen |
+| 2 | Nintendo | fertig (10.11.2026); Login und erster Sync mit echter Switch 2 erfolgreich, Prüfung echter Spielzeiten offen |
+| 3 | App mit Demo-Daten | fertig (11.11.2026) |
 | 4 | Jahresrückblick | offen |
 | 5 | Steam | offen |
 | 6 | PSN | offen |
@@ -18,13 +18,28 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Nächster Schritt
 
-1. **Marcel:** Workflow «Edge Functions deployen» starten, in der App «Nintendo verbinden», dann Workflow «Sync» starten (Anleitung: `SETUP-NINTENDO.md`).
-2. **Claude:** nach dem ersten echten Sync die offenen Nintendo-Punkte prüfen (siehe unten) und nötigenfalls korrigieren.
-3. Danach **Phase 3 – App mit Demo-Daten**.
+**Phase 4 – Jahresrückblick** («Game Bibliothek Wrapped») mit Demo-Daten, inklusive Bild-Export der Karten.
 
-**Modell-Empfehlung:**
-- Für die Prüfung mit echten Nintendo-Daten (Schritt 2): Fable 5.2, `/effort high`, falls der erste Sync scheitert oder die Zahlen nicht stimmen. Läuft er sauber durch, reicht Opus 5.5.
-- Für Phase 3: Opus 5.5, `/effort high`. Klar beschriebene UI-Seiten auf fertiger Logik.
+Nebenbei, sobald Marcel auf der Switch 2 gespielt hat: echte Nintendo-Daten prüfen (Titel, Einheit, Tage), siehe «Noch nicht mit echten Daten geprüft» unten.
+
+**Modell-Empfehlung:** Opus 5.5, `/effort high`. Klar beschriebene Seite auf fertiger Logik (`src/core/library.ts`).
+
+## Was in Phase 3 gebaut wurde
+
+- **Seiten** (`src/app/*/page.tsx`): Übersicht (`/`), Bibliothek, Spiel-Detail (`/spiel/?id=…`), Statistiken, Pile of Shame, Erfolge, Hinzufügen, Plattformen. Navigation und Login in `src/components/AppShell.tsx` (im Layout).
+- **Daten**: `src/lib/library-data.ts` lädt alle Tabellen einmal (`loadRawData`) und enthält alle Schreib-Aktionen (Status/Favorit/Notiz, Einstellungen, Zusammenführen, Abtrennen, manuell hinzufügen/löschen, Demo-Daten). `LibraryProvider` hält die Daten, `LibraryGate` zeigt Laden/Fehler.
+- **Rechenkern** `src/core/library.ts` (rein, getestet): Spiele aus Plattform-Einträgen, gespielte Tage (über `buildPlayedDays`, `gameKey = game_id`), Top-Spiele, Verteilung nach Plattform/Gerät/Genre, Verlauf pro Woche/Monat, Pile of Shame, Filter/Sortierung, Spielzeit pro Gerät, veraltete Syncs. Für Phase 4 direkt wiederverwenden.
+- **Diagramme**: Recharts für den Verlauf, HTML-Balken für Anteile (`src/components/charts.tsx`). Farben als Tokens in `tokens.css` (`--color-chart-1…8`, `--color-platform-*`, `--color-device-*`), Palette mit dem Validator für die dunkle Fläche geprüft. Jeder Verlauf hat eine Tabellenansicht.
+- **Plattformen-Seite**: Status pro Quelle, Anleitungs-Links, Nintendo verbinden, Historie importieren, Demo-Daten, Schlüssel, Abmelden. «Jetzt synchronisieren» verlinkt bis Phase 8 auf den GitHub-Workflow.
+- **Warnung** auf der Übersicht, wenn eine verbundene Quelle seit über 24 Stunden keinen erfolgreichen Sync hatte.
+
+### Hinweise für spätere Phasen
+
+- `tokens.css` nutzt `@theme static`: Tailwind 4 würde sonst Farbvariablen entfernen, die nur per `var(--…)` im Code vorkommen.
+- **Geändert: Regel «geschätzt»** (`src/core/playtime`): Ein Snapshot-Tag gilt nur noch als geschätzt, wenn die Plattform kein «zuletzt gespielt» im Intervall liefert **und** die Lücke über 48 Stunden ist. Grund: Snapshots werden nur bei Änderung gespeichert, lange Lücken sind normal. Steam (Phase 5) und PSN (Phase 6) müssen darum `lastPlayedAt` liefern.
+- Snapshots aus Batches (`SyncBatch.snapshots`) können jetzt `lastPlayedAt` mitgeben.
+- Genres und «Anderes Spiel wählen» (IGDB) sind als Platzhalter eingebaut und kommen in Phase 7.
+- Die Bibliothek lädt alles in den Browser. Bei einigen tausend Tageswerten kein Problem; erst bei sehr vielen Jahren Daten über serverseitige Summen nachdenken.
 
 ## Was in Phase 2 gebaut wurde
 

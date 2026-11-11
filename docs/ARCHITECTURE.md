@@ -237,3 +237,5 @@ Diese Punkte gelten vor dem Text weiter oben.
 - **Doppelzählung pro Spiel statt pro Eintrag.** Import und Konsole können für dasselbe Spiel getrennte Plattform-Einträge haben. Welche Tageswerte zählen, entscheidet darum das verknüpfte Spiel (`gameKey = game_id`).
 - **Geteilter Code für Edge Functions.** `src/core/crypto.ts` und `src/core/nintendo/*.ts` importieren nichts und werden vom Deploy-Workflow nach `supabase/functions/_shared/` kopiert. So gibt es Login-Logik und Verschlüsselung nur einmal.
 - **Erlaubte E-Mail in Edge Functions:** über `game_bibliothek.is_allowed_email()`, nur für die Service-Rolle aufrufbar. Ein Secret `ALLOWED_EMAIL` für die Functions entfällt.
+- **Regel «geschätzt» verfeinert** (Phase 3): Weil Snapshots nur bei Änderung gespeichert werden, ist eine lange Lücke zwischen zwei Snapshots normal. Geschätzt ist ein Tag nur, wenn zusätzlich «zuletzt gespielt» nicht im Intervall liegt. Abschnitt 5, Regel 3 ist entsprechend zu lesen.
+- **Alle Statistiken im Browser** (Phase 3): `src/lib/library-data.ts` lädt alle Tabellen, `src/core/library.ts` rechnet. Keine Datenbank-Views nötig.

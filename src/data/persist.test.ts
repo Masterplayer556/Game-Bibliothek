@@ -86,8 +86,8 @@ describe("persistBatch with demo data", () => {
   });
 
   it("produces snapshot history that adds up to the lifetime total", async () => {
-    const snapshots = await rows<{ platform_game_id: string; taken_at: Date; total_minutes: number }>(
-      "select platform_game_id, taken_at, total_minutes from game_bibliothek.playtime_snapshots",
+    const snapshots = await rows<{ platform_game_id: string; taken_at: Date; total_minutes: number; last_played_at: Date | null }>(
+      "select platform_game_id, taken_at, total_minutes, last_played_at from game_bibliothek.playtime_snapshots",
     );
     const { days, warnings } = buildPlayedDays({
       dailyRows: [],
@@ -95,11 +95,13 @@ describe("persistBatch with demo data", () => {
         platformGameId: s.platform_game_id,
         takenAt: new Date(s.taken_at).toISOString(),
         totalMinutes: s.total_minutes,
+        lastPlayedAt: s.last_played_at ? new Date(s.last_played_at).toISOString() : null,
       })),
     });
     expect(warnings).toEqual([]);
     expect(days.length).toBeGreaterThan(300);
-    expect(days.some((d) => d.estimated)).toBe(true); // long pauses between sessions
+    // long pauses between sessions are fine: the stored play time places each session
+    expect(days.some((d) => d.estimated)).toBe(false);
   });
 
   it("keeps achievements and marks platforms without any as null", async () => {
