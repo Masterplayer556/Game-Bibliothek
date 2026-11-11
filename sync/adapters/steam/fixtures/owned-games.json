@@ -1,0 +1,11 @@
+{
+  "response": {
+    "game_count": 4,
+    "games": [
+      { "appid": 730, "name": "Counter-Strike 2", "playtime_forever": 8210, "img_icon_url": "abc", "has_community_visible_stats": true, "playtime_windows_forever": 8210, "rtime_last_played": 1794340800, "playtime_disconnected": 0 },
+      { "appid": 322500, "name": "SUPERHOT", "playtime_forever": 262, "img_icon_url": "def", "has_community_visible_stats": true, "rtime_last_played": 1751400000 },
+      { "appid": 3480, "name": "Peggle Deluxe", "playtime_forever": 340, "img_icon_url": "ghi", "rtime_last_played": 1700000000 },
+      { "appid": 1222140, "name": "Detroit: Become Human", "playtime_forever": 0, "img_icon_url": "jkl", "has_community_visible_stats": true, "rtime_last_played": 0 }
+    ]
+  }
+}

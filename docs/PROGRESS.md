@@ -11,18 +11,27 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 2 | Nintendo | fertig (10.11.2026); Login und erster Sync mit echter Switch 2 erfolgreich, Prüfung echter Spielzeiten offen |
 | 3 | App mit Demo-Daten | fertig (11.11.2026) |
 | 4 | Jahresrückblick | fertig (11.11.2026) |
-| 5 | Steam | offen |
+| 5 | Steam | gebaut (11.11.2026), Verbindung mit echtem Konto offen |
 | 6 | PSN | offen |
 | 7 | IGDB | offen |
 | 8 | Betrieb | offen |
 
 ## Nächster Schritt
 
-**Phase 5 – Steam-Adapter** mit Tests (Fixtures). Marcel braucht dafür `STEAM_API_KEY` und `STEAM_ID` als GitHub-Secrets (Anleitung `SETUP-STEAM.md` wird in Phase 5 geschrieben).
+1. **Marcel:** Steam-Secrets eintragen (`SETUP-STEAM.md`), dann Workflow «Sync» mit Modus `test` und Adapter `steam`, danach `sync`.
+2. **Claude:** ersten echten Steam-Sync in der Datenbank prüfen (Anzahl Spiele, Spielzeiten, Erfolge, Cover).
+3. **Phase 6 – PSN** mit Token-Rotation und Edge Function `save-credential`.
 
-Nebenbei, sobald Marcel auf der Switch 2 gespielt hat: echte Nintendo-Daten prüfen (Titel, Einheit, Tage), siehe «Noch nicht mit echten Daten geprüft» unten.
+**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 6. Bei Problemen mit der Token-Rotation von Sony: Fable 5.2, `/effort high`.
 
-**Modell-Empfehlung:** Opus 5.5, `/effort high`. Offizielle, gut dokumentierte API; Adapter-Schnittstelle, Runner und Persistenz stehen.
+## Was in Phase 5 gebaut wurde
+
+- **Steam-Client** `sync/adapters/steam/client.ts`: `GetOwnedGames` (inkl. kostenlose gespielte Spiele), `ResolveVanityURL` (STEAM_ID darf Zahl, Profilname oder Link sein), `GetPlayerAchievements`, `GetSchemaForGame` (deutsche Namen), `GetGlobalAchievementPercentagesForApp` (Seltenheit, liefert Prozent als Text). Der Key steht in der URL (Steam verlangt das); URLs werden nie geloggt.
+- **Adapter** `steam`: Gesamtspielzeit und «zuletzt gespielt» pro Spiel → Snapshots; Cover `shared.akamai.steamstatic.com/store_item_assets/steam/apps/<id>/header.jpg`; `data_since` = erster Sync.
+- **Erfolge sparsam:** nur für Spiele mit Stats und Spielzeit, beim ersten Lauf alle, danach nur bei geänderter Spielzeit; höchstens 150 Spiele pro Lauf, der Rest beim nächsten Sync. Spiele ohne Stats → `null` (keine Erfolge), unveränderte Spiele → bisherige Werte bleiben.
+- `GetRecentlyPlayedGames` wird nicht gebraucht: `GetOwnedGames` liefert «zuletzt gespielt» schon für jedes Spiel.
+- **Rückblick:** Das laufende Jahr erscheint erst ab Dezember (Wunsch von Marcel, `CURRENT_YEAR_OPENS_IN_MONTH` in `src/core/wrapped.ts`).
+- Anleitung `docs/SETUP-STEAM.md`.
 
 ## Was in Phase 4 gebaut wurde
 

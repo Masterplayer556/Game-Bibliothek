@@ -1,0 +1,12 @@
+{
+  "playerstats": {
+    "steamID": "76561190000000000",
+    "gameName": "SUPERHOT",
+    "achievements": [
+      { "apiname": "ACH_SUBWAY", "achieved": 1, "unlocktime": 1700001000 },
+      { "apiname": "ACH_BULLET_SHOT", "achieved": 1, "unlocktime": 1700002000 },
+      { "apiname": "ACH_HALL_OF_FAME", "achieved": 0, "unlocktime": 0 }
+    ],
+    "success": true
+  }
+}

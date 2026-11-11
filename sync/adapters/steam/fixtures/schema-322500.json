@@ -1,0 +1,12 @@
+{
+  "game": {
+    "gameName": "SUPERHOT",
+    "availableGameStats": {
+      "achievements": [
+        { "name": "ACH_SUBWAY", "defaultvalue": 0, "displayName": "U-Bahn", "hidden": 0, "description": "Überlebe die U-Bahn.", "icon": "https://example.invalid/a.jpg", "icongray": "https://example.invalid/a-gray.jpg" },
+        { "name": "ACH_BULLET_SHOT", "defaultvalue": 0, "displayName": "Kugel getroffen", "hidden": 0, "icon": "https://example.invalid/b.jpg" },
+        { "name": "ACH_HALL_OF_FAME", "defaultvalue": 0, "displayName": "Ruhmeshalle", "hidden": 1, "description": "", "icon": "https://example.invalid/c.jpg" }
+      ]
+    }
+  }
+}
