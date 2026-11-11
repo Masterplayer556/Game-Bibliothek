@@ -16,7 +16,7 @@ import { guideUrl, workflowUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 
 /** Adapters up to this phase exist. */
-const BUILT_UP_TO_PHASE = 2;
+const BUILT_UP_TO_PHASE = 5;
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",

@@ -17,11 +17,16 @@ function WrappedContent() {
     <LibraryGate>
       {({ library, raw }) => {
         const today = toLocalDate(new Date());
-        const years = availableYears(library.days);
+        const years = availableYears(library.days, today);
+        const currentYear = Number(today.slice(0, 4));
         if (years.length === 0) {
           return (
             <Card title="Jahresrückblick">
-              <Notice>Noch keine Spielzeit erfasst. Lade Demo-Daten oder verbinde eine Plattform.</Notice>
+              <Notice>
+                {library.days.length === 0
+                  ? "Noch keine Spielzeit erfasst. Lade Demo-Daten oder verbinde eine Plattform."
+                  : `Der Rückblick auf ${currentYear} erscheint im Dezember.`}
+              </Notice>
             </Card>
           );
         }
@@ -46,8 +51,9 @@ function WrappedContent() {
                 ))}
               </select>
             </div>
-            {year === Number(today.slice(0, 4)) ? (
-              <Notice>Das Jahr läuft noch: Stand heute.</Notice>
+            {year === currentYear ? <Notice>Das Jahr läuft noch: Stand heute.</Notice> : null}
+            {!years.includes(currentYear) && library.days.some((d) => d.date.startsWith(String(currentYear))) ? (
+              <Notice>Der Rückblick auf {currentYear} erscheint im Dezember.</Notice>
             ) : null}
             <WrappedCards key={year} wrapped={wrapped} library={library} />
           </>

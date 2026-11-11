@@ -44,8 +44,11 @@ describe("yearRange and availableYears", () => {
     expect(yearRange(2025, "2026-11-11")).toEqual({ from: "2025-01-01", to: "2025-12-31" });
   });
 
-  it("lists years with data, newest first", () => {
-    expect(availableYears([day("2025-03-01", 1), day("2026-01-01", 1), day("2025-05-01", 1)])).toEqual([2026, 2025]);
+  it("lists years with data, newest first, and the running year only from December", () => {
+    const days = [day("2025-03-01", 1), day("2026-01-01", 1), day("2025-05-01", 1)];
+    expect(availableYears(days, "2026-11-30")).toEqual([2025]);
+    expect(availableYears(days, "2026-12-01")).toEqual([2026, 2025]);
+    expect(availableYears(days, "2027-01-15")).toEqual([2026, 2025]);
   });
 });
 

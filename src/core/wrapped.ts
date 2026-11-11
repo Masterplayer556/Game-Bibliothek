@@ -67,9 +67,19 @@ export function yearRange(year: number, today: LocalDate): Range {
   return { from, to: end < today ? end : today };
 }
 
-/** Years that have at least one played day, newest first. */
-export function availableYears(days: readonly GameDay[]): number[] {
-  return [...new Set(days.map((d) => Number(d.date.slice(0, 4))))].sort((a, b) => b - a);
+/** The review of the running year opens in this month (December). */
+export const CURRENT_YEAR_OPENS_IN_MONTH = 12;
+
+/**
+ * Years that have at least one played day, newest first. The running year only appears
+ * from December on, so the review is not shown while most of the year is still ahead.
+ */
+export function availableYears(days: readonly GameDay[], today: LocalDate): number[] {
+  const currentYear = Number(today.slice(0, 4));
+  const currentOpen = Number(today.slice(5, 7)) >= CURRENT_YEAR_OPENS_IN_MONTH;
+  return [...new Set(days.map((d) => Number(d.date.slice(0, 4))))]
+    .filter((y) => y < currentYear || (y === currentYear && currentOpen))
+    .sort((a, b) => b - a);
 }
 
 export function longestStreak(days: readonly GameDay[], range: Range): StreakResult | null {
