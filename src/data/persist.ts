@@ -235,7 +235,7 @@ export async function persistBatch(
       platform_game_id: idOf(snapshot.gameExternalId, "Snapshot"),
       taken_at: snapshot.takenAt,
       total_minutes: snapshot.totalMinutes,
-      last_played_at: null,
+      last_played_at: snapshot.lastPlayedAt ?? null,
       source: batch.source,
     });
   }

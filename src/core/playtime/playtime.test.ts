@@ -78,7 +78,15 @@ describe("snapshotsToDays", () => {
     expect(days[0]?.minutes).toBe(15);
   });
 
-  it("flags gaps over 48 hours as estimated and does not spread them", () => {
+  it("does not flag a long gap when the platform says when it was played", () => {
+    const { days } = snapshotsToDays([
+      snap("2026-03-01T10:00:00Z", 100),
+      snap("2026-03-08T10:00:00Z", 400, "2026-03-07T19:00:00Z"),
+    ]);
+    expect(days[0]).toMatchObject({ date: "2026-03-07", minutes: 300, estimated: false });
+  });
+
+  it("flags gaps over 48 hours without a known play time as estimated and does not spread them", () => {
     const { days } = snapshotsToDays([
       snap("2026-03-01T10:00:00Z", 100),
       snap("2026-03-08T10:00:00Z", 400),

@@ -81,6 +81,7 @@ export interface SnapshotInput {
   gameExternalId: string;
   takenAt: string;
   totalMinutes: number;
+  lastPlayedAt?: string | null;
 }
 
 export interface AchievementInput {

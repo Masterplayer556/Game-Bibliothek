@@ -136,7 +136,12 @@ function lifetimeBatch(
     for (const session of sessions) {
       total += session.minutes;
       // 20:00 UTC is the same evening in Europe/Zurich, summer and winter.
-      batch.snapshots.push({ gameExternalId: externalId, takenAt: `${session.date}T20:00:00Z`, totalMinutes: total });
+      batch.snapshots.push({
+        gameExternalId: externalId,
+        takenAt: `${session.date}T20:00:00Z`,
+        totalMinutes: total,
+        lastPlayedAt: `${session.date}T19:30:00Z`,
+      });
     }
 
     const lastDate = sessions.at(-1)?.date;

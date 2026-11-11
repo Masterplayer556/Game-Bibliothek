@@ -4,8 +4,11 @@
 // 2. The difference between two snapshots is played time. Negative differences count as 0
 //    and are reported.
 // 3. A difference is assigned to the day of `lastPlayedAt` if that lies between the two
-//    snapshots, otherwise to the day of the later snapshot. Gaps over 48 hours are flagged
-//    as estimated. Time is never spread across days (that would invent play days).
+//    snapshots, otherwise to the day of the later snapshot. Snapshots are only stored when
+//    the total changes, so a long gap between two of them is normal and not uncertain in
+//    itself. A day is flagged as estimated only when the platform did not say when it was
+//    played (no `lastPlayedAt` inside the interval) and the gap is over 48 hours.
+//    Time is never spread across days (that would invent play days).
 // 4. Real per-day data wins over snapshots. The two are never added together.
 // 5. Overlapping per-day sources: an import (Nintendo Store history) is a per-game, per-day
 //    value without a reliable device. If any native source has data for the same game and
@@ -87,7 +90,7 @@ export function snapshotsToDays(snapshots: readonly SnapshotRow[]): {
     const lastPlayed = cur.lastPlayedAt ? new Date(cur.lastPlayedAt).getTime() : NaN;
     const lastPlayedInside = lastPlayed > prevTime && lastPlayed <= curTime;
     const date = toLocalDate(lastPlayedInside ? lastPlayed : curTime);
-    const estimated = curTime - prevTime > ESTIMATE_GAP_MS;
+    const estimated = !lastPlayedInside && curTime - prevTime > ESTIMATE_GAP_MS;
 
     const existing = byDate.get(date);
     if (existing) {
