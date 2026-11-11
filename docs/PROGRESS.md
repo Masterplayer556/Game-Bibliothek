@@ -10,7 +10,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 1 | Grundgerüst | fertig und eingerichtet (10.11.2026) |
 | 2 | Nintendo | fertig (10.11.2026); Login und erster Sync mit echter Switch 2 erfolgreich, Prüfung echter Spielzeiten offen |
 | 3 | App mit Demo-Daten | fertig (11.11.2026) |
-| 4 | Jahresrückblick | offen |
+| 4 | Jahresrückblick | fertig (11.11.2026) |
 | 5 | Steam | offen |
 | 6 | PSN | offen |
 | 7 | IGDB | offen |
@@ -18,11 +18,25 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Nächster Schritt
 
-**Phase 4 – Jahresrückblick** («Game Bibliothek Wrapped») mit Demo-Daten, inklusive Bild-Export der Karten.
+**Phase 5 – Steam-Adapter** mit Tests (Fixtures). Marcel braucht dafür `STEAM_API_KEY` und `STEAM_ID` als GitHub-Secrets (Anleitung `SETUP-STEAM.md` wird in Phase 5 geschrieben).
 
 Nebenbei, sobald Marcel auf der Switch 2 gespielt hat: echte Nintendo-Daten prüfen (Titel, Einheit, Tage), siehe «Noch nicht mit echten Daten geprüft» unten.
 
-**Modell-Empfehlung:** Opus 5.5, `/effort high`. Klar beschriebene Seite auf fertiger Logik (`src/core/library.ts`).
+**Modell-Empfehlung:** Opus 5.5, `/effort high`. Offizielle, gut dokumentierte API; Adapter-Schnittstelle, Runner und Persistenz stehen.
+
+## Was in Phase 4 gebaut wurde
+
+- **Seite** `/rueckblick/?year=…` (Navigation «Rückblick»): Karten im Story-Format (9:16) zum Wischen oder mit Pfeilen, Jahr wählbar.
+- **Karten**: Jahr und Spielzeit, Vergleich Vorjahr, Top 5, Lieblingsplattform und -gerät, Lieblings-Genre (Platzhalter bis IGDB), Rekordtag und längste Serie, neu angefangene Spiele, Erfolge und seltenste Trophäe, aus dem Pile of Shame geholt, Hinweis auf nicht ganz erfasste Plattformen.
+- **Rechenkern** `src/core/wrapped.ts` (rein, getestet): `buildWrapped`, `longestStreak`, `bestDay`, `availableYears`, `yearRange`.
+- **Bild-Export** `src/lib/export-image.ts` (Bibliothek `html-to-image`, MIT): PNG in dreifacher Auflösung; am Handy über «Teilen», sonst als Download. Die Karten enthalten bewusst keine Cover-Bilder: Fremde Bilder ohne CORS würden den Export verhindern.
+- **Markierungen**: * auf einer Karte heisst geschätzt; ein Vorjahr mit Lücken wird als «nur teilweise erfasst» genannt.
+
+### Regeln im Jahresrückblick
+
+- «Neu angefangen» = erstes Spieldatum (über alle Plattformen) im gewählten Jahr.
+- «Aus dem Pile of Shame geholt» = vor dem 1. Januar schon angespielt, aber unter der Pile-Grenze, und im Jahr darüber. Nie gespielte Spiele zählen nicht, weil ohne Kaufdatum nicht erkennbar ist, ob sie schon auf dem Stapel lagen. Liefert PSN (Phase 6) ein Kaufdatum, kann die Regel erweitert werden.
+- Das laufende Jahr zählt bis heute.
 
 ## Was in Phase 3 gebaut wurde
 
