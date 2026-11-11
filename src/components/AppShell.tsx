@@ -15,6 +15,7 @@ const NAV = [
   { href: "/statistiken/", label: "Statistiken" },
   { href: "/pile-of-shame/", label: "Pile of Shame" },
   { href: "/erfolge/", label: "Erfolge" },
+  { href: "/rueckblick/", label: "Rückblick" },
   { href: "/hinzufuegen/", label: "Hinzufügen" },
   { href: "/plattformen/", label: "Plattformen" },
 ];
