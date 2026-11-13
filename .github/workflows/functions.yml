@@ -38,20 +38,27 @@ jobs:
           cp src/core/crypto.ts supabase/functions/_shared/crypto.ts
           cp src/core/nintendo/auth.ts supabase/functions/_shared/nintendo-auth.ts
           cp src/core/nintendo/api.ts supabase/functions/_shared/nintendo-api.ts
+          cp src/core/igdb/client.ts supabase/functions/_shared/igdb-client.ts
 
       # The functions check the login token and the allowed e-mail themselves.
       - name: Deploy functions
         run: |
-          for fn in nintendo-login save-credential; do
+          for fn in nintendo-login save-credential igdb-search; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt --yes
           done
 
       - name: Set function secrets
         env:
           KEY: ${{ secrets.CREDENTIALS_ENCRYPTION_KEY }}
+          IGDB_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
         run: |
           if [ -z "$KEY" ]; then echo "The secret CREDENTIALS_ENCRYPTION_KEY is missing"; exit 1; fi
           umask 077
           printf 'GB_CREDENTIALS_ENCRYPTION_KEY=%s\n' "$KEY" > "$RUNNER_TEMP/functions.env"
+          # IGDB is optional: only passed on when both secrets exist
+          if [ -n "$IGDB_ID" ] && [ -n "$IGDB_SECRET" ]; then
+            printf 'GB_IGDB_CLIENT_ID=%s\nGB_IGDB_CLIENT_SECRET=%s\n' "$IGDB_ID" "$IGDB_SECRET" >> "$RUNNER_TEMP/functions.env"
+          fi
           supabase secrets set --env-file "$RUNNER_TEMP/functions.env" --project-ref "$PROJECT_REF" --yes
           rm -f "$RUNNER_TEMP/functions.env"

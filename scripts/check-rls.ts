@@ -18,6 +18,7 @@ const TABLES = [
   "platform_credentials",
   "sync_runs",
   "app_settings",
+  "metadata_cache",
 ];
 
 async function main(): Promise<void> {

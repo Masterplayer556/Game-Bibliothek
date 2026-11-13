@@ -13,14 +13,27 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 4 | Jahresrückblick | fertig (11.11.2026) |
 | 5 | Steam | fertig (11.11.2026); erster echter Sync am 12.11.2026 erfolgreich (36 Spiele, 1108 Erfolge) |
 | 6 | PSN | fertig (13.11.2026); erster echter Sync erfolgreich (116 Spiele, 1433 Trophäen) |
-| 7 | IGDB | offen |
+| 7 | IGDB | gebaut (13.11.2026), Verbindung mit echten Zugangsdaten offen |
 | 8 | Betrieb | offen |
 
 ## Nächster Schritt
 
-1. **Phase 7 – IGDB** (Cover, Genres, Zusammenführen über IGDB-ID, Korrektur in der Detailseite).
+1. **Marcel:** Twitch-App anlegen, `IGDB_CLIENT_ID` und `IGDB_CLIENT_SECRET` als GitHub-Secrets eintragen, Workflow «Edge Functions deployen» starten (`SETUP-IGDB.md`).
+2. **Claude:** Sync mit IGDB starten und die Zuordnungen in der Datenbank prüfen (Trefferquote, falsche Treffer, Zusammenführungen).
+3. **Marcel:** PSN-NPSSO einmal neu eintragen (die alte Version hatte sie nach dem ersten Sync gelöscht).
+4. **Phase 8 – Betrieb**: Edge Function `trigger-sync` (Knöpfe «Jetzt synchronisieren» / «Verbindung testen» in der App), Schutz gegen das Abschalten des Cron nach 60 Tagen, alle Anleitungen final, README.
 
-**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 7. 
+**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 8. Danach optional Fable 5.2, `/effort high` für einen gezielten Sicherheits-Check (RLS, Edge Functions, Verschlüsselung).
+
+## Was in Phase 7 gebaut wurde
+
+- **IGDB-Client** `src/core/igdb/client.ts` (ohne Imports, die Edge Function nutzt eine Kopie): Twitch-Login (client credentials), Suche, Multiquery (10 Suchen pro Anfrage), Genres auf Deutsch, Cover `t_cover_big`.
+- **Zuordnung** `src/core/igdb/match.ts`: Suchtitel ohne ®/™ und Plattform-Zusätze; Treffer bei exakt gleichem (auch alternativem) Titel oder Ähnlichkeit ≥ 0.6; Gleichstand → passende Konsole, dann Beliebtheit.
+- **Sync-Schritt** `sync/metadata/enrich.ts` (nach den Plattformen, Anbieter in `sync/registry.ts`): bis 200 Nachschläge pro Lauf, Cache in `metadata_cache` (Migration `0003`, ausgeführt am 13.11.2026; Fehltreffer nach 30 Tagen neu), setzt `igdb_id`, Cover, Genres, Jahr (nie bei `igdb_locked`), führt Spiele mit gleicher IGDB-ID zusammen (nicht bei `game_link_locked`, eigene Notizen wandern mit). Status in `platform_connections` unter `igdb`. `npm run sync -- --mode=test --adapter=igdb` testet nur IGDB.
+- **Edge Function** `igdb-search` (Secrets `GB_IGDB_CLIENT_ID`/`GB_IGDB_CLIENT_SECRET`, setzt der Workflow aus den GitHub-Secrets, falls vorhanden).
+- **App**: Spiel-Detail «Cover und Genres (IGDB)» mit «Anderes Spiel wählen» / «Zuordnung entfernen» (setzt `igdb_locked`, holt ein Spiel mit gleicher IGDB-ID dazu); «Auf IGDB suchen» beim Hinzufügen; IGDB-Karte unter Plattformen.
+- **PlayStation**: Jedes gespielte Spiel gilt als im Besitz, auch PS Plus (Entscheid Marcel, 13.11.2026).
+- Anleitung `docs/SETUP-IGDB.md`.
 
 ## Was in Phase 6 gebaut wurde
 

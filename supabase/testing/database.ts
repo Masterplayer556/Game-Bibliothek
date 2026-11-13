@@ -47,6 +47,8 @@ type Filter = { column: string; op: "eq" | "in"; value: unknown };
 type Result = { data: unknown; error: { message: string; code?: string } | null; count?: number | null };
 
 function encode(value: unknown): unknown {
+  // Lists of strings are Postgres arrays (text[]); everything else structured is JSON.
+  if (Array.isArray(value) && value.every((v) => typeof v === "string")) return value;
   if (value !== null && typeof value === "object" && !(value instanceof Date)) {
     return JSON.stringify(value);
   }

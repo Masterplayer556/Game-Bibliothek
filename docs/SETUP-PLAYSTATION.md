@@ -33,7 +33,7 @@ Die NPSSO hält etwa zwei Monate. Läuft sie ab (oder nach einem Passwortwechsel
 ## Was die App von PlayStation holt
 
 - Alle gespielten Spiele mit Gesamtspielzeit, erstem und letztem Spieldatum. Wie bei Steam gibt es keine Spielzeit pro Tag; die App berechnet sie aus den Änderungen zwischen den Syncs.
-- Gekaufte Spiele, auch nie gestartete (für den Pile of Shame). Gespielte Spiele ohne Kauf (z. B. Demos oder kostenlose Spiele) gelten als «nicht im Besitz».
+- Gekaufte Spiele, auch nie gestartete (für den Pile of Shame). Jedes gespielte Spiel gilt als «im Besitz», auch Spiele aus dem PS-Plus-Katalog.
 - Trophäen mit Typ (Bronze bis Platin), Datum und Seltenheit. Neu gelesen werden sie nur bei Spielen, deren Spielzeit sich geändert hat.
 - Alle PlayStation-Spiele werden dem Gerät **PS5** zugeordnet, auch PS4-Spiele, weil sie auf der PS5 laufen.
 

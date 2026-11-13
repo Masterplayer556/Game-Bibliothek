@@ -17,7 +17,7 @@ import { guideUrl, workflowUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 
 /** Adapters up to this phase exist. */
-const BUILT_UP_TO_PHASE = 6;
+const BUILT_UP_TO_PHASE = 7;
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -151,13 +151,20 @@ export default function PlatformsPage() {
                 {ADAPTER_CATALOG.map((a) => (
                   <AdapterCard key={a.id} adapter={a} row={raw.connections.find((c) => c.adapter_id === a.id)} now={now} />
                 ))}
-                <li className="flex flex-col gap-1 rounded-control bg-surface-raised p-3 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">IGDB (Cover und Genres)</span>
-                    <span className="text-muted">Noch nicht verbunden</span>
-                  </div>
-                  <p className="text-xs text-muted">Wird in Phase 7 gebaut.</p>
-                </li>
+                <AdapterCard
+                  adapter={{
+                    id: "igdb",
+                    platform: "manual",
+                    displayName: "IGDB (Cover und Genres)",
+                    capabilities: { library: false, totalPlaytime: false, dailyPlaytime: false, achievements: false },
+                    credentialSource: "env",
+                    requiredEnv: ["IGDB_CLIENT_ID", "IGDB_CLIENT_SECRET"],
+                    guide: "SETUP-IGDB.md",
+                    availableFromPhase: 7,
+                  }}
+                  row={raw.connections.find((c) => c.adapter_id === "igdb")}
+                  now={now}
+                />
               </ul>
             </Card>
 
