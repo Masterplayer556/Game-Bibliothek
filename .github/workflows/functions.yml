@@ -40,8 +40,11 @@ jobs:
           cp src/core/nintendo/api.ts supabase/functions/_shared/nintendo-api.ts
 
       # The functions check the login token and the allowed e-mail themselves.
-      - name: Deploy nintendo-login
-        run: supabase functions deploy nintendo-login --project-ref "$PROJECT_REF" --no-verify-jwt --yes
+      - name: Deploy functions
+        run: |
+          for fn in nintendo-login save-credential; do
+            supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt --yes
+          done
 
       - name: Set function secrets
         env:

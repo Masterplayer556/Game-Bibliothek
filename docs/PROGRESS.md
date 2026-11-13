@@ -11,18 +11,27 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 2 | Nintendo | fertig (10.11.2026); Login und erster Sync mit echter Switch 2 erfolgreich, Prüfung echter Spielzeiten offen |
 | 3 | App mit Demo-Daten | fertig (11.11.2026) |
 | 4 | Jahresrückblick | fertig (11.11.2026) |
-| 5 | Steam | gebaut (11.11.2026), Verbindung mit echtem Konto offen |
-| 6 | PSN | offen |
+| 5 | Steam | fertig (11.11.2026); erster echter Sync am 12.11.2026 erfolgreich (36 Spiele, 1108 Erfolge) |
+| 6 | PSN | gebaut (13.11.2026), Verbindung mit echtem Konto offen |
 | 7 | IGDB | offen |
 | 8 | Betrieb | offen |
 
 ## Nächster Schritt
 
-1. **Marcel:** Steam-Secrets eintragen (`SETUP-STEAM.md`), dann Workflow «Sync» mit Modus `test` und Adapter `steam`, danach `sync`.
-2. **Claude:** ersten echten Steam-Sync in der Datenbank prüfen (Anzahl Spiele, Spielzeiten, Erfolge, Cover).
-3. **Phase 6 – PSN** mit Token-Rotation und Edge Function `save-credential`.
+1. **Marcel:** NPSSO in der App eintragen (`SETUP-PLAYSTATION.md`), dann Workflow «Sync» mit Modus `test` und Adapter `psn`, danach `sync`.
+2. **Claude:** ersten echten PSN-Sync in der Datenbank prüfen (Spiele, Spielzeiten, Käufe, Trophäen, Token-Rotation: `platform_credentials` darf danach nur `refresh_token` enthalten).
+3. **Phase 7 – IGDB** (Cover, Genres, Zusammenführen über IGDB-ID, Korrektur in der Detailseite).
 
-**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 6. Bei Problemen mit der Token-Rotation von Sony: Fable 5.2, `/effort high`.
+**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 7. Für die PSN-Prüfung reicht Opus; nur wenn die Anmeldung bei Sony scheitert: Fable 5.2, `/effort high`.
+
+## Was in Phase 6 gebaut wurde
+
+- **Adapter** `sync/adapters/psn/`: `client.ts` kapselt die Bibliothek `psn-api` (MIT) hinter einer kleinen Schnittstelle (`PsnClient`); `adapter.ts` nutzt nur diese, darum testbar ohne Sony.
+- **Anmeldung und Token-Rotation** (`authenticate`): zuerst der gespeicherte Refresh-Token; scheitert er, eine neu eingegebene NPSSO; sonst `auth_expired` («Neue NPSSO nötig»). Jeder neue Refresh-Token wird gespeichert (der Runner speichert Tokens vor den Daten), die NPSSO nach dem Tausch gelöscht. Netzwerkfehler gelten nicht als abgelaufene Anmeldung. `token_expires_at` = jetzt + `refreshTokenExpiresIn`.
+- **Daten**: gespielte Spiele (`getUserPlayedGames`, Spielzeit aus ISO-8601-Dauer, erstes/letztes Spieldatum), gekaufte Spiele (`getPurchasedGames`; nie gestartete Käufe kommen mit 0 Minuten dazu; gespielte Spiele ohne Kauf gelten als nicht im Besitz; scheitert der Abruf, gilt alles als im Besitz), Trophäen (`getUserTrophiesForSpecificTitle` in Fünfergruppen, dann `getTitleTrophies` und `getUserTrophiesEarnedForTitle`) mit Typ und Seltenheit; höchstens 40 Spiele pro Lauf, nur bei geänderter Spielzeit. Gerät immer `ps5`.
+- **Edge Function** `save-credential`: speichert die NPSSO verschlüsselt (nur erlaubte Arten, Format geprüft, auch die ganze `{"npsso":"…"}`-Zeile wird akzeptiert), löscht dabei einen alten Refresh-Token. Prüft Login und erlaubte E-Mail über `supabase/functions/_common/http.ts`, das jetzt auch `nintendo-login` nutzt. Der Workflow «Edge Functions deployen» lädt beide hoch.
+- **App**: Karte «PlayStation verbinden» unter Plattformen (`src/components/PlayStationConnect.tsx`, `src/lib/credentials.ts`).
+- Anleitung `docs/SETUP-PLAYSTATION.md`.
 
 ## Was in Phase 5 gebaut wurde
 

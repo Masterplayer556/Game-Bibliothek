@@ -1,0 +1,5 @@
+[
+  { "trophyId": 0, "name": "Lord of Hallownest", "detail": "Alle Trophäen erhalten", "iconUrl": "https://example.invalid/t0.png", "type": "platinum", "hidden": false, "earned": false, "earnedDateTime": null, "earnedRate": 2.1 },
+  { "trophyId": 1, "name": "Falsche Ritter", "detail": "Besiege den Falschen Ritter", "iconUrl": "https://example.invalid/t1.png", "type": "bronze", "hidden": false, "earned": true, "earnedDateTime": "2022-01-03T20:00:00Z", "earnedRate": 78.4 },
+  { "trophyId": 2, "name": "Geheim", "detail": null, "iconUrl": null, "type": "gold", "hidden": true, "earned": true, "earnedDateTime": "2026-11-09T19:00:00Z", "earnedRate": 4.9 }
+]

@@ -7,6 +7,7 @@ import { LibraryGate } from "@/components/LibraryGate";
 import { useLibraryContext } from "@/components/LibraryProvider";
 import { NintendoConnect } from "@/components/NintendoConnect";
 import { NintendoImport } from "@/components/NintendoImport";
+import { PlayStationConnect } from "@/components/PlayStationConnect";
 import { Button, Card, Notice } from "@/components/ui";
 import { ADAPTER_CATALOG, type AdapterInfo } from "@/core/adapter-catalog";
 import type { ConnectionRow } from "@/core/library";
@@ -16,7 +17,7 @@ import { guideUrl, workflowUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 
 /** Adapters up to this phase exist. */
-const BUILT_UP_TO_PHASE = 5;
+const BUILT_UP_TO_PHASE = 6;
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -36,7 +37,7 @@ const STATUS_TONE: Record<ConnectionStatus, string> = {
 
 function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: ConnectionRow | undefined; now: Date }) {
   const status = row?.status ?? "not_connected";
-  const details = (row?.details ?? {}) as { missingEnv?: string[]; warnings?: string[] };
+  const details = (row?.details ?? {}) as { missingEnv?: string[]; warnings?: string[]; npssoSavedAt?: string };
   const built = adapter.availableFromPhase <= BUILT_UP_TO_PHASE;
   return (
     <li className="flex flex-col gap-1 rounded-control bg-surface-raised p-3 text-sm">
@@ -72,6 +73,9 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
               : "Anmeldung hier in der App."}
         </p>
       )}
+      {details.npssoSavedAt && status === "not_connected" ? (
+        <p className="text-xs text-warning">NPSSO gespeichert: Sie wird beim nächsten Sync geprüft.</p>
+      ) : null}
       {details.missingEnv && details.missingEnv.length > 0 ? (
         <p className="text-xs text-warning">Fehlende GitHub-Secrets: {details.missingEnv.join(", ")}</p>
       ) : null}
@@ -83,7 +87,7 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
         <p className="text-xs text-warning">Nintendo neu anmelden: Karte «Nintendo verbinden» weiter unten.</p>
       ) : null}
       {status === "auth_expired" && adapter.platform === "psn" ? (
-        <p className="text-xs text-warning">Neue NPSSO nötig (siehe Anleitung).</p>
+        <p className="text-xs text-warning">Neue NPSSO nötig: Karte «PlayStation verbinden» weiter unten.</p>
       ) : null}
       <a className="text-xs underline" href={guideUrl(adapter.guide)} target="_blank" rel="noopener noreferrer">
         Anleitung
@@ -171,6 +175,10 @@ export default function PlatformsPage() {
               </div>
             </Card>
 
+            <PlayStationConnect
+              title={raw.connections.find((c) => c.adapter_id === "psn")?.status === "ok" ? "PlayStation neu anmelden" : "PlayStation verbinden"}
+              onDone={() => void reload()}
+            />
             <NintendoConnect onDone={() => void reload()} title={nintendo?.status === "ok" ? "Nintendo neu anmelden" : "Nintendo verbinden"} />
             <NintendoImport userId={userId} onDone={() => void reload()} />
             <DemoData demoEntries={demoEntries} />
