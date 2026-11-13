@@ -22,6 +22,7 @@ describe("searchTitle", () => {
       "The Legend of Zelda: Tears of the Kingdom",
     );
     expect(searchTitle("ASTRO BOT™")).toBe("ASTRO BOT");
+    expect(searchTitle("Terraria: PlayStation®4 Edition")).toBe("Terraria");
   });
 });
 

@@ -38,7 +38,7 @@ export const igdbProvider: MetadataProvider & { intervalMs: number } = {
       const results = await searchMany(
         s,
         batch.map((r) => ({ key: r.key, title: searchTitle(r.title) })),
-        6,
+        10,
         this.intervalMs,
       );
       for (const r of batch) {
