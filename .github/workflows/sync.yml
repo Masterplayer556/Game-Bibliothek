@@ -1,8 +1,10 @@
 name: Sync
 
-# Runs every 6 hours and can be started by hand from the Actions tab.
-# Note: GitHub pauses schedules in public repositories after 60 days without repository
-# activity; the safeguard against that follows in phase 8.
+# Runs every 6 hours, can be started by hand from the Actions tab, and is started by the
+# app's buttons through the Edge Function «trigger-sync».
+# GitHub switches off schedules in public repositories after 60 days without repository
+# activity. The last step re-enables this workflow through the API once a week, which
+# resets that clock; the app also warns when no sync succeeded for 24 hours.
 on:
   schedule:
     - cron: "17 */6 * * *"
@@ -24,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: sync
@@ -61,3 +64,14 @@ jobs:
           TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: |
           npm run sync -- --mode="${INPUT_MODE:-sync}" --adapter="$INPUT_ADAPTER" --run-id="$INPUT_RUN_ID" --trigger="$TRIGGER"
+
+      - name: Keep the schedule alive
+        # Mondays, first scheduled run of the day only. Never fails the sync.
+        if: always() && github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(date -u +%u)" = "1" ] && [ "$(date -u +%H)" -lt 6 ]; then
+            gh api -X PUT "repos/${{ github.repository }}/actions/workflows/sync.yml/enable" && echo "schedule refreshed"
+          fi

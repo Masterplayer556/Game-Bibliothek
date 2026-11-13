@@ -122,6 +122,30 @@ export default function StatisticsPage() {
               <Notice>Genres kommen ab Phase 7 von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
             </Card>
 
+            <Card title="Apps (kein Spiel)">
+              {(() => {
+                const apps = topGames(library.appDays, range, 50);
+                if (apps.length === 0) return <Notice>Keine App-Zeit im gewählten Zeitraum.</Notice>;
+                return (
+                  <>
+                    <Notice>
+                      Zählt nicht zur Spielzeit oben. Zusammen {formatHours(apps.reduce((s, a) => s + a.minutes, 0))}.
+                    </Notice>
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {apps.map((a) => (
+                        <li key={a.gameId} className="flex justify-between gap-2">
+                          <Link href={gameHref(a.gameId)} className="truncate hover:underline">
+                            {library.byId.get(a.gameId)?.title}
+                          </Link>
+                          <span className="shrink-0 tabular-nums text-muted">{formatMinutes(a.minutes)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                );
+              })()}
+            </Card>
+
             <Card title="Datenbasis">
               <Notice>
                 Spielzeit pro Tag gibt es erst ab dem ersten Sync einer Plattform. Lücken davor heissen

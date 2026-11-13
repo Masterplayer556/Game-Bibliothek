@@ -105,3 +105,19 @@ describe("credential encryption", () => {
     await expect(encryptSecret("x", btoa("too-short"))).rejects.toThrow(/32 bytes/);
   });
 });
+
+import { isKnownApp } from "./apps";
+
+describe("isKnownApp", () => {
+  it("recognises streaming and tool apps in any spelling", () => {
+    for (const t of ["YouTube", "SONY PICTURES CORE", "Prime Video", "Apple TV", "3DMark", "Wallpaper Engine", "Twitch"]) {
+      expect(isKnownApp(t), t).toBe(true);
+    }
+  });
+
+  it("does not mistake games for apps", () => {
+    for (const t of ["Minecraft", "Twitch Racer", "Spotify Quest", "YouTubers Life"]) {
+      expect(isKnownApp(t), t).toBe(false);
+    }
+  });
+});

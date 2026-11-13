@@ -56,6 +56,17 @@ export default function DashboardPage() {
                 hint="inkl. Zeit vor dem ersten Sync"
               />
             </section>
+            {(() => {
+              const apps = library.games.filter((g) => g.hidden && g.totalMinutes > 0);
+              if (apps.length === 0) return null;
+              const minutes = apps.reduce((s, g) => s + g.totalMinutes, 0);
+              return (
+                <Notice>
+                  Dazu {formatHours(minutes)} in Apps wie {apps.slice(0, 2).map((a) => a.title).join(" und ")} (zählen nicht als
+                  Spielzeit, Details unter <Link className="underline" href="/statistiken/">Statistiken</Link>).
+                </Notice>
+              );
+            })()}
 
             <Card title="Top 5 der letzten 30 Tage">
               {top.length === 0 ? (

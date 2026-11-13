@@ -43,7 +43,7 @@ jobs:
       # The functions check the login token and the allowed e-mail themselves.
       - name: Deploy functions
         run: |
-          for fn in nintendo-login save-credential igdb-search; do
+          for fn in nintendo-login save-credential igdb-search trigger-sync; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt --yes
           done
 
@@ -52,11 +52,17 @@ jobs:
           KEY: ${{ secrets.CREDENTIALS_ENCRYPTION_KEY }}
           IGDB_ID: ${{ secrets.IGDB_CLIENT_ID }}
           IGDB_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+          DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           if [ -z "$KEY" ]; then echo "The secret CREDENTIALS_ENCRYPTION_KEY is missing"; exit 1; fi
           umask 077
           printf 'GB_CREDENTIALS_ENCRYPTION_KEY=%s\n' "$KEY" > "$RUNNER_TEMP/functions.env"
           # IGDB is optional: only passed on when both secrets exist
+          # «Jetzt synchronisieren» in the app: optional as well
+          if [ -n "$DISPATCH_TOKEN" ]; then
+            printf 'GB_GITHUB_DISPATCH_TOKEN=%s\nGB_GITHUB_REPO=%s\n' "$DISPATCH_TOKEN" "$REPO" >> "$RUNNER_TEMP/functions.env"
+          fi
           if [ -n "$IGDB_ID" ] && [ -n "$IGDB_SECRET" ]; then
             printf 'GB_IGDB_CLIENT_ID=%s\nGB_IGDB_CLIENT_SECRET=%s\n' "$IGDB_ID" "$IGDB_SECRET" >> "$RUNNER_TEMP/functions.env"
           fi

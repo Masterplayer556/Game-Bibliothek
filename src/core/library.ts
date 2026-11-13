@@ -154,8 +154,10 @@ export interface GameDay extends PlayedDay {
 export interface Library {
   games: LibraryGame[];
   byId: Map<string, LibraryGame>;
-  /** Days of visible games only. */
+  /** Days of games only (entries marked «Kein Spiel» are left out). */
   days: GameDay[];
+  /** Days of entries marked «Kein Spiel» (apps): shown separately, never in game statistics. */
+  appDays: GameDay[];
   warnings: PlaytimeWarning[];
   /** First day each platform has day-level data for (gaps before it are not «not played»). */
   dataSince: Partial<Record<PlatformId, LocalDate>>;
@@ -284,13 +286,14 @@ export function buildLibrary(raw: RawData): Library {
   });
 
   const days: GameDay[] = [];
+  const appDays: GameDay[] = [];
   for (const day of played) {
     const entry = entryById.get(day.platformGameId);
     const game = entry?.game_id ? byId.get(entry.game_id) : undefined;
-    if (!entry || !game || game.hidden || day.minutes <= 0) continue;
+    if (!entry || !game || day.minutes <= 0) continue;
     const kind =
       (day.deviceId ? deviceById.get(day.deviceId)?.kind : undefined) ?? entry.device_kind ?? "other";
-    days.push({ ...day, gameId: game.id, platform: entry.platform, deviceKind: kind });
+    (game.hidden ? appDays : days).push({ ...day, gameId: game.id, platform: entry.platform, deviceKind: kind });
   }
 
   // Coverage per platform: first per-day row, or the first snapshot (start of tracking).
@@ -303,7 +306,7 @@ export function buildLibrary(raw: RawData): Library {
   for (const r of raw.daily) note(entryById.get(r.platform_game_id)?.platform, r.play_date);
   for (const s of raw.snapshots) note(entryById.get(s.platform_game_id)?.platform, toLocalDate(s.taken_at));
 
-  return { games, byId, days, warnings, dataSince };
+  return { games, byId, days, appDays, warnings, dataSince };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # Einrichtung: Supabase und GitHub
 
-Diese Anleitung bringt die App zum Laufen. Alles geht im Browser, auch am Handy. Stand: Phase 1. Die Schritte für Edge Functions und den automatischen Sync kommen in Phase 2, 6 und 8 dazu.
+Diese Anleitung bringt die App zum Laufen. Alles geht im Browser, auch am Handy.
 
 ## Ausgangslage
 
@@ -70,7 +70,21 @@ Die Seite selbst ist immer öffentlich erreichbar. Ohne Login zeigt sie nur das 
 
 Den geheimen Schlüssel nie in einen Chat oder ins Repo kopieren. Den `CREDENTIALS_ENCRYPTION_KEY` zusätzlich an einem sicheren Ort ablegen (Passwort-Manager). Geht er verloren, müssen PlayStation und Nintendo neu verbunden werden.
 
-## 6. Prüfen
+## 6. Knöpfe «Jetzt synchronisieren» und «Verbindung testen»
+
+Die Knöpfe unter Plattformen starten den Sync-Workflow auf GitHub. Dafür braucht die App einen GitHub-Token, der **nur** dieses eine Repo und **nur** Workflows starten darf:
+
+1. Öffne <https://github.com/settings/personal-access-tokens/new> (Settings → Developer settings → Personal access tokens → Fine-grained tokens → «Generate new token»).
+2. Token name: `game-bibliothek-sync`. Expiration: so lang wie möglich (z. B. 1 Jahr); danach einen neuen erstellen.
+3. Repository access: **Only select repositories** → `Masterplayer556/Game-Bibliothek`.
+4. Permissions → Repository permissions → **Actions: Read and write**. Sonst nichts.
+5. «Generate token», den Token (`github_pat_…`) kopieren.
+6. Unter <https://github.com/Masterplayer556/Game-Bibliothek/settings/secrets/actions> als Secret `DISPATCH_TOKEN` eintragen.
+7. Workflow [Edge Functions deployen](https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/functions.yml) → «Run workflow». Er gibt den Token an die Edge Function `trigger-sync` weiter.
+
+Läuft der Token ab, meldet die App beim Knopf «GitHub lehnt den Token ab». Dann Schritte 1 bis 7 wiederholen. Der automatische Sync alle 6 Stunden braucht den Token nicht.
+
+## 7. Prüfen
 
 1. App öffnen, anmelden. Die Karte «Datenbank» zeigt «Verbindung zur Datenbank funktioniert».
 2. «Demo-Daten laden» antippen. Die Zähler füllen sich.
@@ -89,9 +103,15 @@ Den geheimen Schlüssel nie in einen Chat oder ins Repo kopieren. Den `CREDENTIA
 | `CREDENTIALS_ENCRYPTION_KEY` | GitHub-Secret, später auch Supabase-Secret | Verschlüsselt PlayStation- und Nintendo-Tokens | Phase 2 |
 | `ALLOWED_EMAIL` | GitHub-Secret | Wählt den Nutzer, wenn es mehrere gibt | optional |
 | `SUPABASE_ACCESS_TOKEN` | GitHub-Secret | Edge Functions hochladen (nur dieses Projekt) | Phase 2 |
+| `DISPATCH_TOKEN` | GitHub-Secret (wird als `GB_GITHUB_DISPATCH_TOKEN` an die Edge Function weitergegeben) | Knöpfe «Jetzt synchronisieren» / «Verbindung testen» | Phase 8 |
 | `STEAM_API_KEY`, `STEAM_ID` | GitHub-Secrets | Steam | Phase 5 |
 | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | GitHub-Secrets | Cover und Genres | Phase 7 |
 
 Die Secrets der Edge Functions haben das Präfix `GB_`, damit sie sich nicht mit Secrets des Kalenders überschneiden. Der Workflow [Edge Functions deployen](https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/functions.yml) setzt sie aus den GitHub-Secrets; von Hand ist nichts einzutragen.
 
 PlayStation- und Nintendo-Tokens stehen in keiner Variable. Sie liegen verschlüsselt in der Datenbank.
+
+## Damit der automatische Sync nicht einschläft
+
+- **GitHub** schaltet geplante Workflows in öffentlichen Repos ab, wenn das Repo 60 Tage lang keine Aktivität hatte. Der Sync-Workflow schaltet sich darum jeden Montag selbst wieder ein, was die Frist zurücksetzt. Zusätzlich zeigt die Übersicht der App eine Warnung, wenn eine verbundene Quelle seit über 24 Stunden keinen erfolgreichen Sync hatte. Falls doch einmal alles steht: <https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/sync.yml> → «Enable workflow».
+- **Supabase** pausiert Gratis-Projekte nach etwa 7 Tagen ohne Aktivität. Der Sync schreibt alle 6 Stunden in die Datenbank und verhindert das, solange er läuft. Pausiert das Projekt trotzdem, schickt Supabase eine E-Mail; im Dashboard «Restore project» drücken.

@@ -8,22 +8,30 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 |---|---|---|
 | 0 | Plan | fertig (10.11.2026) |
 | 1 | Grundgerüst | fertig und eingerichtet (10.11.2026) |
-| 2 | Nintendo | fertig (10.11.2026); Login und erster Sync mit echter Switch 2 erfolgreich, Prüfung echter Spielzeiten offen |
+| 2 | Nintendo | fertig (10.11.2026); erste echte Spielzeit am 13.11.2026 korrekt angekommen (Minuten) |
 | 3 | App mit Demo-Daten | fertig (11.11.2026) |
 | 4 | Jahresrückblick | fertig (11.11.2026) |
 | 5 | Steam | fertig (11.11.2026); erster echter Sync am 12.11.2026 erfolgreich (36 Spiele, 1108 Erfolge) |
 | 6 | PSN | fertig (13.11.2026); erster echter Sync erfolgreich (116 Spiele, 1433 Trophäen) |
-| 7 | IGDB | gebaut (13.11.2026), Verbindung mit echten Zugangsdaten offen |
-| 8 | Betrieb | offen |
+| 7 | IGDB | fertig (13.11.2026); 98 von 122 Einträgen zugeordnet, Rest grösstenteils Apps |
+| 8 | Betrieb | fertig (13.11.2026), Knöpfe warten auf `DISPATCH_TOKEN` |
 
 ## Nächster Schritt
 
-1. **Marcel:** Twitch-App anlegen, `IGDB_CLIENT_ID` und `IGDB_CLIENT_SECRET` als GitHub-Secrets eintragen, Workflow «Edge Functions deployen» starten (`SETUP-IGDB.md`).
-2. **Claude:** Sync mit IGDB starten und die Zuordnungen in der Datenbank prüfen (Trefferquote, falsche Treffer, Zusammenführungen).
-3. **Marcel:** PSN-NPSSO einmal neu eintragen (die alte Version hatte sie nach dem ersten Sync gelöscht).
-4. **Phase 8 – Betrieb**: Edge Function `trigger-sync` (Knöpfe «Jetzt synchronisieren» / «Verbindung testen» in der App), Schutz gegen das Abschalten des Cron nach 60 Tagen, alle Anleitungen final, README.
+Alle Phasen sind gebaut. Offen:
 
-**Modell-Empfehlung:** Opus 5.5, `/effort high` für Phase 8. Danach optional Fable 5.2, `/effort high` für einen gezielten Sicherheits-Check (RLS, Edge Functions, Verschlüsselung).
+1. **Marcel:** GitHub-Token `DISPATCH_TOKEN` anlegen und den Workflow «Edge Functions deployen» starten (`SETUP-SUPABASE-GITHUB.md`, Abschnitt 6), damit die Knöpfe in der App funktionieren.
+2. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
+3. **Optional:** gezielter Sicherheits-Check (RLS, Edge Functions, Verschlüsselung, Logs) – Empfehlung Fable 5.2, `/effort high`.
+4. **Später:** Historie-Import aus der Nintendo-Store-App per Screenshot/Video (Entscheidung 15), Minecraft-Mods (`ADDING-A-PLATFORM.md`), eigenes Design über `tokens.css`.
+
+## Was in Phase 8 gebaut wurde
+
+- **Edge Function** `trigger-sync`: legt einen Eintrag in `sync_runs` an und startet den Workflow «Sync» per `workflow_dispatch` mit dessen ID; verweigert einen zweiten Lauf, solange einer in den letzten 15 Minuten nicht fertig ist (gibt dann dessen ID zurück). Secrets `GB_GITHUB_DISPATCH_TOKEN` / `GB_GITHUB_REPO` setzt der Workflow «Edge Functions deployen» aus dem GitHub-Secret `DISPATCH_TOKEN`.
+- **App**: Karte «Synchronisieren» unter Plattformen (`src/components/SyncControls.tsx`, `src/lib/sync-control.ts`) mit «Jetzt synchronisieren» / «Verbindung testen» für alle oder eine Quelle; zeigt den letzten Lauf (auch geplante), fragt alle 5 Sekunden nach, zeigt danach das Ergebnis pro Quelle und lädt die Daten neu.
+- **60-Tage-Regel**: Der Sync-Workflow schaltet sich montags im ersten geplanten Lauf über die API selbst wieder ein (`actions: write`, schlägt den Sync nie fehl). Dazu die Warnung bei über 24 Stunden ohne Erfolg (seit Phase 3).
+- **Apps**: Bekannte Apps (YouTube, Netflix, Spotify, Twitch, …, Liste in `src/core/apps.ts`) markiert der Sync einmal als «Kein Spiel» (`sync/mark-apps.ts`), aber nur Spiele ohne eigene Angaben, sodass ein Zurücksetzen in der App bleibt. Ihre Zeit zählt nicht als Spielzeit, steht aber separat unter Statistiken («Apps») und auf der Übersicht (`library.appDays`). Wunsch von Marcel, 13.11.2026.
+- **Anleitungen** final: README, `SETUP-SUPABASE-GITHUB.md` (Token für die Knöpfe, Schutz gegen Einschlafen).
 
 ## Was in Phase 7 gebaut wurde
 
