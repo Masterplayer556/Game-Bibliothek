@@ -3,10 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { gameHref } from "@/components/game-ui";
+import { IgdbPicker } from "@/components/IgdbPicker";
 import { useLibraryContext } from "@/components/LibraryProvider";
 import { Button, Card, fieldClass, Notice } from "@/components/ui";
 import { DEVICE_LABEL, MANUAL_DEVICE_KINDS } from "@/core/labels";
 import type { DeviceKind } from "@/core/types";
+import type { IgdbGame } from "@/core/igdb/client";
+import { applyIgdb } from "@/lib/igdb";
 import { addManualGame } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 
@@ -20,6 +23,8 @@ export default function AddGamePage() {
   const [owned, setOwned] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [igdb, setIgdb] = useState<IgdbGame | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -34,6 +39,7 @@ export default function AddGamePage() {
     setError(null);
     try {
       const id = await addManualGame(getSupabase(), session.user.id, { title, deviceKind, minutes: total, owned });
+      if (igdb && igdb.title === title) await applyIgdb(getSupabase(), id, igdb);
       await reload();
       router.push(gameHref(id));
     } catch (e) {
@@ -46,14 +52,32 @@ export default function AddGamePage() {
     <Card title="Spiel von Hand hinzufügen">
       <Notice>
         Für Spiele ohne Schnittstelle, z. B. Disc-Spiele oder ältere Konsolen. Gibt es das Spiel schon
-        auf einer anderen Plattform, wird es automatisch über den Titel zugeordnet. Die Suche über IGDB
-        kommt in Phase 7.
+        auf einer anderen Plattform, wird es automatisch über den Titel zugeordnet.
       </Notice>
       <form onSubmit={onSubmit} className="flex flex-col gap-stack">
         <label className="flex flex-col gap-1 text-sm">
           Titel
           <input className={fieldClass} required value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <Button type="button" onClick={() => setSearchOpen((o) => !o)}>
+              {searchOpen ? "IGDB-Suche schliessen" : "Auf IGDB suchen"}
+            </Button>
+            {igdb && igdb.title === title ? <span className="text-success">Mit IGDB verknüpft (Cover und Genres)</span> : null}
+          </div>
+          {searchOpen ? (
+            <IgdbPicker
+              initialQuery={title}
+              pickLabel="Wählen"
+              onPick={(choice) => {
+                setIgdb(choice);
+                setTitle(choice.title);
+                setSearchOpen(false);
+              }}
+            />
+          ) : null}
+        </div>
         <label className="flex flex-col gap-1 text-sm">
           System
           <select className={fieldClass} value={deviceKind} onChange={(e) => setDeviceKind(e.target.value as DeviceKind)}>

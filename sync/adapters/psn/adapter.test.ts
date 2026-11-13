@@ -144,9 +144,9 @@ describe("psnAdapter.sync", () => {
     expect(result.dataSince).toBe("2026-11-13");
   });
 
-  it("marks played games without a purchase as not owned and adds bought but unplayed games", async () => {
+  it("counts every played game as owned (also PS Plus) and adds bought but unplayed games", async () => {
     const { batch } = await createPsnAdapter(fakeClient()).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }));
-    expect(batch.games.find((g) => g.externalId === "PPSA09999_00")!.owned).toBe(false);
+    expect(batch.games.find((g) => g.externalId === "PPSA09999_00")!.owned).toBe(true);
     const yotei = batch.games.filter((g) => g.externalId === "PPSA04444_00");
     expect(yotei).toHaveLength(1);
     expect(yotei[0]).toMatchObject({ title: "Ghost of Yōtei", totalPlaytimeMinutes: 0, owned: true });

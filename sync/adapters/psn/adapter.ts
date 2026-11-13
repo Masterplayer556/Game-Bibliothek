@@ -117,17 +117,14 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
         throw new AdapterError("unknown", "Die Liste der gespielten Spiele ist nicht lesbar.");
       }
 
-      // Purchases: optional. Without them every played game counts as owned.
+      // Purchases: optional, only used to add bought but never started games. Every played
+      // game counts as owned, also games from the PS Plus catalogue (Marcel's decision).
       let purchased: Awaited<ReturnType<PsnClient["purchasedGames"]>> | null = null;
       try {
         purchased = await client.purchasedGames(token);
       } catch {
         warnings.push("Gekaufte Spiele nicht lesbar");
       }
-      const purchasedIds = new Set(purchased?.map((p) => p.titleId));
-      const purchasedNames = new Set(purchased?.map((p) => normalizeTitle(p.name)));
-      const isOwned = (titleId: string, name: string) =>
-        !purchased || purchasedIds.has(titleId) || purchasedNames.has(normalizeTitle(name));
 
       // Trophies: only for games whose playtime changed (all of them on the first run).
       const firstRun = ctx.previousGames.size === 0;
@@ -189,7 +186,7 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
           coverUrl: game.imageUrl,
           // The PlayStation in this household is a PS5; PS4 games run on it too.
           deviceKind: "ps5",
-          owned: isOwned(game.titleId, game.name),
+          owned: true,
           firstPlayedAt: game.firstPlayedDateTime,
           lastPlayedAt: game.lastPlayedDateTime,
           totalPlaytimeMinutes: parseDuration(game.playDuration),

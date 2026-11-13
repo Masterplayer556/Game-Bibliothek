@@ -3,6 +3,7 @@
 import { nintendoParentalAdapter } from "./adapters/nintendo-parental/adapter";
 import { psnAdapter } from "./adapters/psn/adapter";
 import { steamAdapter } from "./adapters/steam/adapter";
+import { igdbProvider } from "./metadata/igdb";
 import type { MetadataProvider } from "./metadata/types";
 import type { PlatformAdapter } from "./types";
 
@@ -13,5 +14,5 @@ export const adapters: readonly PlatformAdapter[] = [
 ];
 
 export const metadataProviders: readonly MetadataProvider[] = [
-  // Phase 7: igdb
+  igdbProvider,
 ];

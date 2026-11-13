@@ -9,7 +9,9 @@ import { addDays, toLocalDate } from "@/core/time";
 import { GAME_STATUSES, type GameStatus } from "@/core/types";
 import { deleteManualEntry, mergeGames, saveUserData, splitEntry, type UserDataPatch } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
+import { applyIgdb } from "@/lib/igdb";
 import { PlaytimeChart } from "./charts";
+import { IgdbPicker } from "./IgdbPicker";
 import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
 import { Button, Card, fieldClass, Notice, ProgressBar } from "./ui";
@@ -246,11 +248,50 @@ function Entries({
             ))}
           </ul>
         ) : null}
-        <Notice>
-          Zusammenführen und Abtrennen bleiben auch nach dem nächsten Sync bestehen. Die Zuordnung zu
-          IGDB (Cover, Genres) lässt sich ab Phase 7 korrigieren.
-        </Notice>
+        <Notice>Zusammenführen und Abtrennen bleiben auch nach dem nächsten Sync bestehen.</Notice>
       </div>
+      {error ? <Notice tone="danger">{error}</Notice> : null}
+    </Card>
+  );
+}
+
+function IgdbCard({ game, reload }: { game: LibraryGame; reload: () => Promise<void> }) {
+  const { busy, error, run } = useAction(reload);
+  const [open, setOpen] = useState(false);
+  const searchFor = game.entries[0]?.title ?? game.title;
+  return (
+    <Card title="Cover und Genres (IGDB)">
+      {game.igdbId ? (
+        <Notice>
+          Zugeordnet{game.releaseYear ? `: erschienen ${game.releaseYear}` : ""}
+          {game.genres.length > 0 ? ` · ${game.genres.join(", ")}` : ""}.
+        </Notice>
+      ) : (
+        <Notice>Keine Zuordnung. Ohne IGDB bleiben das Cover der Plattform und keine Genres.</Notice>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={busy} onClick={() => setOpen((o) => !o)}>
+          {open ? "Schliessen" : "Anderes Spiel wählen"}
+        </Button>
+        {game.igdbId ? (
+          <Button disabled={busy} onClick={() => run(() => applyIgdb(getSupabase(), game.id, null))}>
+            Zuordnung entfernen
+          </Button>
+        ) : null}
+      </div>
+      {open ? (
+        <IgdbPicker
+          initialQuery={searchFor}
+          busy={busy}
+          onPick={(choice) =>
+            run(async () => {
+              await applyIgdb(getSupabase(), game.id, choice);
+              setOpen(false);
+            })
+          }
+        />
+      ) : null}
+      <Notice>Eine Korrektur von Hand ändert der Sync nie wieder. Gibt es das gewählte Spiel schon, wird es hierher geholt.</Notice>
       {error ? <Notice tone="danger">{error}</Notice> : null}
     </Card>
   );
@@ -335,6 +376,7 @@ export function GameDetail({ id }: { id: string }) {
             <MyData key={`${game.id}-${game.note}`} game={game} userId={userId} reload={reload} />
             <Achievements game={game} raw={raw} />
             <Entries game={game} games={library.games} userId={userId} reload={reload} />
+            <IgdbCard game={game} reload={reload} />
           </>
         );
       }}
