@@ -34,7 +34,8 @@ Die Suche in der App («Anderes Spiel wählen», «Auf IGDB suchen» beim Hinzuf
 <https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/sync.yml> → «Run workflow»:
 
 - Modus `test`, Adapter `igdb`: prüft nur die Verbindung. Unter Plattformen steht danach bei IGDB «Verbunden».
-- Modus `sync`: ergänzt Cover, Genres und Jahr. Pro Lauf werden bis zu 200 Titel nachgeschlagen, der Rest folgt in den nächsten automatischen Syncs.
+- Modus `sync`: ergänzt Cover, Genres und Jahr. Pro Lauf werden bis zu 200 Titel nachgeschlagen (etwa eine Minute), der Rest folgt in den nächsten automatischen Syncs.
+- Bei Problemen: Workflow «Tools» → `igdb-check` zeigt, ob Anmeldung und Suche funktionieren.
 
 ## Wie die Zuordnung funktioniert
 

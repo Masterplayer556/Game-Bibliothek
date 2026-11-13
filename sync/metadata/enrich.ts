@@ -8,7 +8,7 @@ import type { Logger } from "../types";
 import { searchTitle } from "../../src/core/igdb/match";
 import type { GameMetadata, LookupRequest, MetadataProvider } from "./types";
 
-/** Lookups per run (IGDB: 10 per request, 4 requests per second). */
+/** Lookups per run (IGDB: one request each, 4 per second, so about a minute). */
 export const MAX_LOOKUPS_PER_RUN = 200;
 /** A title without a match is asked again after this many days. */
 export const RETRY_MISSES_AFTER_DAYS = 30;

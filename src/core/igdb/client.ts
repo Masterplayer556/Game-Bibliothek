@@ -176,29 +176,21 @@ export async function searchGames(session: IgdbSession, query: string, limit = 1
   return (Array.isArray(result) ? result : []).map(parseGame).filter((g): g is IgdbGame => g !== null);
 }
 
-/** Up to 10 searches in one request (IGDB multiquery). Result keyed by the given keys. */
+/**
+ * Several searches, one request each, at most 4 per second. (IGDB's multiquery endpoint
+ * answers searches with an empty list, checked on 13.11.2026, so it cannot be used here.)
+ */
 export async function searchMany(
   session: IgdbSession,
   queries: readonly { key: string; title: string }[],
   limit = 6,
+  intervalMs = IGDB_MIN_INTERVAL_MS,
 ): Promise<Map<string, IgdbGame[]>> {
   const out = new Map<string, IgdbGame[]>();
-  if (queries.length === 0) return out;
-  if (queries.length > 10) throw new Error("IGDB multiquery accepts at most 10 queries");
-  const body = queries
-    .map(
-      (q, i) =>
-        `query games "${i}" { search ${quote(q.title)}; fields ${FIELDS}; where version_parent = null; limit ${limit}; };`,
-    )
-    .join("\n");
-  const result = await post(session, "/multiquery", body);
-  for (const entry of Array.isArray(result) ? result : []) {
-    if (!isObject(entry) || typeof entry.name !== "string") continue;
-    const query = queries[Number(entry.name)];
-    if (!query) continue;
-    const games = (Array.isArray(entry.result) ? entry.result : []).map(parseGame).filter((g): g is IgdbGame => g !== null);
-    out.set(query.key, games);
+  for (let i = 0; i < queries.length; i++) {
+    if (i > 0 && intervalMs > 0) await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    const q = queries[i]!;
+    out.set(q.key, await searchGames(session, q.title, limit));
   }
-  for (const q of queries) if (!out.has(q.key)) out.set(q.key, []);
   return out;
 }
