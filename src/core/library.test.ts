@@ -77,8 +77,9 @@ describe("buildLibrary", () => {
     expect([hk.status, hk.favorite, hk.note]).toEqual(["playing", true, "Speedrun"]);
   });
 
-  it("keeps hidden entries out of the played days", () => {
+  it("keeps hidden entries out of the played days, but keeps their time separately", () => {
     expect(lib.days.some((d) => d.gameId === "g-yt")).toBe(false);
+    expect(lib.appDays.map((d) => [d.gameId, d.minutes])).toEqual([["g-yt", 500]]);
     expect(totalInRange(lib.days, march)).toEqual({ minutes: 250, estimated: false });
   });
 

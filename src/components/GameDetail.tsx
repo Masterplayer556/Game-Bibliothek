@@ -73,7 +73,7 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={game.hidden} disabled={busy} onChange={(e) => save({ hidden: e.target.checked })} />
-            Kein Spiel (aus Listen und Statistiken ausblenden)
+            Kein Spiel (App): zählt nicht als Spielzeit, erscheint separat unter Statistiken
           </label>
         </div>
       </div>
@@ -313,11 +313,11 @@ export function GameDetail({ id }: { id: string }) {
           );
         }
         const today = toLocalDate(new Date());
-        const gameDays = library.days.filter((d) => d.gameId === game.id);
+        const gameDays = (game.hidden ? library.appDays : library.days).filter((d) => d.gameId === game.id);
         const first = gameDays[0]?.date;
         const from = first && first > addDays(today, -425) ? first : addDays(today, -425);
         const series = playtimeSeries(gameDays, { from, to: today }, "month");
-        const totals = deviceTotals(game, library.days);
+        const totals = deviceTotals(game, game.hidden ? library.appDays : library.days);
 
         return (
           <>

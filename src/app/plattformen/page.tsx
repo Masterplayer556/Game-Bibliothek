@@ -8,16 +8,17 @@ import { useLibraryContext } from "@/components/LibraryProvider";
 import { NintendoConnect } from "@/components/NintendoConnect";
 import { NintendoImport } from "@/components/NintendoImport";
 import { PlayStationConnect } from "@/components/PlayStationConnect";
+import { SyncControls } from "@/components/SyncControls";
 import { Button, Card, Notice } from "@/components/ui";
 import { ADAPTER_CATALOG, type AdapterInfo } from "@/core/adapter-catalog";
 import type { ConnectionRow } from "@/core/library";
 import { DEMO_SOURCE, type ConnectionStatus } from "@/core/types";
 import { loadDemoData, removeDemoData } from "@/lib/library-data";
-import { guideUrl, workflowUrl } from "@/lib/links";
+import { guideUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 
 /** Adapters up to this phase exist. */
-const BUILT_UP_TO_PHASE = 7;
+const BUILT_UP_TO_PHASE = 8;
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -168,19 +169,7 @@ export default function PlatformsPage() {
               </ul>
             </Card>
 
-            <Card title="Synchronisieren">
-              <Notice>
-                Der Sync läuft automatisch alle 6 Stunden. Sofort syncen oder eine Verbindung testen geht
-                bis Phase 8 über GitHub: Workflow «Sync» → «Run workflow» (Modus «test» prüft nur die
-                Verbindung). Das Ergebnis erscheint nach etwa einer Minute hier.
-              </Notice>
-              <div className="flex flex-wrap gap-stack">
-                <a className="rounded-control bg-accent px-4 py-2 text-sm font-medium text-on-accent" href={workflowUrl("sync.yml")} target="_blank" rel="noopener noreferrer">
-                  Sync auf GitHub öffnen
-                </a>
-                <Button onClick={() => void reload()}>Status neu laden</Button>
-              </div>
-            </Card>
+            <SyncControls onFinished={() => void reload()} />
 
             <PlayStationConnect
               title={raw.connections.find((c) => c.adapter_id === "psn")?.status === "ok" ? "PlayStation neu anmelden" : "PlayStation verbinden"}

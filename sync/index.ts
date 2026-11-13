@@ -7,6 +7,7 @@
 // Options used by the workflow: --run-id=<sync_runs.id> --trigger=schedule|manual
 import { parseArgs } from "node:util";
 import { consoleLogger, loadLocalEnv } from "./env";
+import { markKnownApps } from "./mark-apps";
 import { enrichMetadata, setMetadataStatus } from "./metadata/enrich";
 import { adapters, metadataProviders } from "./registry";
 import { overallStatus, runAdapters } from "./runner";
@@ -46,6 +47,16 @@ async function main(): Promise<void> {
     const results = metadataOnly
       ? []
       : await runAdapters({ adapters, store, mode, only, env: process.env, log: consoleLogger });
+
+    // Known apps (YouTube, Netflix, …) become «Kein Spiel», once per entry.
+    if (mode === "sync") {
+      try {
+        const marked = await markKnownApps(db, userId);
+        if (marked > 0) console.log(`${marked} app(s) marked as not a game`);
+      } catch {
+        consoleLogger.warn("marking apps failed");
+      }
+    }
 
     // Metadata (IGDB) after the platforms, so new games get cover and genres right away.
     for (const provider of metadataProviders) {
