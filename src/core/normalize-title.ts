@@ -36,5 +36,8 @@ export function normalizeTitle(title: string): string {
       }
     }
   }
+  // Platform tags left at the end: "(PlayStation®5)", "(PS4)", "(Nintendo Switch)".
+  // Runs after the edition suffixes, which already cover "for Nintendo Switch".
+  t = t.replace(/\s(playstation\s?[45]|ps[45]|nintendo switch\s?2?|xbox series x s|xbox one|pc)$/, "").trim();
   return t.replace(/\s+/g, " ");
 }

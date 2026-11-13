@@ -45,6 +45,12 @@ describe("normalizeTitle", () => {
       normalizeTitle("Hollow Knight: Silksong"),
     );
     expect(normalizeTitle("Rayman Legends: Definitive Edition")).toBe("rayman legends");
+    expect(normalizeTitle("Grand Theft Auto V (PlayStation®5)")).toBe("grand theft auto v");
+    expect(normalizeTitle("Minecraft (PS4)")).toBe("minecraft");
+    expect(normalizeTitle("Super Mario Odyssey (Nintendo Switch)")).toBe("super mario odyssey");
+    // a number that belongs to the title stays
+    expect(normalizeTitle("Hades II")).toBe("hades ii");
+    expect(normalizeTitle("Cities: Skylines II")).toBe("cities skylines ii");
   });
 
   it("keeps different games apart", () => {

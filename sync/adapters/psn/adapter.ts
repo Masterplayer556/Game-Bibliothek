@@ -1,9 +1,11 @@
 // PlayStation, through the unofficial API used by the PlayStation app (library psn-api).
 //
-// Login: a NPSSO (copied once from the browser) is exchanged for an access token and a
-// refresh token. Sony rotates the refresh token: every run stores the new one, encrypted.
-// The NPSSO is deleted after the first exchange. When the refresh token expires
-// (about every two months), the app asks for a new NPSSO.
+// Login: a NPSSO (copied from the browser, valid for about two months) is exchanged for an
+// access token and a refresh token. Sony issues the refresh token with a fixed lifetime of
+// about ten days that a refresh does not extend (checked with a real account on 13.11.2026).
+// The NPSSO is therefore kept, encrypted like every token, and exchanged again whenever the
+// refresh token stops working. Only when the NPSSO itself has expired does the app ask for a
+// new one.
 import { getAdapterInfo } from "../../../src/core/adapter-catalog";
 import { normalizeTitle } from "../../../src/core/normalize-title";
 import { toLocalDate } from "../../../src/core/time";
@@ -62,21 +64,19 @@ export async function authenticate(client: PsnClient, ctx: AdapterContext): Prom
   if (!npsso) throw new AdapterError("auth_expired", "PlayStation ist noch nicht angemeldet: Bitte die NPSSO in der App eingeben.");
   try {
     const tokens = await client.exchangeNpsso(npsso);
-    return {
-      tokens,
-      updates: [
-        { kind: REFRESH_TOKEN_KIND, value: tokens.refreshToken },
-        // The NPSSO is not needed any more and should not lie around.
-        { kind: NPSSO_KIND, value: null },
-      ],
-    };
+    return { tokens, updates: [{ kind: REFRESH_TOKEN_KIND, value: tokens.refreshToken }] };
   } catch (error) {
     if (isNetworkError(error)) throw new AdapterError("network", "PlayStation ist nicht erreichbar.");
     throw new AdapterError("auth_expired", NEW_NPSSO);
   }
 }
 
-function expiry(ctx: AdapterContext, tokens: PsnTokens): string {
+/**
+ * When the login will need a new NPSSO. With a stored NPSSO that is the NPSSO's own expiry,
+ * which Sony does not tell: unknown (null). Without one it is the refresh token's.
+ */
+function expiry(ctx: AdapterContext, tokens: PsnTokens): string | null {
+  if (ctx.credentials[NPSSO_KIND]) return null;
   return new Date(ctx.now.getTime() + tokens.refreshTokenExpiresIn * 1000).toISOString();
 }
 
