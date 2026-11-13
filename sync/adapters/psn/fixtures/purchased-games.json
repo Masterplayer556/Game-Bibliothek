@@ -1,0 +1,7 @@
+[
+  { "titleId": "PPSA01234_00", "name": "Hollow Knight: Silksong", "imageUrl": "https://example.invalid/silksong-store.png" },
+  { "titleId": "CUSA05678_00", "name": "Hollow Knight", "imageUrl": null },
+  { "titleId": "PPSA04444_00", "name": "Ghost of Yōtei", "imageUrl": "https://example.invalid/yotei.png" },
+  { "titleId": "PPSA04444_00", "name": "Ghost of Yōtei", "imageUrl": "https://example.invalid/yotei.png" },
+  { "titleId": "CUSA01234_00", "name": "Hollow Knight: Silksong", "imageUrl": null }
+]

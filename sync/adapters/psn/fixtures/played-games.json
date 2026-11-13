@@ -1,0 +1,5 @@
+[
+  { "titleId": "PPSA01234_00", "name": "Hollow Knight: Silksong", "imageUrl": "https://example.invalid/silksong.png", "category": "ps5_native_game", "firstPlayedDateTime": "2025-09-04T18:00:00.000Z", "lastPlayedDateTime": "2026-11-10T21:15:00.000Z", "playDuration": "PT35H58M12S" },
+  { "titleId": "CUSA05678_00", "name": "Hollow Knight", "imageUrl": "https://example.invalid/hk.png", "category": "ps4_game", "firstPlayedDateTime": "2022-01-02T10:00:00.000Z", "lastPlayedDateTime": "2026-11-09T19:00:00.000Z", "playDuration": "PT90H0M0S" },
+  { "titleId": "PPSA09999_00", "name": "Free Demo Game", "imageUrl": null, "category": "ps5_native_game", "firstPlayedDateTime": "2026-05-01T10:00:00.000Z", "lastPlayedDateTime": "2026-05-01T10:20:00.000Z", "playDuration": "PT20M" }
+]

@@ -11,7 +11,6 @@
 //
 // Runs on Deno. The files in ../_shared are copies of src/core/* made by the deploy
 // workflow, so the logic exists only once.
-import { createClient } from "npm:@supabase/supabase-js@2";
 import { encryptSecret } from "../_shared/crypto.ts";
 import { fetchDevices } from "../_shared/nintendo-api.ts";
 import {
@@ -21,51 +20,16 @@ import {
   parseRedirectLink,
   readTokenExpiry,
 } from "../_shared/nintendo-auth.ts";
+import { authorize, reply } from "../_common/http.ts";
 
-const SCHEMA = "game_bibliothek";
 const ADAPTER_ID = "nintendo-parental";
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function reply(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json" },
-  });
-}
-
 Deno.serve(async (request: Request) => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (request.method !== "POST") return reply(405, { error: "Nur POST ist erlaubt." });
-
-  const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const encryptionKey = Deno.env.get("GB_CREDENTIALS_ENCRYPTION_KEY");
-  if (!url || !serviceKey) return reply(500, { error: "Die Function ist nicht richtig eingerichtet." });
-  if (!encryptionKey) {
-    return reply(500, {
-      error: "Das Secret GB_CREDENTIALS_ENCRYPTION_KEY fehlt. Bitte den Workflow «Edge Functions deployen» noch einmal starten.",
-    });
-  }
-
-  // 1. Who is calling? The login token is verified here, not by the gateway.
-  const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (!token) return reply(401, { error: "Nicht angemeldet." });
-  const admin = createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    db: { schema: SCHEMA },
-  });
-  const { data: userData, error: userError } = await admin.auth.getUser(token);
-  const user = userData?.user;
-  if (userError || !user?.email) return reply(401, { error: "Nicht angemeldet." });
-
-  // 2. Only the allowed e-mail may store credentials.
-  const allowed = await admin.rpc("is_allowed_email", { candidate: user.email });
-  if (allowed.error || allowed.data !== true) return reply(403, { error: "Kein Zugriff." });
+  // 1.–2. Login token and allowed e-mail
+  const caller = await authorize(request);
+  if (caller instanceof Response) return caller;
+  const { admin, encryptionKey } = caller;
+  const user = { id: caller.userId };
 
   // 3. Input
   let body: Record<string, unknown>;
