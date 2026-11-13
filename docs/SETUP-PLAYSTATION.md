@@ -22,13 +22,13 @@ Zeigt die Seite in Schritt 2 einen Fehler, einen anderen Browser versuchen oder 
 ## 3. Verbindung prüfen und synchronisieren
 
 1. <https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/sync.yml> → «Run workflow»:
-   - Modus `test`, Adapter `psn`: tauscht die NPSSO gegen eine Anmeldung und zeigt danach unter Plattformen «Verbunden: … gespielte Spiele gefunden».
+   - Modus `test`, Adapter `psn`: meldet sich mit der NPSSO an und zeigt danach unter Plattformen «Verbunden: … gespielte Spiele gefunden».
    - Modus `sync`: holt alle Daten. Der erste Lauf liest die Trophäen der zuletzt gespielten 40 Spiele, die übrigen folgen in den nächsten automatischen Syncs.
 2. Danach läuft alles automatisch alle 6 Stunden.
 
-## Alle paar Wochen: neue NPSSO
+## Etwa alle zwei Monate: neue NPSSO
 
-Die Anmeldung hält etwa zwei Monate und wird bei jedem Sync erneuert. Läuft sie trotzdem ab (z. B. nach einem Passwortwechsel), zeigt die App unter Plattformen «Anmeldung abgelaufen – Neue NPSSO nötig». Dann die Schritte 1 bis 3 wiederholen.
+Die NPSSO hält etwa zwei Monate. Läuft sie ab (oder nach einem Passwortwechsel), zeigt die App unter Plattformen «Anmeldung abgelaufen – Neue NPSSO nötig». Dann die Schritte 1 bis 3 wiederholen. Ein genaues Ablaufdatum gibt Sony nicht heraus, darum zeigt die App keines an.
 
 ## Was die App von PlayStation holt
 
@@ -40,5 +40,5 @@ Die Anmeldung hält etwa zwei Monate und wird bei jedem Sync erneuert. Läuft si
 ## Wie die Anmeldung gespeichert wird
 
 1. Die NPSSO geht über die Edge Function `save-credential` verschlüsselt (AES-256-GCM) in die Datenbank. Der Browser kann gespeicherte Tokens nie lesen.
-2. Der nächste Sync tauscht sie gegen einen Refresh-Token und löscht die NPSSO.
-3. Sony gibt bei jeder Anmeldung einen neuen Refresh-Token heraus; der Sync speichert ihn jedes Mal sofort, noch bevor er die Spieldaten schreibt.
+2. Der Sync tauscht sie gegen einen Refresh-Token. Sony gibt bei jeder Anmeldung einen neuen heraus; der Sync speichert ihn jedes Mal sofort, noch bevor er die Spieldaten schreibt.
+3. Der Refresh-Token gilt bei Sony nur etwa 10 Tage und verlängert sich nicht. Darum bleibt die NPSSO (verschlüsselt) gespeichert: Läuft der Refresh-Token ab, meldet sich der Sync mit ihr neu an, ohne dass du etwas tun musst.

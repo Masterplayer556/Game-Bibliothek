@@ -88,12 +88,10 @@ describe("authenticate (token rotation)", () => {
     expect(client.calls).toEqual(["refresh:refresh-0"]);
   });
 
-  it("exchanges a new NPSSO once and deletes it afterwards", async () => {
+  it("exchanges a new NPSSO and keeps it for when the refresh token expires", async () => {
     const session = await authenticate(fakeClient(), context({ [NPSSO_KIND]: "good-npsso" }));
-    expect(session.updates).toEqual([
-      { kind: REFRESH_TOKEN_KIND, value: "refresh-1" },
-      { kind: NPSSO_KIND, value: null },
-    ]);
+    // the NPSSO is not deleted (no update for it)
+    expect(session.updates).toEqual([{ kind: REFRESH_TOKEN_KIND, value: "refresh-1" }]);
   });
 
   it("falls back to a fresh NPSSO when the refresh token has expired", async () => {
@@ -136,7 +134,13 @@ describe("psnAdapter.sync", () => {
       lastPlayedAt: "2026-11-10T21:15:00.000Z",
     });
     expect(result.credentialUpdates).toEqual([{ kind: REFRESH_TOKEN_KIND, value: "refresh-rotated" }]);
+    // without a stored NPSSO the refresh token's lifetime is the limit …
     expect(result.tokenExpiresAt).toBe(new Date(Date.parse("2026-11-13T12:00:00Z") + 5_000_000_000).toISOString());
+    // … with one, the limit is the NPSSO's own expiry, which Sony does not report
+    const withNpsso = await createPsnAdapter(fakeClient()).sync(
+      context({ [REFRESH_TOKEN_KIND]: "refresh-0", [NPSSO_KIND]: "good-npsso" }),
+    );
+    expect(withNpsso.tokenExpiresAt).toBeNull();
     expect(result.dataSince).toBe("2026-11-13");
   });
 
@@ -208,10 +212,7 @@ describe("psnAdapter.sync", () => {
   it("tests the connection and returns the rotated token for storage", async () => {
     const result = await createPsnAdapter(fakeClient()).testConnection(context({ [NPSSO_KIND]: "good-npsso" }));
     expect(result).toMatchObject({ ok: true, message: "Verbunden: 3 gespielte Spiele gefunden." });
-    expect(result.credentialUpdates).toEqual([
-      { kind: REFRESH_TOKEN_KIND, value: "refresh-1" },
-      { kind: NPSSO_KIND, value: null },
-    ]);
+    expect(result.credentialUpdates).toEqual([{ kind: REFRESH_TOKEN_KIND, value: "refresh-1" }]);
   });
 
   it("is configured with a refresh token or a NPSSO", async () => {
