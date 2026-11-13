@@ -114,6 +114,13 @@ export async function login(fetchFn: typeof fetch, credentials: IgdbCredentials)
 
 const FIELDS = "name,alternative_names.name,cover.image_id,genres.name,first_release_date,platforms,total_rating_count";
 
+/**
+ * Only real games: main game (0), standalone expansion (4), remake (8), remaster (9),
+ * expanded game (10), port (11). Without this, DLCs and seasons can outrank the game itself
+ * («Fall Guys: … Season 3»). Versions of a game (editions) are left out as well.
+ */
+const GAME_FILTER = "version_parent = null & game_type = (0,4,8,9,10,11)";
+
 /** Apicalypse strings are quoted with double quotes. */
 function quote(text: string): string {
   return `"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
@@ -171,34 +178,26 @@ async function post(session: IgdbSession, path: string, body: string): Promise<u
 export async function searchGames(session: IgdbSession, query: string, limit = 10): Promise<IgdbGame[]> {
   const text = query.trim();
   if (!text) return [];
-  const body = `search ${quote(text)}; fields ${FIELDS}; where version_parent = null; limit ${limit};`;
+  const body = `search ${quote(text)}; fields ${FIELDS}; where ${GAME_FILTER}; limit ${limit};`;
   const result = await post(session, "/games", body);
   return (Array.isArray(result) ? result : []).map(parseGame).filter((g): g is IgdbGame => g !== null);
 }
 
-/** Up to 10 searches in one request (IGDB multiquery). Result keyed by the given keys. */
+/**
+ * Several searches, one request each, at most 4 per second. (IGDB's multiquery endpoint
+ * answers searches with an empty list, checked on 13.11.2026, so it cannot be used here.)
+ */
 export async function searchMany(
   session: IgdbSession,
   queries: readonly { key: string; title: string }[],
-  limit = 6,
+  limit = 10,
+  intervalMs = IGDB_MIN_INTERVAL_MS,
 ): Promise<Map<string, IgdbGame[]>> {
   const out = new Map<string, IgdbGame[]>();
-  if (queries.length === 0) return out;
-  if (queries.length > 10) throw new Error("IGDB multiquery accepts at most 10 queries");
-  const body = queries
-    .map(
-      (q, i) =>
-        `query games "${i}" { search ${quote(q.title)}; fields ${FIELDS}; where version_parent = null; limit ${limit}; };`,
-    )
-    .join("\n");
-  const result = await post(session, "/multiquery", body);
-  for (const entry of Array.isArray(result) ? result : []) {
-    if (!isObject(entry) || typeof entry.name !== "string") continue;
-    const query = queries[Number(entry.name)];
-    if (!query) continue;
-    const games = (Array.isArray(entry.result) ? entry.result : []).map(parseGame).filter((g): g is IgdbGame => g !== null);
-    out.set(query.key, games);
+  for (let i = 0; i < queries.length; i++) {
+    if (i > 0 && intervalMs > 0) await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    const q = queries[i]!;
+    out.set(q.key, await searchGames(session, q.title, limit));
   }
-  for (const q of queries) if (!out.has(q.key)) out.set(q.key, []);
   return out;
 }

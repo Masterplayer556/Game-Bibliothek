@@ -35,7 +35,12 @@ export const igdbProvider: MetadataProvider & { intervalMs: number } = {
     for (let i = 0; i < requests.length; i += 10) {
       if (i > 0) await sleep(this.intervalMs);
       const batch = requests.slice(i, i + 10);
-      const results = await searchMany(s, batch.map((r) => ({ key: r.key, title: searchTitle(r.title) })));
+      const results = await searchMany(
+        s,
+        batch.map((r) => ({ key: r.key, title: searchTitle(r.title) })),
+        10,
+        this.intervalMs,
+      );
       for (const r of batch) {
         const best = pickBestMatch(searchTitle(r.title), results.get(r.key) ?? [], r.deviceKinds);
         out.set(

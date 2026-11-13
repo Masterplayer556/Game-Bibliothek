@@ -8,6 +8,7 @@ export function searchTitle(title: string): string {
   return title
     .replace(/[™®©]/g, "")
     .replace(/\s*\((PlayStation\s?[45]|PS[45]|Nintendo Switch(\s?2)?|PC)\)\s*$/i, "")
+    .replace(/\s*[-–:]?\s*(PlayStation\s?[45]|PS[45])\s+Edition\s*$/i, "")
     .replace(/\s*[–-]\s*Nintendo Switch 2 Edition\s*$/i, "")
     .replace(/\s+for Nintendo Switch\s*$/i, "")
     .replace(/\s+/g, " ")

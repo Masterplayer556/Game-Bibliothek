@@ -27,7 +27,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 ## Was in Phase 7 gebaut wurde
 
-- **IGDB-Client** `src/core/igdb/client.ts` (ohne Imports, die Edge Function nutzt eine Kopie): Twitch-Login (client credentials), Suche, Multiquery (10 Suchen pro Anfrage), Genres auf Deutsch, Cover `t_cover_big`.
+- **IGDB-Client** `src/core/igdb/client.ts` (ohne Imports, die Edge Function nutzt eine Kopie): Twitch-Login (client credentials), Suche (eine Anfrage pro Titel, höchstens 4 pro Sekunde; die Multiquery von IGDB liefert bei Suchen immer eine leere Liste, geprüft am 13.11.2026), Genres auf Deutsch, Cover `t_cover_big`. Diagnose: Workflow «Tools» → `igdb-check`.
 - **Zuordnung** `src/core/igdb/match.ts`: Suchtitel ohne ®/™ und Plattform-Zusätze; Treffer bei exakt gleichem (auch alternativem) Titel oder Ähnlichkeit ≥ 0.6; Gleichstand → passende Konsole, dann Beliebtheit.
 - **Sync-Schritt** `sync/metadata/enrich.ts` (nach den Plattformen, Anbieter in `sync/registry.ts`): bis 200 Nachschläge pro Lauf, Cache in `metadata_cache` (Migration `0003`, ausgeführt am 13.11.2026; Fehltreffer nach 30 Tagen neu), setzt `igdb_id`, Cover, Genres, Jahr (nie bei `igdb_locked`), führt Spiele mit gleicher IGDB-ID zusammen (nicht bei `game_link_locked`, eigene Notizen wandern mit). Status in `platform_connections` unter `igdb`. `npm run sync -- --mode=test --adapter=igdb` testet nur IGDB.
 - **Edge Function** `igdb-search` (Secrets `GB_IGDB_CLIENT_ID`/`GB_IGDB_CLIENT_SECRET`, setzt der Workflow aus den GitHub-Secrets, falls vorhanden).

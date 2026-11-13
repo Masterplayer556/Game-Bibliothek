@@ -22,6 +22,7 @@ describe("searchTitle", () => {
       "The Legend of Zelda: Tears of the Kingdom",
     );
     expect(searchTitle("ASTRO BOT™")).toBe("ASTRO BOT");
+    expect(searchTitle("Terraria: PlayStation®4 Edition")).toBe("Terraria");
   });
 });
 
@@ -86,32 +87,39 @@ describe("IGDB client", () => {
     expect(parseGame({ name: "no id" })).toBeNull();
   });
 
-  it("logs in at Twitch and sends multiqueries with escaped titles", async () => {
+  it("logs in at Twitch and sends one search per title with escaped quotes", async () => {
     const requests: { url: string; init?: RequestInit }[] = [];
     const fakeFetch = (async (url: string, init?: RequestInit) => {
       requests.push({ url, init });
       if (url.startsWith("https://id.twitch.tv")) {
         return new Response(JSON.stringify({ access_token: "tok", expires_in: 5000000, token_type: "bearer" }));
       }
-      return new Response(
-        JSON.stringify([
-          { name: "0", result: [{ id: 1, name: 'Say "Hi"' }] },
-          { name: "1", result: [] },
-        ]),
-      );
+      const body = String(init?.body);
+      return new Response(JSON.stringify(body.includes("Hi") ? [{ id: 1, name: 'Say "Hi"' }] : []));
     }) as typeof fetch;
     const session = await login(fakeFetch, { clientId: "cid", clientSecret: "secret" });
-    const result = await searchMany(session, [
-      { key: "a", title: 'Say "Hi"' },
-      { key: "b", title: "Nothing" },
-    ]);
+    const result = await searchMany(
+      session,
+      [
+        { key: "a", title: 'Say "Hi"' },
+        { key: "b", title: "Nothing" },
+      ],
+      6,
+      0,
+    );
     expect(result.get("a")?.[0]?.title).toBe('Say "Hi"');
     expect(result.get("b")).toEqual([]);
+    expect(requests.map((r) => r.url)).toEqual([
+      expect.stringContaining("id.twitch.tv"),
+      "https://api.igdb.com/v4/games",
+      "https://api.igdb.com/v4/games",
+    ]);
     const api = requests[1]!;
-    expect(api.url).toBe("https://api.igdb.com/v4/multiquery");
     expect((api.init?.headers as Record<string, string>)["Client-ID"]).toBe("cid");
     expect((api.init?.headers as Record<string, string>).Authorization).toBe("Bearer tok");
     expect(String(api.init?.body)).toContain('search "Say \\"Hi\\""');
+    // only real games: no DLCs, seasons or editions
+    expect(String(api.init?.body)).toContain("game_type = (0,4,8,9,10,11)");
   });
 
   it("explains rejected credentials", async () => {
