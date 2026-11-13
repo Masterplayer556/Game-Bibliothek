@@ -118,6 +118,8 @@ describe("IGDB client", () => {
     expect((api.init?.headers as Record<string, string>)["Client-ID"]).toBe("cid");
     expect((api.init?.headers as Record<string, string>).Authorization).toBe("Bearer tok");
     expect(String(api.init?.body)).toContain('search "Say \\"Hi\\""');
+    // only real games: no DLCs, seasons or editions
+    expect(String(api.init?.body)).toContain("game_type = (0,4,8,9,10,11)");
   });
 
   it("explains rejected credentials", async () => {
