@@ -3,6 +3,7 @@ import {
   createLoginRequest,
   exchangeCodeForSessionToken,
   fetchApiTokens,
+  isNintendoLoginUrl,
   NINTENDO_CLIENT_ID,
   NintendoAuthError,
   parseRedirectLink,
@@ -34,6 +35,13 @@ describe("createLoginRequest", () => {
     const [a, b] = await Promise.all([createLoginRequest(), createLoginRequest()]);
     expect(a.verifier).not.toBe(b.verifier);
     expect(a.state).not.toBe(b.state);
+  });
+
+  it("recognises only addresses of Nintendo's login page", async () => {
+    expect(isNintendoLoginUrl((await createLoginRequest()).url)).toBe(true);
+    for (const other of ["javascript:alert(1)", "https://accounts.nintendo.com.example.org/connect/1.0.0/authorize?x=1", "", null, 5]) {
+      expect(isNintendoLoginUrl(other)).toBe(false);
+    }
   });
 });
 

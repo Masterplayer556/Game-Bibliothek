@@ -28,8 +28,7 @@ Deno.serve(async (request: Request) => {
   // 1.–2. Login token and allowed e-mail
   const caller = await authorize(request);
   if (caller instanceof Response) return caller;
-  const { admin, encryptionKey } = caller;
-  const user = { id: caller.userId };
+  const { admin, encryptionKey, userId } = caller;
 
   // 3. Input
   let body: Record<string, unknown>;
@@ -68,7 +67,7 @@ Deno.serve(async (request: Request) => {
     const expiresAt = readTokenExpiry(sessionToken);
     const saved = await admin.from("platform_credentials").upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         adapter_id: ADAPTER_ID,
         kind: "session_token",
         ciphertext: await encryptSecret(sessionToken, encryptionKey),
@@ -79,7 +78,7 @@ Deno.serve(async (request: Request) => {
 
     await admin.from("platform_connections").upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         adapter_id: ADAPTER_ID,
         platform: "nintendo",
         status: "ok",

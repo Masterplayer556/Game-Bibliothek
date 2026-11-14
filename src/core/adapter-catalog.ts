@@ -28,8 +28,6 @@ export interface AdapterInfo {
   requiredEnv: string[];
   /** Guide in docs/, linked from the platform card. */
   guide: string;
-  /** Phase in which the adapter is built. Until then the card shows «in Arbeit». */
-  availableFromPhase: number;
 }
 
 export const ADAPTER_CATALOG: readonly AdapterInfo[] = [
@@ -41,7 +39,6 @@ export const ADAPTER_CATALOG: readonly AdapterInfo[] = [
     credentialSource: "env",
     requiredEnv: ["STEAM_API_KEY", "STEAM_ID"],
     guide: "SETUP-STEAM.md",
-    availableFromPhase: 5,
   },
   {
     id: "psn",
@@ -51,7 +48,6 @@ export const ADAPTER_CATALOG: readonly AdapterInfo[] = [
     credentialSource: "database",
     requiredEnv: [],
     guide: "SETUP-PLAYSTATION.md",
-    availableFromPhase: 6,
   },
   {
     id: "nintendo-parental",
@@ -61,7 +57,6 @@ export const ADAPTER_CATALOG: readonly AdapterInfo[] = [
     credentialSource: "database",
     requiredEnv: [],
     guide: "SETUP-NINTENDO.md",
-    availableFromPhase: 2,
   },
   {
     id: "nintendo-import",
@@ -71,7 +66,6 @@ export const ADAPTER_CATALOG: readonly AdapterInfo[] = [
     credentialSource: "none",
     requiredEnv: [],
     guide: "SETUP-NINTENDO.md",
-    availableFromPhase: 2,
   },
 ];
 

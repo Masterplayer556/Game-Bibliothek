@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ADAPTER_CATALOG } from "@/core/adapter-catalog";
-import { isFinished, latestRun, loadRun, startSync, type SyncRun } from "@/lib/sync-control";
+import { isFinished, isStale, latestRun, loadRun, startSync, type SyncRun } from "@/lib/sync-control";
 import { workflowUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 import { formatDateTime } from "./game-ui";
 import { Button, Card, fieldClass, Notice } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 const SOURCES = [...ADAPTER_CATALOG.filter((a) => a.credentialSource !== "none"), { id: "igdb", displayName: "IGDB" }];
 
@@ -44,7 +45,7 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
       (r) => {
         if (!active || !r) return;
         setRun(r);
-        if (!isFinished(r.status)) follow(r.id);
+        if (!isFinished(r.status) && !isStale(r, new Date())) follow(r.id);
       },
       () => undefined,
     );
@@ -62,10 +63,10 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
         const r = await loadRun(getSupabase(), runId);
         if (!r) return;
         setRun(r);
-        if (isFinished(r.status)) {
+        if (isFinished(r.status) || isStale(r, new Date())) {
           if (timer.current) clearInterval(timer.current);
           timer.current = null;
-          onFinished();
+          if (isFinished(r.status)) onFinished();
         }
       } catch {
         // try again with the next tick
@@ -82,12 +83,14 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
       if (r) setRun(r);
       follow(runId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
     setBusy(false);
   }
 
-  const running = run !== null && !isFinished(run.status);
+  // A run without any answer for too long no longer blocks the buttons.
+  const stale = run !== null && isStale(run, new Date());
+  const running = run !== null && !isFinished(run.status) && !stale;
 
   return (
     <Card title="Synchronisieren">
@@ -120,27 +123,28 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
               {run.mode === "test" ? "Verbindungstest" : "Sync"}
               {run.adapter_id ? ` · ${sourceName(run.adapter_id)}` : ""}
             </span>
-            <span className={run.status === "success" ? "text-success" : run.status === "error" ? "text-danger" : "text-muted"}>
-              {STATUS_TEXT[run.status]}
+            <span className={stale ? "text-warning" : run.status === "success" ? "text-success" : run.status === "error" ? "text-danger" : "text-muted"}>
+              {stale ? "keine Rückmeldung" : STATUS_TEXT[run.status]}
             </span>
           </div>
           <span className="text-xs text-muted">gestartet {formatDateTime(run.created_at)}</span>
           {isFinished(run.status) && run.results.length > 0 ? (
             <ul className="text-xs">
               {run.results.map((r) => (
-                <li key={r.adapterId} className={r.outcome === "ok" ? "text-muted" : "text-warning"}>
+                <li key={r.adapterId} className={r.outcome === "ok" || r.outcome.startsWith("skipped") ? "text-muted" : "text-warning"}>
                   {sourceName(r.adapterId)}: {OUTCOME_TEXT[r.outcome] ?? r.outcome}
                   {r.message ? ` · ${r.message}` : ""}
                 </li>
               ))}
             </ul>
           ) : null}
-          {running && Date.now() - new Date(run.created_at).getTime() > 10 * 60_000 ? (
+          {stale ? (
             <span className="text-xs text-warning">
-              Dauert ungewöhnlich lange.{" "}
+              Dieser Lauf hat sich nicht zurückgemeldet. Du kannst einen neuen starten oder{" "}
               <a className="underline" href={workflowUrl("sync.yml")} target="_blank" rel="noopener noreferrer">
-                Auf GitHub nachsehen
+                auf GitHub nachsehen
               </a>
+              .
             </span>
           ) : null}
         </div>

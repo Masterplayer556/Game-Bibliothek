@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { buildLibrary, type Library, type RawData } from "@/core/library";
 import { loadRawData } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
+import { errorMessage } from "@/lib/errors";
 
 interface LibraryContextValue {
   session: Session;
@@ -26,7 +27,7 @@ export function LibraryProvider({ session, children }: { session: Session; child
       setRaw(await loadRawData(getSupabase()));
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
   }, []);
 
@@ -37,7 +38,7 @@ export function LibraryProvider({ session, children }: { session: Session; child
         if (active) setRaw(data);
       },
       (e: unknown) => {
-        if (active) setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+        if (active) setError(errorMessage(e));
       },
     );
     return () => {

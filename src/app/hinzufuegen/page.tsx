@@ -12,6 +12,7 @@ import type { IgdbGame } from "@/core/igdb/client";
 import { applyIgdb } from "@/lib/igdb";
 import { addManualGame } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
+import { errorMessage } from "@/lib/errors";
 
 export default function AddGamePage() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function AddGamePage() {
       await reload();
       router.push(gameHref(id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
       setBusy(false);
     }
   }

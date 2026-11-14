@@ -16,15 +16,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: supabase/setup-cli@v1
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
           version: latest
 
       - name: Find the project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           ref=$(grep '^NEXT_PUBLIC_SUPABASE_URL=' .env.production | sed -E 's#.*https://([a-z0-9]+)\.supabase\.co.*#\1#')
           if [ -z "$ref" ]; then echo "Project not found in .env.production"; exit 1; fi
@@ -42,6 +44,8 @@ jobs:
 
       # The functions check the login token and the allowed e-mail themselves.
       - name: Deploy functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           for fn in nintendo-login save-credential igdb-search trigger-sync; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt --yes
@@ -49,6 +53,7 @@ jobs:
 
       - name: Set function secrets
         env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           KEY: ${{ secrets.CREDENTIALS_ENCRYPTION_KEY }}
           IGDB_ID: ${{ secrets.IGDB_CLIENT_ID }}
           IGDB_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
@@ -58,11 +63,11 @@ jobs:
           if [ -z "$KEY" ]; then echo "The secret CREDENTIALS_ENCRYPTION_KEY is missing"; exit 1; fi
           umask 077
           printf 'GB_CREDENTIALS_ENCRYPTION_KEY=%s\n' "$KEY" > "$RUNNER_TEMP/functions.env"
-          # IGDB is optional: only passed on when both secrets exist
-          # «Jetzt synchronisieren» in the app: optional as well
+          # «Jetzt synchronisieren» in the app is optional: only passed on when the secret exists
           if [ -n "$DISPATCH_TOKEN" ]; then
             printf 'GB_GITHUB_DISPATCH_TOKEN=%s\nGB_GITHUB_REPO=%s\n' "$DISPATCH_TOKEN" "$REPO" >> "$RUNNER_TEMP/functions.env"
           fi
+          # IGDB is optional as well: only passed on when both secrets exist
           if [ -n "$IGDB_ID" ] && [ -n "$IGDB_SECRET" ]; then
             printf 'GB_IGDB_CLIENT_ID=%s\nGB_IGDB_CLIENT_SECRET=%s\n' "$IGDB_ID" "$IGDB_SECRET" >> "$RUNNER_TEMP/functions.env"
           fi

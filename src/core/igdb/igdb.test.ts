@@ -110,10 +110,12 @@ describe("IGDB client", () => {
     expect(result.get("a")?.[0]?.title).toBe('Say "Hi"');
     expect(result.get("b")).toEqual([]);
     expect(requests.map((r) => r.url)).toEqual([
-      expect.stringContaining("id.twitch.tv"),
+      "https://id.twitch.tv/oauth2/token",
       "https://api.igdb.com/v4/games",
       "https://api.igdb.com/v4/games",
     ]);
+    // the secret travels in the body, never in the address
+    expect(String(requests[0]!.init?.body)).toBe("client_id=cid&client_secret=secret&grant_type=client_credentials");
     const api = requests[1]!;
     expect((api.init?.headers as Record<string, string>)["Client-ID"]).toBe("cid");
     expect((api.init?.headers as Record<string, string>).Authorization).toBe("Bearer tok");

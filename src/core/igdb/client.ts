@@ -89,14 +89,19 @@ export function coverUrl(imageId: string | null | undefined): string | null {
 }
 
 export async function login(fetchFn: typeof fetch, credentials: IgdbCredentials): Promise<IgdbSession> {
-  const query = new URLSearchParams({
+  // In the body, not in the address: addresses end up in logs of servers in between.
+  const form = new URLSearchParams({
     client_id: credentials.clientId,
     client_secret: credentials.clientSecret,
     grant_type: "client_credentials",
   });
   let response: Response;
   try {
-    response = await fetchFn(`${TOKEN_URL}?${query.toString()}`, { method: "POST" });
+    response = await fetchFn(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+    });
   } catch {
     throw new IgdbError(0, "Twitch ist nicht erreichbar.");
   }

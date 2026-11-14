@@ -5,6 +5,7 @@ import type { NintendoLoginRequest } from "@/core/nintendo/auth";
 import { finishLogin, prepareLogin, type NintendoLoginResult } from "@/lib/nintendo";
 import { getSupabase } from "@/lib/supabase";
 import { Button, Card, Notice } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 const KIND_LABEL: Record<string, string> = { switch1: "Switch", switch2: "Switch 2", other: "Konsole" };
 
@@ -34,7 +35,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
       setLink("");
       onDone();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
       // A code works only once: prepare a fresh login for the next attempt.
       setLogin(await prepareLogin(true));
     }
@@ -98,7 +99,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
               {result.devices.map((d) => `${d.label} (${KIND_LABEL[d.kind] ?? d.kind})`).join(", ")}
             </Notice>
           )}
-          <Notice>Die Spielzeiten kommen mit dem nächsten Sync (GitHub → Actions → «Sync»).</Notice>
+          <Notice>Die Spielzeiten kommen mit dem nächsten Sync (automatisch alle 6 Stunden oder sofort mit «Jetzt synchronisieren»).</Notice>
         </>
       ) : null}
     </Card>

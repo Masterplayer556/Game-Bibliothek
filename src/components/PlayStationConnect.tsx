@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { saveCredential } from "@/lib/credentials";
-import { guideUrl, workflowUrl } from "@/lib/links";
+import { guideUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
 import { Button, Card, fieldClass, Notice } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 export function PlayStationConnect({ title, onDone }: { title: string; onDone: () => void }) {
   const [value, setValue] = useState("");
@@ -21,7 +22,7 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
       setSaved(true);
       onDone();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
     setBusy(false);
   }
@@ -60,8 +61,8 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
         </Button>
       </div>
       <Notice>
-        Die NPSSO ist wie ein Passwort. Sie wird verschlüsselt gespeichert, beim nächsten Sync gegen
-        eine Anmeldung getauscht und danach gelöscht. Etwa alle zwei Monate braucht es eine neue.{" "}
+        Die NPSSO ist wie ein Passwort. Sie wird verschlüsselt gespeichert und bleibt gespeichert,
+        damit sich der Sync selbst neu anmelden kann. Etwa alle zwei Monate braucht es eine neue.{" "}
         <a className="underline" href={guideUrl("SETUP-PLAYSTATION.md")} target="_blank" rel="noopener noreferrer">
           Anleitung
         </a>
@@ -69,12 +70,8 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {saved ? (
         <Notice tone="success">
-          Gespeichert. Jetzt den{" "}
-          <a className="underline" href={workflowUrl("sync.yml")} target="_blank" rel="noopener noreferrer">
-            Sync
-          </a>{" "}
-          starten (Modus «test» prüft nur die Anmeldung). Das Ergebnis steht nach etwa einer Minute oben
-          bei «PlayStation».
+          Gespeichert. Jetzt oben bei «Synchronisieren» auf «Verbindung testen» tippen: Das prüft die
+          Anmeldung. Das Ergebnis steht nach etwa einer Minute bei «PlayStation».
         </Notice>
       ) : null}
     </Card>
