@@ -11,6 +11,7 @@ import { authorize, reply } from "../_common/http.ts";
 /** A new run is refused while another one started less than this long ago is not finished. */
 const BUSY_WINDOW_MINUTES = 15;
 const ADAPTER_PATTERN = /^[a-z0-9-]{1,40}$/;
+const REPO_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 Deno.serve(async (request: Request) => {
   const caller = await authorize(request);
@@ -19,7 +20,7 @@ Deno.serve(async (request: Request) => {
 
   const token = Deno.env.get("GB_GITHUB_DISPATCH_TOKEN");
   const repo = Deno.env.get("GB_GITHUB_REPO");
-  if (!token || !repo) {
+  if (!token || !repo || !REPO_PATTERN.test(repo)) {
     return reply(503, {
       error: "Der Knopf ist noch nicht eingerichtet: GitHub-Secret DISPATCH_TOKEN fehlt (Anleitung SETUP-SUPABASE-GITHUB).",
     });
@@ -57,27 +58,35 @@ Deno.serve(async (request: Request) => {
   if (created.error || !created.data) return reply(500, { error: "Der Sync konnte nicht angelegt werden." });
   const runId = created.data.id as string;
 
-  const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/sync.yml/dispatches`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
-      "User-Agent": "game-bibliothek",
-    },
-    body: JSON.stringify({ ref: "main", inputs: { mode, adapter: adapter ?? "", run_id: runId } }),
-  });
-  if (response.status !== 204) {
-    const reason =
-      response.status === 401 || response.status === 403 || response.status === 404
-        ? "GitHub lehnt den Token ab (abgelaufen oder ohne «Actions: Read and write» für dieses Repo)."
-        : `GitHub antwortet mit Status ${response.status}.`;
+  // null = started. A run that could not be started must not stay «queued»: it would block
+  // the button for the whole busy window.
+  let problem: string | null = null;
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/sync.yml/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+        "User-Agent": "game-bibliothek",
+      },
+      body: JSON.stringify({ ref: "main", inputs: { mode, adapter: adapter ?? "", run_id: runId } }),
+    });
+    if (response.status === 401 || response.status === 403 || response.status === 404) {
+      problem = "GitHub lehnt den Token ab (abgelaufen oder ohne «Actions: Read and write» für dieses Repo).";
+    } else if (response.status !== 204) {
+      problem = `GitHub antwortet mit Status ${response.status}.`;
+    }
+  } catch {
+    problem = "GitHub ist gerade nicht erreichbar.";
+  }
+  if (problem) {
     await admin
       .from("sync_runs")
-      .update({ status: "error", finished_at: new Date().toISOString(), results: [{ adapterId: "github", outcome: "error", message: reason }] })
+      .update({ status: "error", finished_at: new Date().toISOString(), results: [{ adapterId: "github", outcome: "error", message: problem }] })
       .eq("id", runId);
-    return reply(502, { error: `Der Sync konnte nicht gestartet werden: ${reason}` });
+    return reply(502, { error: `Der Sync konnte nicht gestartet werden: ${problem}` });
   }
   return reply(200, { runId });
 });

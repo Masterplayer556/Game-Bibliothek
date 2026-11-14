@@ -1,6 +1,7 @@
 // Buttons «Jetzt synchronisieren» / «Verbindung testen»: start through the Edge Function
 // «trigger-sync», then follow the run in sync_runs (written by the sync script).
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { FunctionError, invokeFunction } from "./functions";
 
 export type RunStatus = "queued" | "running" | "success" | "partial" | "error";
 
@@ -23,25 +24,26 @@ export interface SyncRun {
 
 export const isFinished = (status: RunStatus) => status === "success" || status === "partial" || status === "error";
 
+/** Same window as in the Edge Function «trigger-sync»: after it, a new run may be started. */
+export const RUN_STALE_AFTER_MS = 15 * 60_000;
+
+/** An open run that has not reported back for too long (workflow cancelled or never started). */
+export function isStale(run: Pick<SyncRun, "status" | "created_at">, now: Date): boolean {
+  return !isFinished(run.status) && now.getTime() - new Date(run.created_at).getTime() > RUN_STALE_AFTER_MS;
+}
+
 export async function startSync(db: SupabaseClient, mode: "sync" | "test", adapter: string | null): Promise<string> {
-  const { data, error } = await db.functions.invoke("trigger-sync", { body: { mode, adapter } });
-  if (error) {
-    let message = "Der Sync konnte nicht gestartet werden.";
-    const context = (error as { context?: unknown }).context;
-    if (context instanceof Response) {
-      if (context.status === 404) message = "Die Function «trigger-sync» ist noch nicht eingerichtet (Workflow «Edge Functions deployen»).";
-      try {
-        const body = (await context.json()) as { error?: unknown; runId?: unknown };
-        // Already running: follow that run instead of failing.
-        if (context.status === 409 && typeof body.runId === "string") return body.runId;
-        if (typeof body.error === "string") message = body.error;
-      } catch {
-        // no readable body
-      }
+  try {
+    const answer = await invokeFunction<{ runId?: unknown }>(db, "trigger-sync", { mode, adapter }, "Der Sync konnte nicht gestartet werden.");
+    if (typeof answer.runId !== "string") throw new Error("Der Sync konnte nicht gestartet werden.");
+    return answer.runId;
+  } catch (error) {
+    // Already running: follow that run instead of failing.
+    if (error instanceof FunctionError && error.status === 409 && typeof error.body.runId === "string") {
+      return error.body.runId;
     }
-    throw new Error(message);
+    throw error;
   }
-  return (data as { runId: string }).runId;
 }
 
 export async function loadRun(db: SupabaseClient, runId: string): Promise<SyncRun | null> {

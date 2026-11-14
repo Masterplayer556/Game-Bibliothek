@@ -1,5 +1,6 @@
 // Edge Function: stores a token typed into the app, encrypted. Currently: the PlayStation
-// NPSSO. The sync exchanges it for a refresh token on its next run and then deletes it.
+// NPSSO. The sync exchanges it for a refresh token on its next run and keeps it (encrypted)
+// to log in again when the refresh token runs out.
 //
 // Input (POST, JSON): { adapter: "psn", kind: "npsso", value }
 // Output: { ok: true } or { error }

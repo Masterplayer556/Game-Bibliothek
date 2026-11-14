@@ -28,7 +28,11 @@ function fail(step: string, error: { message: string } | null): void {
   if (error) throw new Error(`Database error while saving ${step}: ${error.message}`);
 }
 
-/** Reads every row of a query, page by page (the API returns at most 1000 rows at once). */
+/**
+ * Reads every row of a query, page by page (the API returns at most 1000 rows at once).
+ * The query must have a fixed order (`.order(…)` on a unique column): without one, Postgres
+ * may return pages that overlap or skip rows.
+ */
 export async function fetchAll<T>(
   page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
 ): Promise<T[]> {
@@ -111,6 +115,7 @@ export async function persistBatch(
       .select("id, external_id")
       .eq("user_id", userId)
       .eq("platform", batch.platform)
+      .order("id")
       .range(from, to),
   );
   for (const row of knownDevices) deviceIds.set(row.external_id, row.id);
@@ -124,13 +129,14 @@ export async function persistBatch(
       )
       .eq("user_id", userId)
       .eq("platform", batch.platform)
+      .order("id")
       .range(from, to),
   );
   const existingByExternalId = new Map(existing.map((row) => [row.external_id, row]));
 
   const knownRows = await fetchAll<{ id: string; normalized_title: string; igdb_id: number | null }>(
     (from, to) =>
-      db.from("games").select("id, normalized_title, igdb_id").eq("user_id", userId).range(from, to),
+      db.from("games").select("id, normalized_title, igdb_id").eq("user_id", userId).order("id").range(from, to),
   );
   const known: KnownGame[] = knownRows.map((g) => ({
     id: g.id,

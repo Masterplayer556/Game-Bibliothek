@@ -2,25 +2,12 @@
 // (games are my own rows, protected by row level security).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { IgdbGame } from "@/core/igdb/client";
+import { invokeFunction } from "./functions";
 import { mergeGames } from "./library-data";
 
 export async function searchIgdb(db: SupabaseClient, query: string): Promise<IgdbGame[]> {
-  const { data, error } = await db.functions.invoke("igdb-search", { body: { query } });
-  if (error) {
-    let message = "Die IGDB-Suche ist fehlgeschlagen.";
-    const context = (error as { context?: unknown }).context;
-    if (context instanceof Response) {
-      if (context.status === 404) message = "Die Function «igdb-search» ist noch nicht eingerichtet (Workflow «Edge Functions deployen»).";
-      try {
-        const body = (await context.json()) as { error?: unknown };
-        if (typeof body.error === "string") message = body.error;
-      } catch {
-        // no readable body
-      }
-    }
-    throw new Error(message);
-  }
-  return ((data ?? {}) as { results?: IgdbGame[] }).results ?? [];
+  const answer = await invokeFunction<{ results?: IgdbGame[] }>(db, "igdb-search", { query }, "Die IGDB-Suche ist fehlgeschlagen.");
+  return answer.results ?? [];
 }
 
 /**
