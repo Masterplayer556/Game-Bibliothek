@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDay, gameHref, GameCover } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
-import { Card, Medal, Notice, ProgressBar, ProgressRing, Segmented, StatTile } from "@/components/ui";
+import { Card, Medal, Notice, ProgressBar, ProgressRing, RareBadge, Segmented, StatTile } from "@/components/ui";
 import { achievementPlatforms, achievementSummary, type AchievementFilter } from "@/core/achievements";
 import { ACHIEVEMENT_PLATFORM_LABEL, PLATFORM_LABEL } from "@/core/labels";
 
@@ -76,6 +76,7 @@ export default function AchievementsPage() {
                           <span className="flex items-center gap-1.5">
                             <Medal tier={a.tier} />
                             <span className="truncate">{a.name}</span>
+                            <RareBadge percent={a.rarity_percent} />
                           </span>
                           <span className="block truncate text-xs text-muted">
                             {row.game.title}

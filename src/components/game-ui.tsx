@@ -161,6 +161,31 @@ export function GameCard({ game }: { game: LibraryGame }) {
 }
 
 
+/** One line of the library as a list: small cover, title, platforms, status, last played, playtime. */
+export function GameListRow({ game }: { game: LibraryGame }) {
+  return (
+    <Link href={gameHref(game.id)} className="group flex items-center gap-3 rounded-control p-2 hover:bg-surface-raised">
+      <GameCover game={game} bookmark={game.favorite} className="w-12 shrink-0" />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="truncate text-sm font-medium group-hover:text-accent">
+          {game.favorite ? <span className="sr-only">Favorit: </span> : null}
+          {game.title}
+        </span>
+        <span className="flex flex-wrap items-center gap-1">
+          {game.platforms.map((p) => (
+            <PlatformBadge key={p} platform={p} />
+          ))}
+          {game.status ? <span className={`text-[11px] font-medium ${STAMP_TONE[game.status]}`}>{STATUS_LABEL[game.status]}</span> : null}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="num text-lg leading-none">{game.totalMinutes > 0 ? formatMinutes(game.totalMinutes) : "–"}</span>
+        <span className="text-[11px] text-muted">{game.lastPlayedAt ? formatDay(game.lastPlayedAt) : "nie gespielt"}</span>
+      </span>
+    </Link>
+  );
+}
+
 export function formatDay(value: string | null | undefined): string {
   if (!value) return "–";
   const date = value.length === 10 ? new Date(`${value}T12:00:00Z`) : new Date(value);

@@ -180,7 +180,7 @@ export default function DashboardPage() {
             </Card>
 
             <Card title="Spieltage" icon="calendar">
-              <PlayCalendar days={library.days} today={today} />
+              <PlayCalendar days={library.days} today={today} byId={library.byId} />
             </Card>
 
             <Card title="Plattformen (gesamte Spielzeit)" icon="gamepad">

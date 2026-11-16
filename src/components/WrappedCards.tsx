@@ -6,12 +6,14 @@ import type { Library } from "@/core/library";
 import type { DeviceKind, PlatformId } from "@/core/types";
 import type { WrappedYear } from "@/core/wrapped";
 import { exportCard } from "@/lib/export-image";
-import { formatDay } from "./game-ui";
+import { formatDay, GameCover } from "./game-ui";
+import { PixelIcon, type PixelIconName } from "./PixelIcon";
 import { Button } from "./ui";
 
 interface CardDef {
   id: string;
   accent: string;
+  icon: PixelIconName;
   estimated?: boolean;
   body: ReactNode;
 }
@@ -26,13 +28,24 @@ function Label({ children }: { children: ReactNode }) {
 
 function CardFrame({ card, year, index, count }: { card: CardDef; year: number; index: number; count: number }) {
   return (
-    <div className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-card border border-border-strong bg-surface">
+    <div
+      className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-card border border-border-strong bg-surface"
+      // A wash of the card's colour from the top.
+      style={{ backgroundImage: `linear-gradient(color-mix(in oklab, ${card.accent} 22%, var(--color-surface)), var(--color-surface) 60%)` }}
+    >
       <div className="h-2.5 shrink-0" style={{ background: card.accent }} />
       {/* A bookplate: thin frame, four pixel corners in the colour of the card. */}
       <div
-        className="bookplate mx-3 mt-3 flex flex-1 flex-col justify-center gap-5 p-5"
+        className="bookplate relative mx-3 mt-3 flex flex-1 flex-col justify-center gap-5 p-5"
         style={{ "--frame-accent": card.accent } as CSSProperties}
       >
+        <span
+          aria-hidden
+          className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-[5px] text-surface"
+          style={{ background: card.accent }}
+        >
+          <PixelIcon name={card.icon} className="h-5 w-5" />
+        </span>
         {card.body}
       </div>
       <div className="flex shrink-0 items-baseline justify-between px-4 py-3 text-[11px] text-muted">
@@ -54,12 +67,18 @@ function title(library: Library, id: string): string {
   return library.byId.get(id)?.title ?? "Unbekannt";
 }
 
+function Cover({ library, id, className }: { library: Library; id: string; className: string }) {
+  const game = library.byId.get(id);
+  return game ? <GameCover game={game} className={className} /> : null;
+}
+
 function buildCards(w: WrappedYear, library: Library): CardDef[] {
   const cards: CardDef[] = [];
   const star = (estimated: boolean) => (estimated ? "*" : "");
 
   cards.push({
     id: "intro",
+    icon: "star",
     accent: "var(--color-chart-1)",
     estimated: w.estimated,
     body: (
@@ -70,6 +89,15 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {formatHours(w.totalMinutes)}
           {star(w.estimated)} an {w.playDays} Tagen
         </p>
+        {w.top.length > 0 ? (
+          <div className="flex items-end pt-2" aria-hidden>
+            {w.top.slice(0, 3).map((t, i) => (
+              <div key={t.gameId} className={i === 0 ? "z-10 w-[38%]" : "-ml-[6%] w-[30%]"} style={{ rotate: `${[-4, 3, 7][i]}deg` }}>
+                <Cover library={library} id={t.gameId} className="w-full" />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </>
     ),
   });
@@ -79,6 +107,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     const change = prev > 0 ? Math.round(((w.totalMinutes - prev) / prev) * 100) : null;
     cards.push({
       id: "compare",
+    icon: "chart",
       accent: "var(--color-chart-2)",
       estimated: w.estimated,
       body: (
@@ -99,6 +128,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.top.length > 0) {
     cards.push({
       id: "top",
+    icon: "trophy",
       accent: "var(--color-chart-3)",
       estimated: w.top.some((t) => t.estimated),
       body: (
@@ -106,8 +136,9 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           <Label>Deine Top {w.top.length}</Label>
           <ol className="flex flex-col gap-3">
             {w.top.map((t, i) => (
-              <li key={t.gameId} className="flex items-baseline gap-3">
-                <span className={`num w-6 text-3xl leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
+              <li key={t.gameId} className="flex items-center gap-3">
+                <span className={`num w-5 text-3xl leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
+                <Cover library={library} id={t.gameId} className="w-11 shrink-0" />
                 <span className="min-w-0 flex-1">
                   <span className="line-clamp-2 font-display text-lg font-semibold leading-tight">{title(library, t.gameId)}</span>
                   <span className="text-sm text-muted">
@@ -127,6 +158,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     const total = w.totalMinutes || 1;
     cards.push({
       id: "favorites",
+    icon: "gamepad",
       accent: "var(--color-chart-4)",
       body: (
         <>
@@ -151,6 +183,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
 
   cards.push({
     id: "genre",
+    icon: "book",
     accent: "var(--color-chart-5)",
     body: w.favoriteGenre ? (
       <>
@@ -169,6 +202,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.bestDay || w.longestStreak) {
     cards.push({
       id: "days",
+    icon: "calendar",
       accent: "var(--color-chart-6)",
       estimated: (w.bestDay?.estimated ?? false) || (w.longestStreak?.estimated ?? false),
       body: (
@@ -176,7 +210,10 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {w.bestDay ? (
             <div className="flex flex-col gap-1">
               <Label>Dein Rekordtag</Label>
-              <div className="font-display text-3xl font-semibold leading-tight">{formatDay(w.bestDay.date)}</div>
+              <div className="flex items-center gap-3">
+                <Cover library={library} id={w.bestDay.gameIds[0]!} className="w-12 shrink-0" />
+                <div className="font-display text-3xl font-semibold leading-tight">{formatDay(w.bestDay.date)}</div>
+              </div>
               <p>
                 {formatMinutes(w.bestDay.minutes)}
                 {star(w.bestDay.estimated)}, vor allem {title(library, w.bestDay.gameIds[0]!)}
@@ -202,17 +239,21 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.newGames.length > 0) {
     cards.push({
       id: "new",
+    icon: "plus",
       accent: "var(--color-chart-7)",
       body: (
         <>
           <Label>Neu angefangen</Label>
           <Big>{w.newGames.length}</Big>
-          <ul className="flex flex-col gap-1 text-lg">
+          <ul className="grid grid-cols-3 gap-x-2 gap-y-3">
             {w.newGames.slice(0, 6).map((id) => (
-              <li key={id} className="truncate">{title(library, id)}</li>
+              <li key={id} className="flex min-w-0 flex-col gap-1">
+                <Cover library={library} id={id} className="w-full" />
+                <span className="truncate text-xs">{title(library, id)}</span>
+              </li>
             ))}
-            {w.newGames.length > 6 ? <li className="text-muted">und {w.newGames.length - 6} weitere</li> : null}
           </ul>
+          {w.newGames.length > 6 ? <p className="text-muted">und {w.newGames.length - 6} weitere</p> : null}
         </>
       ),
     });
@@ -220,6 +261,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
 
   cards.push({
     id: "achievements",
+    icon: "trophy",
     accent: "var(--color-chart-8)",
     body:
       w.achievements.unlocked > 0 ? (
@@ -248,6 +290,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.pileExits.length > 0) {
     cards.push({
       id: "pile",
+    icon: "pile",
       accent: "var(--color-chart-1)",
       body: (
         <>
@@ -269,6 +312,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.coverageGaps.length > 0) {
     cards.push({
       id: "coverage",
+    icon: "clock",
       accent: "var(--color-border)",
       body: (
         <>

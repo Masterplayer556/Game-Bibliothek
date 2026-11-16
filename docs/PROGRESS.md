@@ -50,6 +50,13 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Erfolge**: Fortschritts-Ring; PlayStation-Trophäen mit Pokal in Bronze, Silber, Gold oder Platin (`Medal`, nur wo Sony eine Stufe liefert).
 - **Seitenfuss**: kleines Regal mit Buchrücken; Lichtschein von oben im Hintergrund; «Datenbasis» als Notizzettel.
 
+**Dritte Runde** (alle Ideen aus der zweiten Runde, von Marcel bestätigt; die Farbe pro Bereich bleibt):
+
+- **Spieltage-Kalender antippbar**: Ein Tag zeigt darunter die Spiele dieses Tages mit Zeit und Link. Auf dem Handy gibt es keine halb abgeschnittenen Wochen mehr.
+- **Bibliothek als Regal oder Liste** (Schalter «Ansicht», gemerkt im Browser unter `gb-library-view`); die Liste zeigt Cover, Plattformen, Status, zuletzt gespielt und Spielzeit.
+- **Seltene Erfolge**: Marke «Selten», wenn weniger als 10 % der Spieler ihn haben (`RARE_PERCENT` in `src/components/ui.tsx`), für Steam und PlayStation.
+- **Rückblick**: jede Karte mit Farbverlauf und Icon in ihrer Farbe; Cover auf der Startkarte (Top 3 gefächert), in den Top 5, beim Rekordtag und bei «Neu angefangen». Beim Speichern als Bild wird ein Cover weggelassen, wenn sein Server den Abruf verweigert (`imagePlaceholder` in `src/lib/export-image.ts`); mit echten Covern von Steam, Sony und IGDB noch nicht ausprobiert.
+
 ## Verlauf und Nintendo-Historie (16.11.2026)
 
 - **Historie-Import per Video** (Entscheidung 15, erster Lauf): Marcel nimmt die Spielaktivitäten eines Spiels in der Nintendo-Store-App als Bildschirmaufnahme auf; Claude liest die Zeilen aus Einzelbildern (ffmpeg, ein Bild alle 2 Sekunden reicht bei ruhigem Scrollen) und erzeugt die CSV im Import-Format. Kontrolle: Anzahl Zeilen = «Spieltage» im Kopf der App. Die Summe ist kleiner als «Spielzeit» im Kopf, weil die App jeden Tag auf Viertelstunden abrundet. Die CSV kommt nicht ins Repo; Marcel lädt sie unter Plattformen hoch.
