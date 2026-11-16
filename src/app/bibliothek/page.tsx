@@ -91,7 +91,7 @@ export default function LibraryPage() {
               <div
                 id="filter"
                 hidden={!filtersOpen}
-                className="glass grid grid-cols-2 gap-2 rounded-card p-3 sm:grid-cols-5"
+                className="glass anim-drop-in grid grid-cols-2 gap-2 rounded-card p-3 sm:grid-cols-5"
               >
                 <select className={fieldClass} aria-label="Plattform" value={filter.platform ?? ""} onChange={(e) => set({ platform: e.target.value as PlatformId | "" })}>
                   <option value="">Alle Plattformen</option>

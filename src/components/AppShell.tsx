@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "@/lib/use-session";
 import { LibraryProvider } from "./LibraryProvider";
@@ -78,94 +78,98 @@ function PageTitle({ pathname }: { pathname: string }) {
   );
 }
 
-function TabLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
+function shortLabel(item: NavItem): string {
+  return item.label === "Pile of Shame" ? "Pile" : item.label;
+}
+
+/** One page in the bar: icon over a short label; the current page sits on a pill of its colour. */
+function TabLink({ item, active, className = "", style }: { item: NavItem; active: boolean; className?: string; style?: CSSProperties }) {
   return (
     <Link
       href={item.href}
-      onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      style={sectionVar(item.section)}
-      className={`flex min-w-[4.1rem] flex-col items-center gap-1 rounded-[1.1rem] px-2 pb-1.5 pt-2 text-[10.5px] font-medium leading-none transition-colors ${
-        active ? "bg-section-soft text-section" : "text-muted hover:text-text"
-      } ${item.primary ? "" : "hidden md:flex"}`}
+      style={{ ...sectionVar(item.section), ...style }}
+      className={`tab-item ${active ? "bg-section-soft text-section" : "text-muted hover:text-text"} ${className}`}
     >
       <PixelIcon name={item.icon} className={`h-5 w-5 ${active ? "" : "opacity-80"}`} />
-      <span className="whitespace-nowrap">{item.label === "Pile of Shame" ? "Pile" : item.label}</span>
+      <span className="whitespace-nowrap">{shortLabel(item)}</span>
     </Link>
   );
 }
 
-/** The bar at the bottom, frosted glass. On a phone: four pages and «Mehr» for the rest. */
-function TabBar({ pathname }: { pathname: string }) {
-  const [open, setOpen] = useState(false);
-  const current = currentItem(pathname);
-  const secondaryActive = !current.primary;
+const PRIMARY = NAV.filter((item) => item.primary);
+const SECONDARY = NAV.filter((item) => !item.primary);
 
-  // Escape closes the sheet.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+/**
+ * The bar on a phone. Five slots show at a time on a track of nine:
+ *   [4 main pages] [Mehr] [4 more pages]
+ * «Mehr» slides the track to the left, so the button moves to the left edge and the other pages
+ * follow it in from the right, one after the other. Tapping «Mehr» again slides back.
+ */
+function PhoneTabBar({ current }: { current: NavItem }) {
+  // Open when the current page is one of the «more» pages.
+  const [open, setOpen] = useState(!current.primary);
 
   return (
-    <>
-      {open ? (
-        <>
-          <button type="button" aria-label="Schliessen" className="fixed inset-0 z-40 cursor-default bg-black/10 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
-          <div
-            id="mehr"
-            className="glass fixed inset-x-3 z-50 mx-auto grid max-w-sm grid-cols-2 gap-2 rounded-[1.75rem] p-3 md:hidden"
-            style={{ bottom: "calc(5.75rem + env(safe-area-inset-bottom))" }}
-          >
-            {NAV.filter((item) => !item.primary).map((item) => {
-              const active = item === current;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  aria-current={active ? "page" : undefined}
-                  style={sectionVar(item.section)}
-                  className={`flex items-center gap-2.5 rounded-[1.1rem] p-2.5 text-sm font-medium ${active ? "bg-section-soft" : "hover:bg-surface-raised"}`}
-                >
-                  <span className="icon-tile h-9 w-9 rounded-[11px]">
-                    <PixelIcon name={item.icon} className="h-[18px] w-[18px]" />
-                  </span>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        </>
-      ) : null}
-
-      <nav
-        aria-label="Hauptnavigation"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
-      >
-        <div className="glass pointer-events-auto flex gap-0.5 rounded-[1.6rem] p-1.5">
-          {NAV.map((item) => (
-            <TabLink key={item.href} item={item} active={item === current} onNavigate={() => setOpen(false)} />
+    <div className="glass pointer-events-auto rounded-[1.6rem] p-1.5 md:hidden">
+      <div className="tab-viewport overflow-hidden rounded-[1.1rem]">
+        <div className="tab-track" data-open={open}>
+          {PRIMARY.map((item, i) => (
+            <TabLink
+              key={item.href}
+              item={item}
+              active={item === current}
+              className="tab-leaving"
+              style={{ transitionDelay: open ? `${i * 25}ms` : `${(PRIMARY.length - i) * 35}ms` }}
+            />
           ))}
           <button
             type="button"
             aria-expanded={open}
-            aria-controls="mehr"
+            aria-label={open ? "Weniger" : "Mehr"}
             onClick={() => setOpen((o) => !o)}
-            style={secondaryActive ? sectionVar(current.section) : undefined}
-            className={`flex min-w-[4.1rem] flex-col items-center gap-1 rounded-[1.1rem] px-2 pb-1.5 pt-2 text-[10.5px] font-medium leading-none md:hidden ${
-              secondaryActive || open ? "bg-section-soft text-section" : "text-muted hover:text-text"
-            }`}
+            style={!current.primary ? sectionVar(current.section) : undefined}
+            className={`tab-item ${open || !current.primary ? "bg-section-soft text-section" : "text-muted hover:text-text"}`}
           >
-            <PixelIcon name={secondaryActive ? current.icon : "more"} className="h-5 w-5" />
-            <span>{secondaryActive ? (current.label === "Pile of Shame" ? "Pile" : current.label) : "Mehr"}</span>
+            {/* The dots turn into an arrow pointing back. */}
+            <span className="relative h-5 w-5">
+              <PixelIcon name="more" className={`tab-icon-swap absolute inset-0 h-5 w-5 ${open ? "scale-50 rotate-90 opacity-0" : ""}`} />
+              <PixelIcon name="back" className={`tab-icon-swap absolute inset-0 h-5 w-5 ${open ? "" : "scale-50 -rotate-90 opacity-0"}`} />
+            </span>
+            <span>Mehr</span>
           </button>
+          {SECONDARY.map((item, i) => (
+            <TabLink
+              key={item.href}
+              item={item}
+              active={item === current}
+              className="tab-following"
+              style={{ transitionDelay: open ? `${60 + i * 55}ms` : "0ms", "--follow": `${(i + 1) * 18}px` } as CSSProperties}
+            />
+          ))}
         </div>
-      </nav>
-    </>
+      </div>
+    </div>
+  );
+}
+
+/** The bar at the bottom, frosted glass: the sliding bar on a phone, all eight pages from tablet width. */
+function TabBar({ pathname }: { pathname: string }) {
+  const current = currentItem(pathname);
+  return (
+    <nav
+      aria-label="Hauptnavigation"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3"
+      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+    >
+      {/* A new group of pages (main or «more») starts the phone bar in the matching position. */}
+      <PhoneTabBar key={current.primary ? "main" : "more"} current={current} />
+      <div className="glass pointer-events-auto hidden gap-0.5 rounded-[1.6rem] p-1.5 md:flex">
+        {NAV.map((item) => (
+          <TabLink key={item.href} item={item} active={item === current} />
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -235,7 +239,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LoginForm />
         ) : (
           <LibraryProvider session={session}>
-            <main className="flex flex-col gap-page">{children}</main>
+            <main key={pathname} className="anim-page-in flex flex-col gap-page">
+              {children}
+            </main>
           </LibraryProvider>
         )}
         <Foot />

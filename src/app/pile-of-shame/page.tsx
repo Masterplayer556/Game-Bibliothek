@@ -70,7 +70,7 @@ function PileBook({
           role="menu"
           // Solid, unlike the bars: the titles of the books behind it must not shine through.
           style={{ backgroundColor: "var(--color-surface)" }}
-          className={`glass absolute right-1 z-30 flex min-w-48 flex-col rounded-2xl p-1.5 text-sm ${up ? "bottom-full mb-1" : "top-full mt-1"}`}
+          className={`glass anim-pop-in absolute right-1 z-30 flex min-w-48 flex-col rounded-2xl p-1.5 text-sm ${up ? "bottom-full mb-1 origin-bottom-right" : "top-full mt-1"}`}
         >
           <Link role="menuitem" href={gameHref(game.id)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 hover:bg-surface-raised">
             <PixelIcon name="book" className="h-4 w-4 text-muted" />
