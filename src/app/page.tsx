@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { gameHref, GameCover, formatDay, relativeAge } from "@/components/game-ui";
+import { gameHref, GameCover, ShelfCover, formatDay, relativeAge } from "@/components/game-ui";
 import { ShareBars } from "@/components/charts";
 import { LibraryGate } from "@/components/LibraryGate";
 import { SyncStatusBar } from "@/components/SyncStatusBar";
@@ -33,7 +33,7 @@ export default function DashboardPage() {
               <Card title="Noch keine Spiele">
                 <Notice>
                   Verbinde eine Plattform oder lade Demo-Daten unter{" "}
-                  <Link className="underline" href="/plattformen/">
+                  <Link className="link" href="/plattformen/">
                     Plattformen
                   </Link>
                   .
@@ -63,7 +63,7 @@ export default function DashboardPage() {
               return (
                 <Notice>
                   Dazu {formatHours(minutes)} in Apps wie {apps.slice(0, 2).map((a) => a.title).join(" und ")} (zählen nicht als
-                  Spielzeit, Details unter <Link className="underline" href="/statistiken/">Statistiken</Link>).
+                  Spielzeit, Details unter <Link className="link" href="/statistiken/">Statistiken</Link>).
                 </Notice>
               );
             })()}
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                     return (
                       <li key={t.gameId}>
                         <Link href={gameHref(game.id)} className="flex items-center gap-3 rounded-control p-1.5 hover:bg-surface-raised">
-                          <span className="w-4 text-sm text-muted">{i + 1}</span>
+                          <span className={`num w-4 text-center text-xl leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
                           <GameCover game={game} className="w-10 shrink-0" />
                           <span className="min-w-0 flex-1 truncate text-sm">{game.title}</span>
                           <span className="text-sm tabular-nums text-muted">
@@ -106,9 +106,9 @@ export default function DashboardPage() {
               <ul className="grid grid-cols-3 gap-stack sm:grid-cols-6">
                 {recent.map((g) => (
                   <li key={g.id}>
-                    <Link href={gameHref(g.id)} className="flex flex-col gap-1">
-                      <GameCover game={g} />
-                      <span className="line-clamp-2 text-xs leading-tight">{g.title}</span>
+                    <Link href={gameHref(g.id)} className="group flex flex-col gap-1.5 rounded-control">
+                      <ShelfCover game={g} bookmark={g.favorite} />
+                      <span className="line-clamp-2 text-xs font-medium leading-tight group-hover:text-accent">{g.title}</span>
                       <span className="text-[11px] text-muted" title={formatDay(g.lastPlayedAt)}>
                         {relativeAge(g.lastPlayedAt, now)}
                       </span>

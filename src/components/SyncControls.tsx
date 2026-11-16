@@ -117,7 +117,7 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
       </div>
       {error ? <Notice tone="danger">{error}</Notice> : null}
       {run ? (
-        <div className="flex flex-col gap-1 rounded-control bg-surface-raised p-3 text-sm" aria-live="polite">
+        <div className="flex flex-col gap-1 rounded-control border border-border bg-surface-raised p-3 text-sm" aria-live="polite">
           <div className="flex justify-between gap-2">
             <span>
               {run.mode === "test" ? "Verbindungstest" : "Sync"}
@@ -141,7 +141,7 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
           {stale ? (
             <span className="text-xs text-warning">
               Dieser Lauf hat sich nicht zurückgemeldet. Du kannst einen neuen starten oder{" "}
-              <a className="underline" href={workflowUrl("sync.yml")} target="_blank" rel="noopener noreferrer">
+              <a className="link" href={workflowUrl("sync.yml")} target="_blank" rel="noopener noreferrer">
                 auf GitHub nachsehen
               </a>
               .

@@ -16,6 +16,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 7 | IGDB | fertig (13.11.2026); 98 von 122 Einträgen zugeordnet, Rest grösstenteils Apps |
 | 8 | Betrieb | fertig (13.11.2026), Knöpfe warten auf `DISPATCH_TOKEN` |
 | – | Sicherheits-Check und Polish | fertig (14.11.2026), keine kritische Lücke, Bericht in `SECURITY.md` |
+| – | Design hell und dunkel | fertig (16.11.2026), «Lesesaal trifft Spielhalle» |
 
 ## Nächster Schritt
 
@@ -24,7 +25,19 @@ Alle Phasen sind gebaut. Offen:
 1. **Marcel:** Sync-Knöpfe in der App einmal ausprobieren («Verbindung testen»). `DISPATCH_TOKEN` ist angelegt, die Functions sind seit 16.11.2026 neu deployt.
 2. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
 3. **Marcel:** Weitere Switch-Spiele als Video aufnehmen und im Claude-Projekt mit dem Prompt aus `PROMPT-NINTENDO-VIDEO-IMPORT.md` in CSV-Dateien umwandeln; dann in der App importieren.
-4. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`), eigenes Design über `tokens.css`.
+4. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`).
+
+## Design «Lesesaal trifft Spielhalle» (16.11.2026)
+
+Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen passt (Game und Bibliothek gemischt).
+
+- **Idee**: Tinte und Messing. Wörter gehören der Bibliothek (Serifenschrift Fraunces für Titel), Zahlen gehören dem Spiel (Pixelschrift Jersey 15 für Kennzahlen und Ränge). Cover sind gebundene Bücher (Buchrücken-Kante) und stehen auf einem Regalbrett; Spiele ohne Cover bekommen einen Leineneinband mit goldenen Initialen; Favoriten ein Lesezeichen-Band; Karten sind Karteikarten mit gestrichelter Pixel-Linie; die Navigation sind Registerreiter; Knöpfe drücken sich wie Tasten; Fortschritt in zehn Blöcken, bei 100 % in Messing. Im Spiel-Detail steht eine Signatur wie auf einem Buchrücken (Plattform · Jahr · Titel, «o. J.» ohne Jahr).
+- **Hell und dunkel sind dasselbe Design**: nur die Farben in `src/styles/tokens.css` unterscheiden sich (oberer Block hell: Papier und Tintenblau; unterer Block `:root[data-theme="dark"]`: Nachtblau und leuchtendes Blau; Messing in beiden). Sonderformen (Buch, Regal, Taste …) stehen in `src/styles/design.css` und nutzen nur Tokens.
+- **Umschalten**: drei Knöpfe oben rechts (wie das Gerät / hell / dunkel), `src/components/ThemeToggle.tsx` und `src/lib/theme.ts`. Die Wahl liegt nur im Browser (`localStorage`, Schlüssel `gb-theme`); ein kleines Skript im `<head>` setzt `data-theme` vor dem ersten Bild.
+- **Schriften** liegen im Projekt (`@fontsource-variable/fraunces`, `@fontsource/jersey-15`), es gibt keine Anfrage an einen Schriften-Dienst.
+- **Logo**: Buch mit goldenem Steuerkreuz (`src/components/Logo.tsx`, als Favicon `src/app/icon.svg` mit denselben Farben fest eingetragen).
+- **Diagramme**: Die acht Plattform- und Gerätefarben haben pro Theme eigene, geprüfte Stufen; der Spielzeit-Verlauf nutzt die Akzentfarbe (`--color-chart-bar`).
+- Eingabefelder sind auf dem Handy 16 px gross (iOS zoomt sonst hinein).
 
 ## Verlauf und Nintendo-Historie (16.11.2026)
 

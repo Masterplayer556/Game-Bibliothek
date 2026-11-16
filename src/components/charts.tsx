@@ -33,9 +33,9 @@ function PlaytimeTooltip({ active, payload, bucket }: TooltipProps) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
   return (
-    <div className="rounded-control border border-border bg-surface-raised px-3 py-2 text-xs text-text">
+    <div className="rounded-control border border-border-strong bg-surface px-3 py-2 text-xs text-text shadow-card">
       <div className="text-muted">{bucketLabel(point.key, bucket, true)}</div>
-      <div className="font-semibold tabular-nums">{formatMinutes(point.minutes)}</div>
+      <div className="num text-lg leading-tight">{formatMinutes(point.minutes)}</div>
       {point.estimatedMinutes > 0 ? (
         <div className="text-muted">davon {formatMinutes(point.estimatedMinutes)} geschätzt</div>
       ) : null}
@@ -70,9 +70,9 @@ export function PlaytimeChart({ points, bucket, title }: { points: SeriesPoint[]
               width={40}
             />
             <Tooltip content={<PlaytimeTooltip bucket={bucket} />} cursor={{ fill: "var(--color-surface-raised)" }} />
-            <Bar dataKey="hours" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+            <Bar dataKey="hours" radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {data.map((p) => (
-                <Cell key={p.key} fill="var(--color-chart-1)" fillOpacity={p.estimated ? 0.5 : 1} />
+                <Cell key={p.key} fill="var(--color-chart-bar)" fillOpacity={p.estimated ? 0.45 : 1} />
               ))}
             </Bar>
           </BarChart>
@@ -121,9 +121,9 @@ export function ShareBars({
       {shares.map((s) => (
         <li key={s.key} className="grid grid-cols-[7rem_1fr_auto] items-center gap-2 text-sm">
           <span className="truncate">{label(s.key)}</span>
-          <span className="h-2.5 rounded-full bg-surface-raised">
+          <span className="h-2.5 overflow-hidden rounded-[3px] bg-surface-raised shadow-[inset_0_0_0_1px_var(--color-border)]">
             <span
-              className="block h-full rounded-full"
+              className="block h-full rounded-[3px]"
               style={{ width: `${Math.max(2, (s.minutes / max) * 100)}%`, background: color(s.key) }}
             />
           </span>

@@ -85,8 +85,9 @@ export default function StatisticsPage() {
                 <ol className="flex flex-col gap-1 text-sm">
                   {top.map((t, i) => (
                     <li key={t.gameId} className="flex justify-between gap-2">
-                      <Link href={gameHref(t.gameId)} className="truncate hover:underline">
-                        {i + 1}. {library.byId.get(t.gameId)?.title}
+                      <Link href={gameHref(t.gameId)} className="flex min-w-0 items-baseline gap-2 hover:text-accent">
+                        <span className={`num w-5 shrink-0 text-right text-lg leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
+                        <span className="truncate">{library.byId.get(t.gameId)?.title}</span>
                       </Link>
                       <span className="shrink-0 tabular-nums text-muted">
                         {formatMinutes(t.minutes)}
@@ -118,7 +119,7 @@ export default function StatisticsPage() {
               <ShareBars
                 shares={distribution(library.days, range, "genre", library.byId)}
                 label={(k) => k}
-                color={() => "var(--color-chart-1)"}
+                color={() => "var(--color-chart-bar)"}
               />
               <Notice>Genres kommen von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
             </Card>
@@ -135,7 +136,7 @@ export default function StatisticsPage() {
                     <ul className="flex flex-col gap-1 text-sm">
                       {apps.map((a) => (
                         <li key={a.gameId} className="flex justify-between gap-2">
-                          <Link href={gameHref(a.gameId)} className="truncate hover:underline">
+                          <Link href={gameHref(a.gameId)} className="truncate hover:text-accent">
                             {library.byId.get(a.gameId)?.title}
                           </Link>
                           <span className="shrink-0 tabular-nums text-muted">{formatMinutes(a.minutes)}</span>

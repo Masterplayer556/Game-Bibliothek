@@ -47,7 +47,7 @@ export function NintendoImport({ userId, onDone }: { userId: string; onDone: () 
       <Notice>
         Für die Zeit vor der Jugendschutz-App: Übertrage die Tage aus der Nintendo-Store-App
         («Spielaktivitäten») in die{" "}
-        <a className="underline" href={TEMPLATE_URL} download>
+        <a className="link" href={TEMPLATE_URL} download>
           CSV-Vorlage
         </a>{" "}
         und lade sie hier hoch. Dieselbe Datei zweimal zu importieren ist unschädlich, und Tage, die
@@ -58,7 +58,7 @@ export function NintendoImport({ userId, onDone }: { userId: string; onDone: () 
         accept=".csv,text/csv,text/plain"
         aria-label="CSV-Datei auswählen"
         onChange={onFile}
-        className="text-sm file:mr-3 file:rounded-control file:border file:border-border file:bg-surface-raised file:px-3 file:py-2 file:text-text"
+        className="text-sm file:mr-3 file:rounded-control file:border file:border-border-strong file:bg-surface file:px-3 file:py-2 file:text-text"
       />
       {parsed ? (
         <>

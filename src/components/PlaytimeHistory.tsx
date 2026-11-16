@@ -128,7 +128,7 @@ export function PlaytimeHistory({
 
       {offset > 0 ? (
         <div className="flex justify-end">
-          <button type="button" className="text-xs text-muted underline" onClick={() => setOffset(0)}>
+          <button type="button" className="link text-xs" onClick={() => setOffset(0)}>
             Zurück zu heute
           </button>
         </div>
