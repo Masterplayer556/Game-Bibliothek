@@ -56,6 +56,7 @@ export async function runAdapters(options: RunOptions): Promise<AdapterRunResult
         credentials,
         env,
         previousGames: mode === "sync" ? await store.getPreviousGames(adapter) : new Map(),
+        previousDetails: mode === "sync" ? await store.getConnectionDetails(adapter.id) : {},
         now,
         log,
         fetch: options.fetch ?? fetch,

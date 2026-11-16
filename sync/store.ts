@@ -130,6 +130,18 @@ export class SupabaseSyncStore implements SyncStore {
     );
   }
 
+  async getConnectionDetails(adapterId: string): Promise<Record<string, unknown>> {
+    const { data, error } = await this.db
+      .from("platform_connections")
+      .select("details")
+      .eq("user_id", this.userId)
+      .eq("adapter_id", adapterId)
+      .maybeSingle();
+    if (error) throw new Error(`Could not read connection: ${error.message}`);
+    const details: unknown = data?.details;
+    return details !== null && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, unknown>) : {};
+  }
+
   saveBatch(batch: SyncBatch, now: Date): Promise<PersistSummary> {
     return persistBatch(this.db, this.userId, batch, now);
   }

@@ -45,6 +45,7 @@ function context(fetchFn: typeof fetch, over: Partial<AdapterContext> = {}): Ada
     credentials: { [SESSION_TOKEN_KIND]: "session-token" },
     env: {},
     previousGames: new Map(),
+    previousDetails: {},
     now: new Date("2026-11-10T12:00:00Z"),
     log: { info: () => undefined, warn: () => undefined },
     fetch: fetchFn,
