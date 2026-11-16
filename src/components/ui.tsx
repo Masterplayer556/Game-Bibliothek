@@ -146,12 +146,30 @@ export function Medal({ tier }: { tier: string | null | undefined }) {
   );
 }
 
-/** Achievements that fewer players than this (in percent) have count as rare. */
-export const RARE_PERCENT = 10;
+/** The limits offered for «rare», as stored in the settings (`rareLimit`). */
+export const RARE_LIMITS = ["10", "5", "3", "2", "1", "<1"] as const;
+export type RareLimit = (typeof RARE_LIMITS)[number];
+export const DEFAULT_RARE_LIMIT: RareLimit = "10";
+
+export function rareLimitLabel(limit: RareLimit): string {
+  return limit === "<1" ? "unter 1 %" : `höchstens ${limit} %`;
+}
+
+/** The stored limit, or the default if nothing valid is stored. */
+export function readRareLimit(settings: Record<string, unknown>): RareLimit {
+  const stored = settings.rareLimit;
+  return RARE_LIMITS.includes(stored as RareLimit) ? (stored as RareLimit) : DEFAULT_RARE_LIMIT;
+}
+
+/** Rare: at most the limit in percent of players have it; «<1» means fewer than one percent. */
+export function isRare(percent: number | null | undefined, limit: RareLimit): boolean {
+  if (percent == null) return false;
+  return limit === "<1" ? percent < 1 : percent <= Number(limit);
+}
 
 /** A brass tag for an achievement that few players have. Nothing if the share is unknown or common. */
-export function RareBadge({ percent }: { percent: number | null | undefined }) {
-  if (percent == null || percent >= RARE_PERCENT) return null;
+export function RareBadge({ percent, limit }: { percent: number | null | undefined; limit: RareLimit }) {
+  if (percent == null || !isRare(percent, limit)) return null;
   return (
     <span
       className="inline-flex shrink-0 items-center gap-1 rounded-[3px] bg-highlight-fill px-1 py-px text-[10px] font-semibold uppercase leading-tight tracking-wide text-on-highlight"

@@ -6,11 +6,14 @@ import {
   distribution,
   filterLibrary,
   lifetimeByPlatform,
+  lifetimeDistribution,
+  lifetimeTopGames,
   pileOfShame,
   playtimeSeries,
   staleConnections,
   topGames,
   totalInRange,
+  undatedTime,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -114,6 +117,26 @@ describe("statistics", () => {
       "switch1",
     ]);
     expect(distribution(lib.days, march, "genre", lib.byId)).toEqual([{ key: "Sandbox", minutes: 250 }]);
+  });
+
+  it("counts time from before the first sync where no date is needed", () => {
+    // PS5: 1000 min in total, only 100 of them on a known day. Steam: 30 min, no day at all.
+    const undated = undatedTime(lib.games, lib.days);
+    expect(undated).toEqual([
+      { gameId: "g-mc", platform: "psn", deviceKind: "ps5", minutes: 900 },
+      { gameId: "g-hk", platform: "steam", deviceKind: "pc", minutes: 30 },
+    ]);
+    expect(lifetimeDistribution(lib.days, undated, "platform", lib.byId)).toEqual([
+      { key: "psn", minutes: 1000 },
+      { key: "nintendo", minutes: 150 },
+      { key: "steam", minutes: 30 },
+    ]);
+    expect(lifetimeDistribution(lib.days, undated, "device", lib.byId)[0]).toEqual({ key: "ps5", minutes: 1000 });
+    expect(lifetimeDistribution(lib.days, undated, "genre", lib.byId)[0]).toEqual({ key: "Sandbox", minutes: 1150 });
+    expect(lifetimeTopGames(lib.days, undated, 5).map((t) => [t.gameId, t.minutes])).toEqual([
+      ["g-mc", 1150],
+      ["g-hk", 30],
+    ]);
   });
 
   it("reports lifetime totals per platform without hidden entries", () => {

@@ -15,7 +15,7 @@ import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
 import { CoverBackdrop, DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
-import { Button, Card, fieldClass, Medal, Notice, ProgressBar, RareBadge, Segmented } from "./ui";
+import { Button, Card, fieldClass, Medal, Notice, ProgressBar, RareBadge, readRareLimit, Segmented } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
@@ -104,6 +104,7 @@ function AchievementIcon({ url }: { url: string | null }) {
 
 function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const [filter, setFilter] = useState<AchievementFilter>("all");
+  const rareLimit = readRareLimit(raw.settings);
   const withAchievements = game.entries.filter((e) => e.achievements && e.achievements.total > 0);
   if (withAchievements.length === 0) {
     return (
@@ -178,7 +179,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-1.5">
                     {m.name}
-                    <RareBadge percent={m.rarityPercent} />
+                    <RareBadge percent={m.rarityPercent} limit={rareLimit} />
                   </span>
                   {m.description ? <span className="block text-xs text-muted">{m.description}</span> : null}
                   <span className="block text-xs text-muted">
@@ -205,7 +206,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
                   <span className="flex flex-wrap items-center gap-1.5">
                     <Medal tier={a.tier} />
                     {a.name}
-                    <RareBadge percent={a.rarity_percent} />
+                    <RareBadge percent={a.rarity_percent} limit={rareLimit} />
                   </span>
                   {a.description ? <span className="block text-xs text-muted">{a.description}</span> : null}
                 </span>

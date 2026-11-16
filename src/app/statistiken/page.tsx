@@ -9,7 +9,16 @@ import { PlayCalendar } from "@/components/PlayCalendar";
 import { PlaytimeHistory } from "@/components/PlaytimeHistory";
 import { Card, fieldClass, Notice, StatTile } from "@/components/ui";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
-import { distribution, topGames, totalInRange, type Range } from "@/core/library";
+import {
+  distribution,
+  lifetimeDistribution,
+  lifetimeTopGames,
+  topGames,
+  totalInRange,
+  undatedTime,
+  type Grouping,
+  type Range,
+} from "@/core/library";
 import { addDays, toLocalDate } from "@/core/time";
 import type { DeviceKind, LocalDate, PlatformId } from "@/core/types";
 
@@ -42,15 +51,26 @@ function rangeFor(key: RangeKey, today: LocalDate, firstDay: LocalDate | undefin
 }
 
 export default function StatisticsPage() {
-  const [rangeKey, setRangeKey] = useState<RangeKey>("12m");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("all");
 
   return (
     <LibraryGate>
       {({ library }) => {
         const today = toLocalDate(new Date());
         const range = rangeFor(rangeKey, today, library.days[0]?.date);
-        const total = totalInRange(library.days, range);
-        const top = topGames(library.days, range, 10);
+        // «Alles» also counts what was played before the first sync: the platforms report it in
+        // their totals, but without a date, so it cannot appear in any shorter range.
+        const everything = rangeKey === "all";
+        const undated = everything ? undatedTime(library.games, library.days) : [];
+        const undatedMinutes = undated.reduce((sum, u) => sum + u.minutes, 0);
+        const dated = totalInRange(library.days, range);
+        const total = { minutes: dated.minutes + undatedMinutes, estimated: dated.estimated };
+        const ranked = everything ? lifetimeTopGames(library.days, undated, 10_000) : topGames(library.days, range, 10_000);
+        const top = ranked.slice(0, 10);
+        const shares = (by: Grouping) =>
+          everything ? lifetimeDistribution(library.days, undated, by, library.byId) : distribution(library.days, range, by, library.byId);
+        // Platforms whose day-by-day data starts inside the chosen range.
+        const lateStart = (Object.entries(library.dataSince) as [PlatformId, LocalDate][]).filter(([, since]) => !everything && since > range.from);
         const playedDays = new Set(library.days.filter((d) => d.date >= range.from && d.date <= range.to).map((d) => d.date)).size;
         const coverage = Object.entries(library.dataSince) as [PlatformId, LocalDate][];
 
@@ -76,13 +96,24 @@ export default function StatisticsPage() {
                   <option key={k} value={k}>{RANGE_LABEL[k]}</option>
                 ))}
               </select>
-              <span className="text-xs text-muted">Gilt für die Zahlen und Listen darunter.</span>
+              <span className="text-xs text-muted">
+                Gilt für die Zahlen und Listen darunter.
+                {everything && undatedMinutes > 0
+                  ? ` «Alles» zählt auch ${formatHours(undatedMinutes)} aus der Zeit vor dem ersten Sync mit (ohne Datum).`
+                  : ""}
+              </span>
+              {lateStart.length > 0 ? (
+                <Notice tone="warning">
+                  Tageswerte gibt es erst seit dem ersten Sync: {lateStart.map(([p, since]) => `${PLATFORM_LABEL[p]} ab ${formatDay(since)}`).join(", ")}.
+                  Was davor gespielt wurde, hat kein Datum und zählt nur unter «Alles».
+                </Notice>
+              ) : null}
             </section>
 
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
               <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} icon="clock" />
-              <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" />
-              <StatTile label="Verschiedene Spiele" value={String(topGames(library.days, range, 10_000).length)} icon="book" />
+              <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" hint={everything && undatedMinutes > 0 ? "nur Tage mit Datum" : undefined} />
+              <StatTile label="Verschiedene Spiele" value={String(ranked.length)} icon="book" />
             </section>
 
             <Card title="Top-Spiele" icon="trophy">
@@ -108,7 +139,7 @@ export default function StatisticsPage() {
 
             <Card title="Plattformen" icon="gamepad">
               <ShareBars
-                shares={distribution(library.days, range, "platform", library.byId)}
+                shares={shares("platform")}
                 label={(k) => PLATFORM_LABEL[k as PlatformId] ?? k}
                 color={(k) => `var(--color-platform-${k})`}
               />
@@ -116,7 +147,7 @@ export default function StatisticsPage() {
 
             <Card title="Geräte" icon="gamepad">
               <ShareBars
-                shares={distribution(library.days, range, "device", library.byId)}
+                shares={shares("device")}
                 label={(k) => DEVICE_LABEL[k as DeviceKind] ?? k}
                 color={(k) => `var(--color-device-${k})`}
               />
@@ -124,7 +155,7 @@ export default function StatisticsPage() {
 
             <Card title="Genres" icon="book">
               <ShareBars
-                shares={distribution(library.days, range, "genre", library.byId)}
+                shares={shares("genre")}
                 label={(k) => k}
                 color={() => "var(--color-chart-bar)"}
               />
