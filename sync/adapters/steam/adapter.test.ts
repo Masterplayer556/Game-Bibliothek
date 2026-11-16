@@ -84,7 +84,7 @@ describe("steamAdapter", () => {
       deviceKind: "pc",
       owned: true,
       lastPlayedAt: new Date(1794340800 * 1000).toISOString(),
-      coverUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg",
+      coverUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/library_600x900.jpg",
     });
     const detroit = batch.games.find((g) => g.externalId === "1222140")!;
     expect([detroit.totalPlaytimeMinutes, detroit.lastPlayedAt]).toEqual([0, null]);

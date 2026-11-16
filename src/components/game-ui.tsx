@@ -4,6 +4,16 @@ import { DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/cor
 import type { LibraryGame } from "@/core/library";
 import type { DeviceKind, GameStatus, PlatformId } from "@/core/types";
 
+/**
+ * Steam's upright cover is missing for some older games; then use the wide header, which every
+ * game has. For an <img onError>: swaps the picture once, then gives up.
+ */
+export function steamCoverFallback(event: React.SyntheticEvent<HTMLImageElement>): void {
+  const img = event.currentTarget;
+  const wide = img.src.replace(/\/library_600x900(_2x)?\.jpg(\?.*)?$/, "/header.jpg");
+  if (wide !== img.src) img.src = wide;
+}
+
 export function gameHref(id: string): string {
   return `/spiel/?id=${encodeURIComponent(id)}`;
 }
@@ -66,9 +76,9 @@ export function GameCover({
         // Covers come from many hosts; next/image cannot optimise them in a static export.
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={game.coverUrl} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full scale-125 object-cover blur-md brightness-75" />
+          <img src={game.coverUrl} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full scale-125 object-cover blur-md brightness-75" onError={steamCoverFallback} />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={game.coverUrl} alt="" loading="lazy" className="relative h-full w-full object-contain" />
+          <img src={game.coverUrl} alt="" loading="lazy" className="relative h-full w-full object-contain" onError={steamCoverFallback} />
         </>
       ) : (
         <div
@@ -94,7 +104,7 @@ export function CoverBackdrop({ game }: { game: Pick<LibraryGame, "title" | "cov
     <div aria-hidden className="pointer-events-none absolute inset-0">
       {game.coverUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={game.coverUrl} alt="" className="h-full w-full scale-150 object-cover opacity-60 blur-2xl saturate-150" />
+        <img src={game.coverUrl} alt="" className="h-full w-full scale-150 object-cover opacity-60 blur-2xl saturate-150" onError={steamCoverFallback} />
       ) : (
         <div className="h-full w-full opacity-35" style={{ background: `var(--color-cloth-${clothIndex(game.title)})` }} />
       )}
