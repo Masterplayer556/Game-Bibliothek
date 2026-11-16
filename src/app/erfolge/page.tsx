@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDay, gameHref, GameCover } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
-import { Card, Notice, ProgressBar, Segmented, StatTile } from "@/components/ui";
+import { Card, Medal, Notice, ProgressBar, ProgressRing, Segmented, StatTile } from "@/components/ui";
 import { achievementPlatforms, achievementSummary, type AchievementFilter } from "@/core/achievements";
 import { ACHIEVEMENT_PLATFORM_LABEL, PLATFORM_LABEL } from "@/core/labels";
 
@@ -49,22 +49,34 @@ export default function AchievementsPage() {
             ) : null}
 
             <section className="grid grid-cols-2 gap-stack">
-              <StatTile label="Freigeschaltet" value={`${unlocked} / ${total}`} hint={total > 0 ? `${Math.round((unlocked / total) * 100)} %` : undefined} />
-              <StatTile label="Spiele mit Erfolgen" value={String(games)} />
+              <div className="flex items-center gap-3 rounded-control border border-border bg-surface p-3 shadow-card">
+                <ProgressRing value={unlocked} max={total} label="Erfolge freigeschaltet" />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted">Freigeschaltet</div>
+                  <div className="num text-[1.75rem] leading-tight">
+                    {unlocked}
+                    <span className="text-lg text-muted"> / {total}</span>
+                  </div>
+                </div>
+              </div>
+              <StatTile label="Spiele mit Erfolgen" value={String(games)} icon="gamepad" />
             </section>
             {nintendoOnly > 0 && active === "all" ? (
               <Notice>{nintendoOnly} Nintendo-Spiele sind nicht aufgeführt: Nintendo hat keine Erfolge.</Notice>
             ) : null}
 
             {recent.length > 0 ? (
-              <Card title="Zuletzt freigeschaltet">
+              <Card title="Zuletzt freigeschaltet" icon="star">
                 <ul className="flex flex-col gap-2 text-sm">
                   {recent.map((a) => {
                     const row = shownEntries.get(a.platform_game_id)!;
                     return (
                       <li key={`${a.platform_game_id}-${a.external_id}`} className="flex justify-between gap-2">
                         <span className="min-w-0">
-                          <span className="block truncate">{a.name}</span>
+                          <span className="flex items-center gap-1.5">
+                            <Medal tier={a.tier} />
+                            <span className="truncate">{a.name}</span>
+                          </span>
                           <span className="block truncate text-xs text-muted">
                             {row.game.title}
                             {active === "all" ? ` · ${ACHIEVEMENT_PLATFORM_LABEL[row.platform] ?? PLATFORM_LABEL[row.platform]}` : ""}
@@ -78,7 +90,7 @@ export default function AchievementsPage() {
               </Card>
             ) : null}
 
-            <Card title="Fortschritt pro Spiel">
+            <Card title="Fortschritt pro Spiel" icon="trophy">
               {rows.length === 0 ? (
                 <Notice>Noch keine Erfolge erfasst. Sie kommen mit dem Sync von Steam und PlayStation.</Notice>
               ) : (

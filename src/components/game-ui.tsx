@@ -1,8 +1,8 @@
 // Building blocks around a game: cover, badges, list rows. Presentation only.
 import Link from "next/link";
-import { DEVICE_LABEL, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
+import { DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import type { LibraryGame } from "@/core/library";
-import type { DeviceKind, PlatformId } from "@/core/types";
+import type { DeviceKind, GameStatus, PlatformId } from "@/core/types";
 
 export function gameHref(id: string): string {
   return `/spiel/?id=${encodeURIComponent(id)}`;
@@ -18,7 +18,7 @@ function initials(title: string): string {
 }
 
 /** Games without a cover get one of five cloth bindings; the same title always gets the same one. */
-function clothIndex(title: string): number {
+export function clothIndex(title: string): number {
   let sum = 0;
   for (const char of title) sum += char.codePointAt(0)!;
   return (sum % 5) + 1;
@@ -39,14 +39,23 @@ export function shelfMark(game: Pick<LibraryGame, "title" | "platforms" | "relea
   return [game.platforms.map((p) => PLATFORM_CODE[p]).join("+"), game.releaseYear ?? "o. J.", letters].filter(Boolean).join(" · ");
 }
 
-/** The cover as a bound book. `bookmark` hangs a ribbon over it (favourite). */
+const STAMP_TONE: Record<GameStatus, string> = {
+  completed: "text-success",
+  playing: "text-accent",
+  backlog: "text-highlight",
+  dropped: "text-muted",
+};
+
+/** The cover as a bound book. `bookmark` hangs a ribbon over it (favourite), `stamp` prints the status across it. */
 export function GameCover({
   game,
   bookmark = false,
+  stamp = null,
   className = "",
 }: {
   game: Pick<LibraryGame, "title" | "coverUrl">;
   bookmark?: boolean;
+  stamp?: GameStatus | null;
   className?: string;
 }) {
   return (
@@ -65,6 +74,25 @@ export function GameCover({
         </div>
       )}
       {bookmark ? <span aria-hidden className="bookmark" /> : null}
+      {stamp ? <span className={`stamp ${STAMP_TONE[stamp]}`}>{STATUS_LABEL[stamp]}</span> : null}
+    </div>
+  );
+}
+
+/**
+ * The mood of a game behind its details: its cover, blurred and washed out, or the colour of its
+ * cloth binding. The parent needs `relative overflow-hidden`; content goes on top with `relative`.
+ */
+export function CoverBackdrop({ game }: { game: Pick<LibraryGame, "title" | "coverUrl"> }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      {game.coverUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={game.coverUrl} alt="" className="h-full w-full scale-150 object-cover opacity-60 blur-2xl saturate-150" />
+      ) : (
+        <div className="h-full w-full opacity-35" style={{ background: `var(--color-cloth-${clothIndex(game.title)})` }} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-surface/40 via-surface/65 to-surface/85" />
     </div>
   );
 }
@@ -91,13 +119,22 @@ export function DeviceBadge({ kind }: { kind: DeviceKind }) {
 }
 
 /** A book standing on its shelf board, with a lift on hover. For grids with gap-stack. */
-export function ShelfCover({ game, bookmark = false }: { game: Pick<LibraryGame, "title" | "coverUrl">; bookmark?: boolean }) {
+export function ShelfCover({
+  game,
+  bookmark = false,
+  stamp = null,
+}: {
+  game: Pick<LibraryGame, "title" | "coverUrl">;
+  bookmark?: boolean;
+  stamp?: GameStatus | null;
+}) {
   return (
-    <div className="shelf px-[7%] pt-1">
+    <div className="shelf px-[7%] pt-1.5">
       <GameCover
         game={game}
         bookmark={bookmark}
-        className="transition-transform duration-150 group-hover:-translate-y-1 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0"
+        stamp={stamp}
+        className="origin-bottom transition-transform duration-150 group-hover:-translate-y-1.5 group-hover:-rotate-2 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 motion-reduce:group-hover:rotate-0"
       />
     </div>
   );
@@ -106,7 +143,7 @@ export function ShelfCover({ game, bookmark = false }: { game: Pick<LibraryGame,
 export function GameCard({ game }: { game: LibraryGame }) {
   return (
     <Link href={gameHref(game.id)} className="group flex h-full flex-col gap-2 rounded-control">
-      <ShelfCover game={game} bookmark={game.favorite} />
+      <ShelfCover game={game} bookmark={game.favorite} stamp={game.status} />
       <div className="flex flex-col gap-1.5 px-1">
         <div className="line-clamp-2 text-sm font-medium leading-tight group-hover:text-accent">
           {game.favorite ? <span className="sr-only">Favorit: </span> : null}
@@ -123,16 +160,6 @@ export function GameCard({ game }: { game: LibraryGame }) {
   );
 }
 
-/** A compact game line. The caller puts it into an <li>. */
-export function GameRow({ game, right }: { game: LibraryGame; right?: React.ReactNode }) {
-  return (
-    <Link href={gameHref(game.id)} className="flex items-center gap-3 rounded-control p-1.5 hover:bg-surface-raised">
-      <GameCover game={game} className="w-10 shrink-0" />
-      <span className="min-w-0 flex-1 truncate text-sm">{game.title}</span>
-      {right ? <span className="shrink-0 text-sm tabular-nums text-muted">{right}</span> : null}
-    </Link>
-  );
-}
 
 export function formatDay(value: string | null | undefined): string {
   if (!value) return "–";
