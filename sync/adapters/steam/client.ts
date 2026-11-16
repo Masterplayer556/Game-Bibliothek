@@ -175,7 +175,12 @@ export async function getGlobalPercentages(options: SteamOptions, appId: number)
   return out;
 }
 
-/** Steam's own cover images (CDN, no key needed). */
-export function headerImageUrl(appId: number): string {
-  return `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`;
+const STEAM_ASSETS = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
+
+/**
+ * Steam's upright cover (600 × 900, as in the Steam library; CDN, no key needed). Older and
+ * small games may not have one: the app then falls back to the wide header (`steamCoverFallback`).
+ */
+export function coverImageUrl(appId: number): string {
+  return `${STEAM_ASSETS}/${appId}/library_600x900.jpg`;
 }

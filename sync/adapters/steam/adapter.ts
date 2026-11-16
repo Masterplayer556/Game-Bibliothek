@@ -15,7 +15,7 @@ import {
   getOwnedGames,
   getPlayerAchievements,
   getSchemaAchievements,
-  headerImageUrl,
+  coverImageUrl,
   resolveSteamId,
   SteamApiError,
   type OwnedGame,
@@ -136,7 +136,7 @@ export const steamAdapter: PlatformAdapter = {
         batch.games.push({
           externalId: String(game.appId),
           title: game.name,
-          coverUrl: headerImageUrl(game.appId),
+          coverUrl: coverImageUrl(game.appId),
           deviceKind: "pc",
           owned: true,
           lastPlayedAt: iso(game.lastPlayed),

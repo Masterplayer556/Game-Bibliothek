@@ -65,6 +65,8 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Liste sortieren**: Spaltenköpfe Name, Zuletzt, Spielzeit.
 - **«Selten» einstellbar** auf der Seite Erfolge: höchstens 10, 5, 3, 2, 1 % oder unter 1 % der Spieler (Einstellung `rareLimit` in `app_settings`); dazu die Kachel «Seltene geschafft».
 
+**Steam-Cover hochkant** (Wunsch Marcel, 16.11.2026): Der Steam-Adapter speichert jetzt `library_600x900.jpg` (das Cover aus der Steam-Bibliothek) statt des queren `header.jpg`. Bestehende Einträge bekommen es beim nächsten Sync. Fehlt das hochkante Bild (ältere oder kleine Spiele), zeigt die App automatisch wieder das quere (`steamCoverFallback` in `src/components/game-ui.tsx`). Spiele mit IGDB-Zuordnung zeigen weiterhin das IGDB-Cover, das ohnehin hochkant ist.
+
 ## Verlauf und Nintendo-Historie (16.11.2026)
 
 - **Historie-Import per Video** (Entscheidung 15, erster Lauf): Marcel nimmt die Spielaktivitäten eines Spiels in der Nintendo-Store-App als Bildschirmaufnahme auf; Claude liest die Zeilen aus Einzelbildern (ffmpeg, ein Bild alle 2 Sekunden reicht bei ruhigem Scrollen) und erzeugt die CSV im Import-Format. Kontrolle: Anzahl Zeilen = «Spieltage» im Kopf der App. Die Summe ist kleiner als «Spielzeit» im Kopf, weil die App jeden Tag auf Viertelstunden abrundet. Die CSV kommt nicht ins Repo; Marcel lädt sie unter Plattformen hoch.

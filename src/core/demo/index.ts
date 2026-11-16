@@ -151,7 +151,7 @@ function lifetimeBatch(
       externalId,
       title: game.title,
       coverUrl: game.steamAppId
-        ? `https://cdn.akamai.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`
+        ? `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.steamAppId}/library_600x900.jpg`
         : null,
       deviceKind,
       owned: true,
