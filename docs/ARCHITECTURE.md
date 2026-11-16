@@ -82,7 +82,8 @@ public/              .nojekyll, Platzhalter-Cover
 src/
   app/               Seiten (nur Darstellung)
   components/        UI-Bausteine
-  styles/tokens.css  ALLE Farben, Abstände, Schriften (einzige Stelle)
+  styles/tokens.css  ALLE Farben, Abstände, Schriften (einzige Stelle), je ein Block für hell und dunkel
+  styles/design.css  Sonderformen aus den Tokens: Buch-Cover, Regalbrett, Tasten, Pixel-Linie
   lib/               Supabase-Client und Abfragen für den Browser
   core/              reine Logik ohne Next.js und ohne Node-Abhängigkeit:
                      Typen, Spielzeit-Berechnung, Statistiken, Titel-Abgleich, Zeitzone

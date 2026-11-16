@@ -2,31 +2,81 @@
  * Design tokens: THE one place for colours, spacing, radii and fonts.
  * Change values here to restyle the whole app; no component hard-codes a colour.
  * Tailwind turns each token into utilities (bg-surface, text-muted, p-page, rounded-card …).
+ *
+ * The look: «Lesesaal trifft Spielhalle» (reading room meets arcade).
+ *   - Ink and brass: indigo ink is the accent, brass is the highlight.
+ *   - Words belong to the library (serif), numbers belong to the game (pixel font).
+ *   - Covers stand like books on a shelf; cards are index cards.
+ *
+ * Two themes, one design: the first block is the light theme (day in the reading room),
+ * the block at the bottom is the dark theme (night in the arcade). Every colour has a
+ * value in both blocks; nothing else differs between the themes.
  */
 @theme static {
-  /* Colours */
-  --color-bg: #000000;
-  --color-surface: #0c0c0c;
-  --color-surface-raised: #161616;
-  --color-border: #262626;
-  --color-text: #f2f2f2;
-  --color-muted: #9a9a9a;
-  --color-accent: #ffffff;
-  --color-on-accent: #000000;
-  --color-success: #4ade80;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  /* ---------- Light theme: paper, ink, brass ---------- */
 
-  /* Charts: categorical colours, validated for the dark surface (fixed order, never cycled) */
-  --color-chart-1: #3987e5;
-  --color-chart-2: #d95926;
-  --color-chart-3: #199e70;
-  --color-chart-4: #c98500;
-  --color-chart-5: #d55181;
+  /* Surfaces */
+  --color-bg: #ebeaf3;
+  --color-surface: #fcfcfe;
+  --color-surface-raised: #f1f0f8;
+  --color-field: #ffffff;
+  --color-border: #d6d4e4;
+  --color-border-strong: #b3b0cb;
+  --color-texture: #d9d7e8;
+
+  /* Text */
+  --color-text: #1a1930;
+  --color-muted: #5d5b78;
+
+  /* Accent (ink) and highlight (brass) */
+  --color-accent: #3d33c4;
+  --color-accent-edge: #261e8a;
+  --color-accent-soft: #e3e1fa;
+  --color-on-accent: #ffffff;
+  --color-highlight: #a86f00;
+  --color-highlight-fill: #f2bd3a;
+  --color-on-highlight: #2a1c00;
+  --color-marker: #ffe37a;
+  --color-logo-cover: #3d33c4;
+  --color-logo-spine: #261e8a;
+
+  /* Status: never used as decoration */
+  --color-success: #177a41;
+  --color-warning: #8f5b00;
+  --color-danger: #c22f2f;
+
+  /* Shelf and books */
+  --color-shelf: #c9b79a;
+  --color-shelf-edge: #e6d9c2;
+  --color-shelf-shadow: #6b5a4033;
+  --color-hinge-dark: #00000052;
+  --color-hinge-light: #ffffff59;
+  --color-cloth-1: #2d2a7a;
+  --color-cloth-2: #7a2a3b;
+  --color-cloth-3: #1f5a4a;
+  --color-cloth-4: #5a3d7a;
+  --color-cloth-5: #2a4f7a;
+  --color-cloth-ink: #f2cf7a;
+
+  /* Shadows */
+  --color-shadow: #1a19301f;
+  --shadow-card: 0 1px 0 var(--color-border), 0 6px 16px -8px var(--color-shadow);
+  --shadow-book: 0 1px 1px var(--color-shadow), 2px 4px 8px -2px var(--color-shadow);
+  --shadow-key: 0 3px 0 var(--color-border-strong);
+  --shadow-key-accent: 0 3px 0 var(--color-accent-edge);
+
+  /* Charts: categorical colours, validated per theme (fixed order, never cycled) */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
   --color-chart-6: #008300;
-  --color-chart-7: #9085e9;
-  --color-chart-8: #e66767;
-  --color-chart-grid: #262626;
+  --color-chart-7: #6250d6;
+  --color-chart-8: #e34948;
+  --color-chart-grid: #e1dfee;
+  /* One series (playtime over time): the accent */
+  --color-chart-bar: var(--color-accent);
 
   /* Colour per platform and console: follows the entity, never its rank */
   --color-platform-steam: var(--color-chart-1);
@@ -41,7 +91,11 @@
   --color-device-xbox360: var(--color-chart-6);
   --color-device-other: var(--color-chart-7);
 
-  /* Fonts */
+  /* ---------- Shared by both themes ---------- */
+
+  /* Fonts: display = library (serif), pixel = game (numbers), sans = everything else */
+  --font-display: "Fraunces Variable", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-pixel: "Jersey 15", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -51,9 +105,72 @@
   --spacing-stack: 0.75rem;
 
   /* Radii */
-  --radius-card: 0.75rem;
-  --radius-control: 0.5rem;
+  --radius-card: 0.625rem;
+  --radius-control: 0.4375rem;
+  --radius-book: 0.1875rem 0.375rem 0.375rem 0.1875rem;
 
   /* Layout */
   --container-content: 56rem;
+}
+
+/* ---------- Dark theme: night, glow, brass ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-bg: #0c0c18;
+  --color-surface: #151528;
+  --color-surface-raised: #1e1e38;
+  --color-field: #0f0f1f;
+  --color-border: #2c2c4e;
+  --color-border-strong: #43436e;
+  --color-texture: #1c1c34;
+
+  /* Text */
+  --color-text: #ecebf8;
+  --color-muted: #a3a1c2;
+
+  /* Accent (glow) and highlight (brass) */
+  --color-accent: #a9acff;
+  --color-accent-edge: #6164c9;
+  --color-accent-soft: #262650;
+  --color-on-accent: #121130;
+  --color-highlight: #f0c04f;
+  --color-highlight-fill: #f0c04f;
+  --color-on-highlight: #2a1c00;
+  --color-marker: #f0c04f38;
+  --color-logo-cover: #5357d8;
+  --color-logo-spine: #383ba6;
+
+  /* Status */
+  --color-success: #5cd28a;
+  --color-warning: #f3b644;
+  --color-danger: #ff7d7d;
+
+  /* Shelf and books */
+  --color-shelf: #4b3c3a;
+  --color-shelf-edge: #8d7350;
+  --color-shelf-shadow: #00000080;
+  --color-hinge-dark: #00000066;
+  --color-hinge-light: #ffffff33;
+  --color-cloth-1: #34317f;
+  --color-cloth-2: #7a2f42;
+  --color-cloth-3: #235e4e;
+  --color-cloth-4: #5c4280;
+  --color-cloth-5: #2f5482;
+  --color-cloth-ink: #f0c04f;
+
+  /* Shadows */
+  --color-shadow: #00000073;
+
+  /* Charts */
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
+  --color-chart-3: #199e70;
+  --color-chart-4: #c98500;
+  --color-chart-5: #d55181;
+  --color-chart-6: #0ca30c;
+  --color-chart-7: #9085e9;
+  --color-chart-8: #e66767;
+  --color-chart-grid: #26264a;
 }

@@ -13,7 +13,7 @@ import { getSupabase } from "@/lib/supabase";
 import { applyIgdb } from "@/lib/igdb";
 import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
-import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge } from "./game-ui";
+import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
 import { Button, Card, fieldClass, Notice, ProgressBar, Segmented } from "./ui";
 import { errorMessage } from "@/lib/errors";
@@ -96,9 +96,9 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
 function AchievementIcon({ url }: { url: string | null }) {
   return url ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="" className="h-8 w-8 shrink-0 rounded" loading="lazy" />
+    <img src={url} alt="" className="h-8 w-8 shrink-0 rounded-[3px] border border-border" loading="lazy" />
   ) : (
-    <span aria-hidden className="h-8 w-8 shrink-0 rounded bg-surface-raised" />
+    <span aria-hidden className="h-8 w-8 shrink-0 rounded-[3px] border border-border bg-surface-raised" />
   );
 }
 
@@ -240,7 +240,7 @@ function Entries({
     <Card title="Plattform-Einträge">
       <ul className="flex flex-col gap-2">
         {game.entries.map((e) => (
-          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-surface-raised p-2 text-sm">
+          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface-raised p-2 text-sm">
             <span className="flex min-w-0 flex-col">
               <span className="truncate">{e.title}</span>
               <span className="text-xs text-muted">
@@ -372,7 +372,7 @@ export function GameDetail({ id }: { id: string }) {
             <Card title="Spiel nicht gefunden">
               <Notice>
                 Vielleicht wurde es zusammengeführt oder gelöscht.{" "}
-                <Link className="underline" href="/bibliothek/">Zur Bibliothek</Link>
+                <Link className="link" href="/bibliothek/">Zur Bibliothek</Link>
               </Notice>
             </Card>
           );
@@ -384,10 +384,17 @@ export function GameDetail({ id }: { id: string }) {
         return (
           <>
             <section className="flex gap-4">
-              <GameCover game={game} className="w-28 shrink-0 sm:w-36" />
+              <GameCover game={game} bookmark={game.favorite} className="w-28 shrink-0 self-start sm:w-36" />
               <div className="flex min-w-0 flex-col gap-2">
-                <h2 className="text-xl font-semibold">
-                  {game.favorite ? <span aria-label="Favorit">★ </span> : null}
+                <span
+                  className="self-start rounded-[3px] border border-border-strong bg-field px-1.5 py-0.5 font-mono text-[11px] tracking-wide text-muted"
+                  title="Signatur: Plattform, Erscheinungsjahr, Titel"
+                >
+                  <span className="sr-only">Signatur </span>
+                  {shelfMark(game)}
+                </span>
+                <h2 className="font-display text-2xl font-semibold leading-tight">
+                  {game.favorite ? <span className="sr-only">Favorit: </span> : null}
                   {game.title}
                 </h2>
                 <div className="flex flex-wrap gap-1">
@@ -396,7 +403,7 @@ export function GameDetail({ id }: { id: string }) {
                 </div>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-sm">
                   <dt className="text-muted">Spielzeit</dt>
-                  <dd className="tabular-nums">{formatMinutes(game.totalMinutes)}</dd>
+                  <dd className="num text-2xl leading-5">{formatMinutes(game.totalMinutes)}</dd>
                   <dt className="text-muted">Zuletzt</dt>
                   <dd>{formatDay(game.lastPlayedAt)}</dd>
                   {game.status ? (

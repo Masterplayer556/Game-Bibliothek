@@ -38,7 +38,7 @@ export function KeyGenerator() {
           readOnly
           value={key}
           aria-label="Erzeugter Schlüssel"
-          className="rounded-control border border-border bg-surface-raised px-3 py-2 font-mono text-sm"
+          className="rounded-control border border-border-strong bg-field px-3 py-2 font-mono text-sm"
           onFocus={(e) => e.currentTarget.select()}
         />
       ) : null}

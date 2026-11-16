@@ -38,7 +38,7 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
   const status = row?.status ?? "not_connected";
   const details = (row?.details ?? {}) as { missingEnv?: string[]; warnings?: string[]; npssoSavedAt?: string };
   return (
-    <li className="flex flex-col gap-1 rounded-control bg-surface-raised p-3 text-sm">
+    <li className="flex flex-col gap-1 rounded-control border border-border bg-surface-raised p-3 text-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{adapter.displayName}</span>
         <span className={STATUS_TONE[status]}>{STATUS_LABEL[status]}</span>
@@ -85,7 +85,7 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
       {status === "auth_expired" && adapter.platform === "psn" ? (
         <p className="text-xs text-warning">Neue NPSSO nötig: Karte «PlayStation verbinden» weiter unten.</p>
       ) : null}
-      <a className="text-xs underline" href={guideUrl(adapter.guide)} target="_blank" rel="noopener noreferrer">
+      <a className="link text-xs" href={guideUrl(adapter.guide)} target="_blank" rel="noopener noreferrer">
         Anleitung
       </a>
     </li>

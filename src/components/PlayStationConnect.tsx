@@ -32,14 +32,14 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
       <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
         <li>
           Im Browser auf{" "}
-          <a className="underline" href="https://www.playstation.com/" target="_blank" rel="noopener noreferrer">
+          <a className="link" href="https://www.playstation.com/" target="_blank" rel="noopener noreferrer">
             playstation.com
           </a>{" "}
           mit deinem PlayStation-Konto anmelden.
         </li>
         <li>
           Im <strong>gleichen Browser</strong>{" "}
-          <a className="underline" href="https://ca.account.sony.com/api/v1/ssocookie" target="_blank" rel="noopener noreferrer">
+          <a className="link" href="https://ca.account.sony.com/api/v1/ssocookie" target="_blank" rel="noopener noreferrer">
             diese Seite öffnen
           </a>
           .
@@ -63,7 +63,7 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
       <Notice>
         Die NPSSO ist wie ein Passwort. Sie wird verschlüsselt gespeichert und bleibt gespeichert,
         damit sich der Sync selbst neu anmelden kann. Etwa alle zwei Monate braucht es eine neue.{" "}
-        <a className="underline" href={guideUrl("SETUP-PLAYSTATION.md")} target="_blank" rel="noopener noreferrer">
+        <a className="link" href={guideUrl("SETUP-PLAYSTATION.md")} target="_blank" rel="noopener noreferrer">
           Anleitung
         </a>
       </Notice>

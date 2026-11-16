@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
 import type { Library } from "@/core/library";
 import type { DeviceKind, PlatformId } from "@/core/types";
@@ -17,20 +17,30 @@ interface CardDef {
 }
 
 function Big({ children }: { children: ReactNode }) {
-  return <div className="text-5xl font-bold leading-none tabular-nums">{children}</div>;
+  return <div className="num text-7xl leading-none">{children}</div>;
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <div className="text-sm uppercase tracking-wide text-muted">{children}</div>;
+  return <div className="text-xs font-medium uppercase tracking-widest text-muted">{children}</div>;
 }
 
 function CardFrame({ card, year, index, count }: { card: CardDef; year: number; index: number; count: number }) {
   return (
-    <div className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-card border border-border bg-surface">
-      <div className="h-2 shrink-0" style={{ background: card.accent }} />
-      <div className="flex flex-1 flex-col justify-center gap-5 p-6">{card.body}</div>
-      <div className="flex shrink-0 justify-between px-6 pb-4 text-[11px] text-muted">
-        <span>Game Bibliothek Wrapped {year}</span>
+    <div className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-card border border-border-strong bg-surface">
+      <div className="h-2.5 shrink-0" style={{ background: card.accent }} />
+      {/* A bookplate: thin frame, four pixel corners in the colour of the card. */}
+      <div
+        className="bookplate mx-3 mt-3 flex flex-1 flex-col justify-center gap-5 p-5"
+        style={{ "--frame-accent": card.accent } as CSSProperties}
+      >
+        {card.body}
+      </div>
+      <div className="flex shrink-0 items-baseline justify-between px-4 py-3 text-[11px] text-muted">
+        <span className="flex items-baseline gap-1">
+          <span className="font-pixel text-base uppercase leading-none tracking-wider text-accent">Game</span>
+          <span className="font-display text-sm font-semibold text-text">Bibliothek</span>
+          <span>· Wrapped {year}</span>
+        </span>
         <span>
           {card.estimated ? "* geschätzt · " : ""}
           {index + 1}/{count}
@@ -97,9 +107,9 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           <ol className="flex flex-col gap-3">
             {w.top.map((t, i) => (
               <li key={t.gameId} className="flex items-baseline gap-3">
-                <span className="w-6 text-2xl font-bold text-muted">{i + 1}</span>
+                <span className={`num w-6 text-3xl leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2 text-lg font-medium leading-tight">{title(library, t.gameId)}</span>
+                  <span className="line-clamp-2 font-display text-lg font-semibold leading-tight">{title(library, t.gameId)}</span>
                   <span className="text-sm text-muted">
                     {formatHours(t.minutes)}
                     {star(t.estimated)}
@@ -123,14 +133,14 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {w.favoritePlatform ? (
             <div className="flex flex-col gap-1">
               <Label>Lieblingsplattform</Label>
-              <div className="text-3xl font-bold">{PLATFORM_LABEL[w.favoritePlatform.key as PlatformId] ?? w.favoritePlatform.key}</div>
+              <div className="font-display text-3xl font-semibold leading-tight">{PLATFORM_LABEL[w.favoritePlatform.key as PlatformId] ?? w.favoritePlatform.key}</div>
               <p className="text-muted">{Math.round((w.favoritePlatform.minutes / total) * 100)} % deiner Spielzeit</p>
             </div>
           ) : null}
           {w.favoriteDevice ? (
             <div className="flex flex-col gap-1">
               <Label>Lieblingsgerät</Label>
-              <div className="text-3xl font-bold">{DEVICE_LABEL[w.favoriteDevice.key as DeviceKind] ?? w.favoriteDevice.key}</div>
+              <div className="font-display text-3xl font-semibold leading-tight">{DEVICE_LABEL[w.favoriteDevice.key as DeviceKind] ?? w.favoriteDevice.key}</div>
               <p className="text-muted">{formatHours(w.favoriteDevice.minutes)}</p>
             </div>
           ) : null}
@@ -145,7 +155,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     body: w.favoriteGenre ? (
       <>
         <Label>Lieblings-Genre</Label>
-        <div className="text-4xl font-bold">{w.favoriteGenre.key}</div>
+        <div className="font-display text-4xl font-semibold leading-tight">{w.favoriteGenre.key}</div>
         <p className="text-lg">{formatHours(w.favoriteGenre.minutes)}</p>
       </>
     ) : (
@@ -166,7 +176,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {w.bestDay ? (
             <div className="flex flex-col gap-1">
               <Label>Dein Rekordtag</Label>
-              <div className="text-3xl font-bold">{formatDay(w.bestDay.date)}</div>
+              <div className="font-display text-3xl font-semibold leading-tight">{formatDay(w.bestDay.date)}</div>
               <p>
                 {formatMinutes(w.bestDay.minutes)}
                 {star(w.bestDay.estimated)}, vor allem {title(library, w.bestDay.gameIds[0]!)}
@@ -176,7 +186,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {w.longestStreak ? (
             <div className="flex flex-col gap-1">
               <Label>Längste Serie</Label>
-              <div className="text-3xl font-bold">
+              <div className="font-display text-3xl font-semibold leading-tight">
                 {w.longestStreak.days} {w.longestStreak.days === 1 ? "Tag" : "Tage"} am Stück
               </div>
               <p className="text-muted">
@@ -220,7 +230,7 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
           {w.achievements.rarest ? (
             <div className="flex flex-col gap-1">
               <Label>Die seltenste</Label>
-              <div className="text-xl font-semibold">{w.achievements.rarest.name}</div>
+              <div className="font-display text-xl font-semibold leading-snug">{w.achievements.rarest.name}</div>
               <p className="text-muted">
                 {title(library, w.achievements.rarest.gameId)} · nur {w.achievements.rarest.rarity_percent} % der Spieler
               </p>
@@ -347,7 +357,7 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
         </Button>
         <div className="flex gap-1.5" aria-hidden>
           {cards.map((c, i) => (
-            <span key={c.id} className={`h-1.5 w-1.5 rounded-full ${i === current ? "bg-accent" : "bg-border"}`} />
+            <span key={c.id} className={`h-2 w-2 ${i === current ? "bg-accent" : "bg-border-strong"}`} />
           ))}
         </div>
         <Button aria-label="Nächste Karte" disabled={current >= cards.length - 1} onClick={() => goTo(current + 1)}>

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { getSupabase } from "@/lib/supabase";
-import { Button, Card, Notice } from "./ui";
+import { Button, Card, fieldClass, Notice } from "./ui";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -19,10 +19,10 @@ export function LoginForm() {
     setBusy(false);
   }
 
-  const field =
-    "rounded-control border border-border bg-surface-raised px-3 py-2 text-text outline-none focus:border-accent";
+  const field = fieldClass;
 
   return (
+    <div className="mx-auto w-full max-w-sm">
     <Card title="Anmelden">
       <form onSubmit={onSubmit} className="flex flex-col gap-stack">
         <label className="flex flex-col gap-1 text-sm">
@@ -53,5 +53,6 @@ export function LoginForm() {
         {error ? <Notice tone="danger">{error}</Notice> : null}
       </form>
     </Card>
+    </div>
   );
 }

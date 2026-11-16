@@ -58,9 +58,9 @@ export function IgdbPicker({
             <li key={r.igdbId} className="flex items-center gap-3 rounded-control p-1.5 hover:bg-surface-raised">
               {r.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={r.coverUrl} alt="" className="h-14 w-10 shrink-0 rounded object-cover" loading="lazy" />
+                <img src={r.coverUrl} alt="" className="h-14 w-10 shrink-0 rounded-book object-cover shadow-book" loading="lazy" />
               ) : (
-                <span aria-hidden className="h-14 w-10 shrink-0 rounded bg-surface-raised" />
+                <span aria-hidden className="h-14 w-10 shrink-0 rounded-book bg-surface-raised" />
               )}
               <span className="min-w-0 flex-1 text-sm">
                 <span className="block truncate">{r.title}</span>

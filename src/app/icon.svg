@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Same mark as src/components/Logo.tsx. A favicon cannot read the design tokens, so the
+       colours of both themes are repeated here. -->
+  <style>
+    .page { fill: #ffffff; stroke: #b3b0cb; }
+    .line { stroke: #b3b0cb; }
+    .ribbon { fill: #c22f2f; }
+    .cover { fill: #3d33c4; }
+    .spine, .dot { fill: #261e8a; }
+    .pad { fill: #f2bd3a; }
+    @media (prefers-color-scheme: dark) {
+      .page { fill: #0f0f1f; stroke: #43436e; }
+      .line { stroke: #43436e; }
+      .ribbon { fill: #ff7d7d; }
+      .cover { fill: #5357d8; }
+      .spine, .dot { fill: #383ba6; }
+      .pad { fill: #f0c04f; }
+    }
+  </style>
+  <rect class="page" x="8" y="6" width="21" height="23" rx="1.5"/>
+  <path class="line" d="M11 26.5h16M11 24h16" stroke-width="0.75"/>
+  <path class="ribbon" d="M20 24h4v8l-2-2-2 2z"/>
+  <rect class="cover" x="3" y="2" width="23" height="24" rx="2"/>
+  <path class="spine" d="M5 2h3v24H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+  <path class="pad" d="M15 8h4v4h4v4h-4v4h-4v-4h-4v-4h4z"/>
+  <rect class="dot" x="16" y="13" width="2" height="2"/>
+</svg>

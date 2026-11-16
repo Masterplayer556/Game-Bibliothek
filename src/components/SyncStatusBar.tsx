@@ -21,19 +21,17 @@ export function SyncStatusBar({ connections, now }: { connections: ConnectionRow
   return (
     <section aria-label="Status der Plattformen" className="flex flex-col gap-2">
       {stale.length > 0 ? (
-        <p className="rounded-control border border-warning px-3 py-2 text-sm text-warning">
+        <p className="rounded-control border border-warning bg-surface px-3 py-2 text-sm text-warning shadow-card">
           ⚠ Seit über {STALE_SYNC_HOURS} Stunden kein erfolgreicher Sync für{" "}
           {stale.map((c) => ADAPTER_CATALOG.find((a) => a.id === c.adapter_id)?.displayName ?? c.adapter_id).join(", ")}.
-          Prüfe unter <Link className="underline" href="/plattformen/">Plattformen</Link>, ob der automatische Sync noch läuft.
+          Prüfe unter <Link className="link" href="/plattformen/">Plattformen</Link>, ob der automatische Sync noch läuft.
         </p>
       ) : null}
       {connected.length > 0 ? (
         <ul className="flex flex-wrap gap-2 text-xs">
           {connected.map(({ adapter, row }) => (
-            <li key={adapter.id} className="rounded-control bg-surface-raised px-2 py-1 text-muted">
-              <span className={row!.status === "ok" ? "text-success" : "text-danger"} aria-hidden>
-                ●{" "}
-              </span>
+            <li key={adapter.id} className="flex items-center gap-1.5 rounded-control border border-border bg-surface px-2 py-1 text-muted">
+              <span className={`h-2 w-2 shrink-0 ${row!.status === "ok" ? "bg-success" : "bg-danger"}`} aria-hidden />
               {adapter.displayName}: {row!.status === "ok" ? `aktualisiert ${relativeAge(row!.last_success_at, now)}` : STATUS_TEXT[row!.status]}
             </li>
           ))}

@@ -51,7 +51,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
       <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
         <li>
           {login ? (
-            <a className="underline" href={login.url} target="_blank" rel="noopener noreferrer">
+            <a className="link" href={login.url} target="_blank" rel="noopener noreferrer">
               Nintendo-Login öffnen
             </a>
           ) : (
@@ -66,7 +66,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
         <li>Hierher zurückkommen, den Link einfügen und «Verbinden» antippen.</li>
       </ol>
       <textarea
-        className="min-h-20 rounded-control border border-border bg-surface-raised px-3 py-2 font-mono text-xs outline-none focus:border-accent"
+        className="min-h-20 rounded-control border border-border-strong bg-field px-3 py-2 font-mono text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
         placeholder="npf54789befb391a838://auth#…"
         aria-label="Kopierter Link"
         value={link}
