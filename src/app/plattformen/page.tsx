@@ -142,7 +142,7 @@ export default function PlatformsPage() {
         const demoEntries = raw.platformGames.filter((p) => p.source === DEMO_SOURCE).length;
         return (
           <>
-            <Card title="Quellen">
+            <Card title="Quellen" icon="gamepad">
               <ul className="flex flex-col gap-stack">
                 {ADAPTER_CATALOG.map((a) => (
                   <AdapterCard key={a.id} adapter={a} row={raw.connections.find((c) => c.adapter_id === a.id)} now={now} />

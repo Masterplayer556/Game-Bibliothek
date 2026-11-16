@@ -40,6 +40,25 @@
   --color-logo-cover: #3d33c4;
   --color-logo-spine: #261e8a;
 
+  /* One colour per section, like the coloured dividers of a card catalogue */
+  --color-section-home: #3d33c4;
+  --color-section-library: #b0304f;
+  --color-section-stats: #0d7f7a;
+  --color-section-pile: #b65a12;
+  --color-section-achievements: #a86f00;
+  --color-section-review: #8a35b8;
+  --color-section-add: #2b7d3b;
+  --color-section-platforms: #2467c2;
+
+  /* Trophy tiers (PlayStation) */
+  --color-medal-bronze: #a8643a;
+  --color-medal-silver: #7d8597;
+  --color-medal-gold: #b88a00;
+  --color-medal-platinum: #5b7fd1;
+
+  /* Light falling onto the page from above */
+  --color-glow: #ffffffd9;
+
   /* Status: never used as decoration */
   --color-success: #177a41;
   --color-warning: #8f5b00;
@@ -77,6 +96,12 @@
   --color-chart-grid: #e1dfee;
   /* One series (playtime over time): the accent */
   --color-chart-bar: var(--color-accent);
+  /* Play calendar: one hue, light to dark with the minutes played */
+  --color-heat-0: var(--color-surface-raised);
+  --color-heat-1: color-mix(in oklab, var(--color-accent) 28%, var(--color-surface-raised));
+  --color-heat-2: color-mix(in oklab, var(--color-accent) 52%, var(--color-surface-raised));
+  --color-heat-3: color-mix(in oklab, var(--color-accent) 76%, var(--color-surface-raised));
+  --color-heat-4: var(--color-accent);
 
   /* Colour per platform and console: follows the entity, never its rank */
   --color-platform-steam: var(--color-chart-1);
@@ -141,6 +166,25 @@
   --color-marker: #f0c04f38;
   --color-logo-cover: #5357d8;
   --color-logo-spine: #383ba6;
+
+  /* Sections */
+  --color-section-home: #a9acff;
+  --color-section-library: #ff8fa6;
+  --color-section-stats: #5fd4cc;
+  --color-section-pile: #ffa869;
+  --color-section-achievements: #f0c04f;
+  --color-section-review: #d59bff;
+  --color-section-add: #7fd68e;
+  --color-section-platforms: #7fb2ff;
+
+  /* Trophy tiers */
+  --color-medal-bronze: #d08a5a;
+  --color-medal-silver: #b8c0d0;
+  --color-medal-gold: #f0c04f;
+  --color-medal-platinum: #9db8ff;
+
+  /* Lamp light from above */
+  --color-glow: #3a3a9a59;
 
   /* Status */
   --color-success: #5cd28a;

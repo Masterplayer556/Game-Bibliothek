@@ -23,7 +23,7 @@ export function LoginForm() {
 
   return (
     <div className="mx-auto w-full max-w-sm">
-    <Card title="Anmelden">
+    <Card title="Anmelden" icon="book">
       <form onSubmit={onSubmit} className="flex flex-col gap-stack">
         <label className="flex flex-col gap-1 text-sm">
           E-Mail

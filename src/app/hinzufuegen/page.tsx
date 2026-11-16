@@ -50,7 +50,7 @@ export default function AddGamePage() {
   }
 
   return (
-    <Card title="Spiel von Hand hinzufügen">
+    <Card title="Spiel von Hand hinzufügen" icon="plus">
       <Notice>
         Für Spiele ohne Schnittstelle, z. B. Disc-Spiele oder ältere Konsolen. Gibt es das Spiel schon
         auf einer anderen Plattform, wird es automatisch über den Titel zugeordnet.

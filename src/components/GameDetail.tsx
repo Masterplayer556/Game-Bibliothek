@@ -13,9 +13,9 @@ import { getSupabase } from "@/lib/supabase";
 import { applyIgdb } from "@/lib/igdb";
 import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
-import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
+import { CoverBackdrop, DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
-import { Button, Card, fieldClass, Notice, ProgressBar, Segmented } from "./ui";
+import { Button, Card, fieldClass, Medal, Notice, ProgressBar, Segmented } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
@@ -48,7 +48,7 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
   const save = (patch: UserDataPatch) => run(() => saveUserData(getSupabase(), userId, game.id, current, patch));
 
   return (
-    <Card title="Meine Angaben">
+    <Card title="Meine Angaben" icon="star">
       <div className="grid grid-cols-1 gap-stack sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
           Status
@@ -107,7 +107,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const withAchievements = game.entries.filter((e) => e.achievements && e.achievements.total > 0);
   if (withAchievements.length === 0) {
     return (
-      <Card title="Erfolge">
+      <Card title="Erfolge" icon="trophy">
         <Notice>
           {game.platforms.every((p) => p === "nintendo")
             ? "Nintendo hat keine Erfolge."
@@ -130,7 +130,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const together = joined ? achievementSummary([game], "all", raw.achievements).rows[0] : undefined;
 
   return (
-    <Card title="Erfolge">
+    <Card title="Erfolge" icon="trophy">
       {several ? (
         <Segmented
           label="Plattform"
@@ -199,7 +199,10 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
               <li key={`${a.platform_game_id}-${a.external_id}`} className={`flex gap-3 text-sm ${a.unlocked_at ? "" : "opacity-50"}`}>
                 <AchievementIcon url={a.icon_url} />
                 <span className="min-w-0 flex-1">
-                  <span className="block">{a.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    <Medal tier={a.tier} />
+                    {a.name}
+                  </span>
                   {a.description ? <span className="block text-xs text-muted">{a.description}</span> : null}
                 </span>
                 <span className="shrink-0 text-right text-xs text-muted">
@@ -237,7 +240,7 @@ function Entries({
           .slice(0, 6);
 
   return (
-    <Card title="Plattform-Einträge">
+    <Card title="Plattform-Einträge" icon="pile">
       <ul className="flex flex-col gap-2">
         {game.entries.map((e) => (
           <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface-raised p-2 text-sm">
@@ -325,7 +328,7 @@ function IgdbCard({ game, reload }: { game: LibraryGame; reload: () => Promise<v
   const [open, setOpen] = useState(false);
   const searchFor = game.entries[0]?.title ?? game.title;
   return (
-    <Card title="Cover und Genres (IGDB)">
+    <Card title="Cover und Genres (IGDB)" icon="book">
       {game.igdbId ? (
         <Notice>
           Zugeordnet{game.releaseYear ? `: erschienen ${game.releaseYear}` : ""}
@@ -383,8 +386,10 @@ export function GameDetail({ id }: { id: string }) {
 
         return (
           <>
-            <section className="flex gap-4">
-              <GameCover game={game} bookmark={game.favorite} className="w-28 shrink-0 self-start sm:w-36" />
+            <section className="relative overflow-hidden rounded-card border border-border-strong bg-surface shadow-card">
+              <CoverBackdrop game={game} />
+              <div className="relative flex gap-4 p-card sm:gap-6 sm:p-6">
+              <GameCover game={game} bookmark={game.favorite} stamp={game.status} className="w-28 shrink-0 self-start sm:w-40" />
               <div className="flex min-w-0 flex-col gap-2">
                 <span
                   className="self-start rounded-[3px] border border-border-strong bg-field px-1.5 py-0.5 font-mono text-[11px] tracking-wide text-muted"
@@ -393,7 +398,7 @@ export function GameDetail({ id }: { id: string }) {
                   <span className="sr-only">Signatur </span>
                   {shelfMark(game)}
                 </span>
-                <h2 className="font-display text-2xl font-semibold leading-tight">
+                <h2 className="font-display text-2xl font-semibold leading-tight sm:text-3xl">
                   {game.favorite ? <span className="sr-only">Favorit: </span> : null}
                   {game.title}
                 </h2>
@@ -414,9 +419,10 @@ export function GameDetail({ id }: { id: string }) {
                   ) : null}
                 </dl>
               </div>
+              </div>
             </section>
 
-            <Card title="Spielzeit nach Plattform und Gerät">
+            <Card title="Spielzeit nach Plattform und Gerät" icon="gamepad">
               {totals.length === 0 ? (
                 <Notice>Noch keine Spielzeit erfasst.</Notice>
               ) : (
@@ -434,7 +440,7 @@ export function GameDetail({ id }: { id: string }) {
               )}
             </Card>
 
-            <Card title="Verlauf">
+            <Card title="Verlauf" icon="chart">
               {gameDays.length === 0 ? (
                 <Notice>Noch kein Verlauf: Er beginnt mit dem ersten Sync nach dem Spielen.</Notice>
               ) : (

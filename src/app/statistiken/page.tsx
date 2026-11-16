@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ShareBars } from "@/components/charts";
 import { formatDay, gameHref } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
+import { PlayCalendar } from "@/components/PlayCalendar";
 import { PlaytimeHistory } from "@/components/PlaytimeHistory";
 import { Card, fieldClass, Notice, StatTile } from "@/components/ui";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
@@ -55,13 +56,19 @@ export default function StatisticsPage() {
 
         return (
           <>
-            <Card title="Verlauf">
+            <Card title="Verlauf" icon="chart">
               {library.days.length === 0 ? (
                 <Notice>Noch keine Spielzeit erfasst.</Notice>
               ) : (
                 <PlaytimeHistory days={library.days} today={today} title="Spielzeit aller Spiele" />
               )}
             </Card>
+
+            {library.days.length > 0 ? (
+              <Card title="Spieltage" icon="calendar">
+                <PlayCalendar days={library.days} today={today} />
+              </Card>
+            ) : null}
 
             <section className="flex flex-col gap-1" aria-label="Zeitraum">
               <select className={fieldClass} aria-label="Zeitraum" value={rangeKey} onChange={(e) => setRangeKey(e.target.value as RangeKey)}>
@@ -73,12 +80,12 @@ export default function StatisticsPage() {
             </section>
 
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
-              <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} />
-              <StatTile label="Spieltage" value={String(playedDays)} />
-              <StatTile label="Verschiedene Spiele" value={String(topGames(library.days, range, 10_000).length)} />
+              <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} icon="clock" />
+              <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" />
+              <StatTile label="Verschiedene Spiele" value={String(topGames(library.days, range, 10_000).length)} icon="book" />
             </section>
 
-            <Card title="Top-Spiele">
+            <Card title="Top-Spiele" icon="trophy">
               {top.length === 0 ? (
                 <Notice>Keine Spielzeit im gewählten Zeitraum.</Notice>
               ) : (
@@ -99,7 +106,7 @@ export default function StatisticsPage() {
               )}
             </Card>
 
-            <Card title="Plattformen">
+            <Card title="Plattformen" icon="gamepad">
               <ShareBars
                 shares={distribution(library.days, range, "platform", library.byId)}
                 label={(k) => PLATFORM_LABEL[k as PlatformId] ?? k}
@@ -107,7 +114,7 @@ export default function StatisticsPage() {
               />
             </Card>
 
-            <Card title="Geräte">
+            <Card title="Geräte" icon="gamepad">
               <ShareBars
                 shares={distribution(library.days, range, "device", library.byId)}
                 label={(k) => DEVICE_LABEL[k as DeviceKind] ?? k}
@@ -115,7 +122,7 @@ export default function StatisticsPage() {
               />
             </Card>
 
-            <Card title="Genres">
+            <Card title="Genres" icon="book">
               <ShareBars
                 shares={distribution(library.days, range, "genre", library.byId)}
                 label={(k) => k}
@@ -124,7 +131,7 @@ export default function StatisticsPage() {
               <Notice>Genres kommen von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
             </Card>
 
-            <Card title="Apps (kein Spiel)">
+            <Card title="Apps (kein Spiel)" icon="clock">
               {(() => {
                 const apps = topGames(library.appDays, range, 50);
                 if (apps.length === 0) return <Notice>Keine App-Zeit im gewählten Zeitraum.</Notice>;
@@ -148,7 +155,7 @@ export default function StatisticsPage() {
               })()}
             </Card>
 
-            <Card title="Datenbasis">
+            <Card title="Datenbasis" variant="note">
               <Notice>
                 Spielzeit pro Tag gibt es erst ab dem ersten Sync einer Plattform. Lücken davor heissen
                 nicht «nicht gespielt». * markiert geschätzte Werte (z. B. mehrere Tage zwischen zwei

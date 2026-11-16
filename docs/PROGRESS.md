@@ -39,6 +39,17 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Diagramme**: Die acht Plattform- und Gerätefarben haben pro Theme eigene, geprüfte Stufen; der Spielzeit-Verlauf nutzt die Akzentfarbe (`--color-chart-bar`).
 - Eingabefelder sind auf dem Handy 16 px gross (iOS zoomt sonst hinein).
 
+**Zweite Runde am selben Tag** (Wunsch: mehr Detail, weniger schlicht, mehr Abwechslung):
+
+- **Eine Farbe pro Bereich** (`--color-section-*` in `tokens.css`, wie farbige Registerkarten): Reiter, Karten-Icons, Kachel-Kanten und Balken einer Seite nehmen die Farbe ihres Bereichs (`--section`, gesetzt in `AppShell.tsx`). Das Spiel-Detail gehört zur Bibliothek.
+- **Pixel-Icons** (`src/components/PixelIcon.tsx`, 12 × 12 Raster) in den Reitern, Kartentiteln und Kacheln.
+- **Übersicht**: grosses Feld «Zuletzt gespielt» mit dem Cover als verschwommenem Hintergrund (`CoverBackdrop`), Kennzahlen und 14-Tage-Balken; Top 5 mit Block-Balken (Platz 1 in Messing); **Spieltage-Kalender** (`PlayCalendar.tsx`, ein Quadrat pro Tag, auch unter Statistiken).
+- **Cover**: Status als Stempel («Durchgespielt», «Am Spielen» …), Buch kippt beim Überfahren.
+- **Spiel-Detail**: Kopf mit Cover-Stimmung als Hintergrund.
+- **Pile of Shame**: ein Stapel liegender Bücher (Buchrücken mit Goldbändern) statt einer Liste.
+- **Erfolge**: Fortschritts-Ring; PlayStation-Trophäen mit Pokal in Bronze, Silber, Gold oder Platin (`Medal`, nur wo Sony eine Stufe liefert).
+- **Seitenfuss**: kleines Regal mit Buchrücken; Lichtschein von oben im Hintergrund; «Datenbasis» als Notizzettel.
+
 ## Verlauf und Nintendo-Historie (16.11.2026)
 
 - **Historie-Import per Video** (Entscheidung 15, erster Lauf): Marcel nimmt die Spielaktivitäten eines Spiels in der Nintendo-Store-App als Bildschirmaufnahme auf; Claude liest die Zeilen aus Einzelbildern (ffmpeg, ein Bild alle 2 Sekunden reicht bei ruhigem Scrollen) und erzeugt die CSV im Import-Format. Kontrolle: Anzahl Zeilen = «Spieltage» im Kopf der App. Die Summe ist kleiner als «Spielzeit» im Kopf, weil die App jeden Tag auf Viertelstunden abrundet. Die CSV kommt nicht ins Repo; Marcel lädt sie unter Plattformen hoch.

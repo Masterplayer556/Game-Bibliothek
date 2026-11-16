@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { GameRow } from "@/components/game-ui";
+import Link from "next/link";
+import { clothIndex, gameHref } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
 import { Button, Card, fieldClass, Notice } from "@/components/ui";
 import { formatMinutes } from "@/core/labels";
@@ -35,7 +36,7 @@ export default function PileOfShamePage() {
 
         return (
           <>
-            <Card title="Pile of Shame">
+            <Card title="Pile of Shame" icon="pile">
               <Notice>
                 Spiele, die du besitzt, aber weniger als die Grenze gespielt hast. Durchgespielte und
                 abgebrochene Spiele zählen nicht.
@@ -53,16 +54,22 @@ export default function PileOfShamePage() {
                   ))}
                 </select>
               </label>
-              <Notice>{pile.length} Spiele auf dem Stapel.</Notice>
+              <p className="text-sm text-muted">
+                <span className="num text-2xl leading-none text-text">{pile.length}</span> Spiele auf dem Stapel
+              </p>
               {error ? <Notice tone="danger">{error}</Notice> : null}
             </Card>
             {pile.length > 0 ? (
               <Card>
+                {/* The pile itself: every game is a book lying flat, each pushed in a little differently. */}
                 <ul className="flex flex-col gap-1">
-                  {pile.map((g) => (
+                  {pile.map((g, i) => (
                     <li key={g.id} className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <GameRow game={g} right={g.totalMinutes > 0 ? formatMinutes(g.totalMinutes) : "nie"} />
+                      <div className="min-w-0 flex-1" style={{ paddingLeft: [0, 10, 4, 14, 2, 8][i % 6], paddingRight: [8, 0, 12, 2, 10, 4][i % 6] }}>
+                        <Link href={gameHref(g.id)} className="spine" style={{ background: `var(--color-cloth-${clothIndex(g.title)})` }}>
+                          <span className="min-w-0 flex-1 truncate font-display font-semibold">{g.title}</span>
+                          <span className="shrink-0 text-xs tabular-nums opacity-80">{g.totalMinutes > 0 ? formatMinutes(g.totalMinutes) : "nie gespielt"}</span>
+                        </Link>
                       </div>
                       <Button
                         disabled={busy}
@@ -84,6 +91,7 @@ export default function PileOfShamePage() {
                     </li>
                   ))}
                 </ul>
+                <div aria-hidden className="-mt-1 h-2 rounded-[2px] bg-shelf shadow-[inset_0_2px_0_var(--color-shelf-edge)]" />
               </Card>
             ) : null}
           </>
