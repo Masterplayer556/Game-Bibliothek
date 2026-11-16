@@ -21,10 +21,17 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 Alle Phasen sind gebaut. Offen:
 
-1. **Marcel:** GitHub-Token `DISPATCH_TOKEN` anlegen und den Workflow «Edge Functions deployen» starten (`SETUP-SUPABASE-GITHUB.md`, Abschnitt 6), damit die Knöpfe in der App funktionieren.
+1. **Marcel:** Sync-Knöpfe in der App einmal ausprobieren («Verbindung testen»). `DISPATCH_TOKEN` ist angelegt, die Functions sind seit 16.11.2026 neu deployt.
 2. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
-3. **Marcel:** Nach dem Merge einmal «Edge Functions deployen» starten (die Functions haben sich geändert) und danach «Tools» → `check-rls`.
-4. **Später:** Historie-Import aus der Nintendo-Store-App per Screenshot/Video (Entscheidung 15), Minecraft-Mods (`ADDING-A-PLATFORM.md`), eigenes Design über `tokens.css`.
+3. **Marcel:** Weitere Switch-Spiele als Video aufnehmen (ein Video pro Spiel, Kopf kurz stehen lassen, ruhig bis ganz unten scrollen); Claude macht daraus die CSV.
+4. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`), eigenes Design über `tokens.css`.
+
+## Verlauf und Nintendo-Historie (16.11.2026)
+
+- **Historie-Import per Video** (Entscheidung 15, erster Lauf): Marcel nimmt die Spielaktivitäten eines Spiels in der Nintendo-Store-App als Bildschirmaufnahme auf; Claude liest die Zeilen aus Einzelbildern (ffmpeg, ein Bild alle 2 Sekunden reicht bei ruhigem Scrollen) und erzeugt die CSV im Import-Format. Kontrolle: Anzahl Zeilen = «Spieltage» im Kopf der App. Die Summe ist kleiner als «Spielzeit» im Kopf, weil die App jeden Tag auf Viertelstunden abrundet. Die CSV kommt nicht ins Repo; Marcel lädt sie unter Plattformen hoch.
+  - Minecraft for Nintendo Switch: 317 Tage (09.12.2021–13.11.2026), 659 Std. 5 Min., importiert am 16.11.2026, hängt am Spiel «Minecraft» (mit PS5). Gerät: vor dem 13.06.2025 Switch 1, danach Switch 2.
+- **Verlauf im Spiel-Detail** (`src/components/PlaytimeHistory.tsx`, Wunsch von Marcel): Tage, Wochen, Monate oder Jahre; ‹ / › oder seitlich wischen verschiebt den Zeitraum, «Zurück zu heute». Beim Wechsel der Einteilung bleibt der Zeitpunkt am rechten Rand gleich (`src/core/history-window.ts`). `playtimeSeries` kennt dafür `day` und `year`.
+- **Geschätzte Balken**: hell nur noch, wenn mindestens die Hälfte der Zeit geschätzt ist (`SeriesPoint.estimatedMinutes`); der Tooltip nennt den geschätzten Anteil. Vorher machte ein einziger «Für kurze Zeit»-Tag ein ganzes Jahr hell.
 
 ## Sicherheits-Check und Polish (14.11.2026)
 

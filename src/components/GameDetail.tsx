@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
-import { deviceTotals, playtimeSeries, type LibraryGame, type RawData } from "@/core/library";
-import { addDays, toLocalDate } from "@/core/time";
+import { deviceTotals, type LibraryGame, type RawData } from "@/core/library";
+import { toLocalDate } from "@/core/time";
 import { GAME_STATUSES, type GameStatus } from "@/core/types";
 import { deleteManualEntry, mergeGames, saveUserData, splitEntry, type UserDataPatch } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import { applyIgdb } from "@/lib/igdb";
-import { PlaytimeChart } from "./charts";
+import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
 import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
@@ -315,9 +315,6 @@ export function GameDetail({ id }: { id: string }) {
         }
         const today = toLocalDate(new Date());
         const gameDays = (game.hidden ? library.appDays : library.days).filter((d) => d.gameId === game.id);
-        const first = gameDays[0]?.date;
-        const from = first && first > addDays(today, -425) ? first : addDays(today, -425);
-        const series = playtimeSeries(gameDays, { from, to: today }, "month");
         const totals = deviceTotals(game, game.hidden ? library.appDays : library.days);
 
         return (
@@ -366,11 +363,11 @@ export function GameDetail({ id }: { id: string }) {
               )}
             </Card>
 
-            <Card title="Verlauf (pro Monat)">
+            <Card title="Verlauf">
               {gameDays.length === 0 ? (
                 <Notice>Noch kein Verlauf: Er beginnt mit dem ersten Sync nach dem Spielen.</Notice>
               ) : (
-                <PlaytimeChart points={series} bucket="month" title={`Spielzeit pro Monat für ${game.title}`} />
+                <PlaytimeHistory key={game.id} days={gameDays} today={today} title={`Spielzeit von ${game.title}`} />
               )}
             </Card>
 
