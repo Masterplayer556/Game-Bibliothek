@@ -15,6 +15,21 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "list", label: "Liste" },
 ];
 
+function SortHead({ label, sortKey, current, onSort }: { label: string; sortKey: SortKey; current: SortKey; onSort: (key: SortKey) => void }) {
+  const active = current === sortKey;
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={() => onSort(sortKey)}
+      className={`rounded-[3px] px-1 py-0.5 uppercase tracking-wider ${active ? "bg-section-soft text-section font-semibold" : "hover:text-text"}`}
+    >
+      {label}
+      {active ? " ▾" : ""}
+    </button>
+  );
+}
+
 export default function LibraryPage() {
   const [filter, setFilter] = useState<LibraryFilter>({ sort: "lastPlayed" });
   const set = (patch: Partial<LibraryFilter>) => setFilter((f) => ({ ...f, ...patch }));
@@ -103,6 +118,17 @@ export default function LibraryPage() {
               <Notice>Keine Spiele für diese Auswahl.</Notice>
             ) : view === "list" ? (
               <Card>
+                {/* Column heads: tapping one sorts the list by it. */}
+                <div className="flex items-center gap-3 px-2 text-[11px] font-medium uppercase tracking-wider text-muted">
+                  <span className="w-12 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <SortHead label="Name" sortKey="name" current={filter.sort ?? "lastPlayed"} onSort={(sort) => set({ sort })} />
+                  </span>
+                  <span className="flex shrink-0 gap-3">
+                    <SortHead label="Zuletzt" sortKey="lastPlayed" current={filter.sort ?? "lastPlayed"} onSort={(sort) => set({ sort })} />
+                    <SortHead label="Spielzeit" sortKey="playtime" current={filter.sort ?? "lastPlayed"} onSort={(sort) => set({ sort })} />
+                  </span>
+                </div>
                 <ul className="flex flex-col divide-y divide-border">
                   {games.map((g) => (
                     <li key={g.id}>

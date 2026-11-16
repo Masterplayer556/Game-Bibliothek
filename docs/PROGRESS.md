@@ -57,6 +57,14 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Seltene Erfolge**: Marke «Selten», wenn weniger als 10 % der Spieler ihn haben (`RARE_PERCENT` in `src/components/ui.tsx`), für Steam und PlayStation.
 - **Rückblick**: jede Karte mit Farbverlauf und Icon in ihrer Farbe; Cover auf der Startkarte (Top 3 gefächert), in den Top 5, beim Rekordtag und bei «Neu angefangen». Beim Speichern als Bild wird ein Cover weggelassen, wenn sein Server den Abruf verweigert (`imagePlaceholder` in `src/lib/export-image.ts`); mit echten Covern von Steam, Sony und IGDB noch nicht ausprobiert.
 
+**Vierte Runde** (Wünsche von Marcel, 16.11.2026):
+
+- **Zeit vor dem ersten Sync zählt mit** (Anlass: PlayStation zeigte unter Statistiken nur 15 Std., obwohl allein GTA V fast 300 Std. hat). Die Plattformen melden diese Zeit nur als Gesamtzahl ohne Datum. `undatedTime` in `src/core/library.ts` rechnet pro Eintrag «Gesamt minus Tage mit Datum»; unter Statistiken zählt sie im Zeitraum **«Alles»** (neu die Voreinstellung) bei Spielzeit, Top-Spielen, Plattformen, Geräten und Genres mit (`lifetimeTopGames`, `lifetimeDistribution`). Kürzere Zeiträume können sie nicht enthalten, weil das Datum fehlt; dort steht ein Hinweis, ab wann eine Plattform Tageswerte hat. Im Spiel-Detail zeigt «Spielzeit nach Plattform und Gerät» jetzt auch den Rest vor den Tageswerten.
+- **Cover ganz sichtbar**: Bücher sind hochkant (3:4), das Bild wird nie beschnitten (IGDB hochkant, Steam quer, PlayStation quadratisch); der freie Rand ist eine unscharfe Kopie des Bildes.
+- **Kalender blättern**: ‹ › zeigt frühere Jahre.
+- **Liste sortieren**: Spaltenköpfe Name, Zuletzt, Spielzeit.
+- **«Selten» einstellbar** auf der Seite Erfolge: höchstens 10, 5, 3, 2, 1 % oder unter 1 % der Spieler (Einstellung `rareLimit` in `app_settings`); dazu die Kachel «Seltene geschafft».
+
 ## Verlauf und Nintendo-Historie (16.11.2026)
 
 - **Historie-Import per Video** (Entscheidung 15, erster Lauf): Marcel nimmt die Spielaktivitäten eines Spiels in der Nintendo-Store-App als Bildschirmaufnahme auf; Claude liest die Zeilen aus Einzelbildern (ffmpeg, ein Bild alle 2 Sekunden reicht bei ruhigem Scrollen) und erzeugt die CSV im Import-Format. Kontrolle: Anzahl Zeilen = «Spieltage» im Kopf der App. Die Summe ist kleiner als «Spielzeit» im Kopf, weil die App jeden Tag auf Viertelstunden abrundet. Die CSV kommt nicht ins Repo; Marcel lädt sie unter Plattformen hoch.

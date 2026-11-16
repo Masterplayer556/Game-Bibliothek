@@ -9,6 +9,7 @@ import type { GameDay, LibraryGame } from "@/core/library";
 import { addDays, weekStart } from "@/core/time";
 import type { LocalDate } from "@/core/types";
 import { gameHref, GameCover } from "./game-ui";
+import { Button } from "./ui";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
@@ -43,12 +44,21 @@ export function PlayCalendar({
   weeks?: number;
 }) {
   const [selected, setSelected] = useState<LocalDate | null>(null);
+  // How many windows back from today: 0 shows the weeks up to today, 1 the weeks before those …
+  const [back, setBack] = useState(0);
 
-  const first = addDays(weekStart(today), -(weeks - 1) * 7);
+  const last = back === 0 ? today : addDays(weekStart(today), -back * weeks * 7 + 6);
+  const first = addDays(weekStart(last), -(weeks - 1) * 7);
+  const earliest = days.reduce<LocalDate>((min, d) => (d.date < min ? d.date : min), today);
+  const canGoBack = earliest < first;
   const minutesOn = new Map<LocalDate, number>();
   for (const d of days) {
-    if (d.date >= first && d.date <= today) minutesOn.set(d.date, (minutesOn.get(d.date) ?? 0) + d.minutes);
+    if (d.date >= first && d.date <= last) minutesOn.set(d.date, (minutesOn.get(d.date) ?? 0) + d.minutes);
   }
+  const move = (by: number) => {
+    setBack((b) => Math.max(0, b + by));
+    setSelected(null);
+  };
 
   // Newest week first: the row is laid out from the right, so the latest weeks always fit.
   const columns = Array.from({ length: weeks }, (_, w) => {
@@ -73,10 +83,21 @@ export function PlayCalendar({
 
   return (
     <figure className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Button aria-label="Früher" disabled={!canGoBack} onClick={() => move(1)}>
+          ‹
+        </Button>
+        <div className="text-center text-sm" aria-live="polite">
+          {label(first)} – {label(last)}
+        </div>
+        <Button aria-label="Später" disabled={back === 0} onClick={() => move(-1)}>
+          ›
+        </Button>
+      </div>
       {/* Weeks that do not fit wrap onto a second line, which is cut off: no half columns on a phone. */}
       <div
         role="group"
-        aria-label={`Spieltage der letzten ${weeks} Wochen: an ${minutesOn.size} Tagen gespielt`}
+        aria-label={`Spieltage vom ${label(first)} bis ${label(last)}: an ${minutesOn.size} Tagen gespielt`}
         className="flex h-[121px] flex-row-reverse flex-wrap content-start gap-x-[3px] gap-y-4 overflow-hidden"
       >
         {columns.map((column) => (
@@ -85,7 +106,7 @@ export function PlayCalendar({
               {column.month ? <span className="absolute left-0 top-0 whitespace-nowrap text-[10px] text-muted">{column.month}</span> : null}
             </div>
             {column.dates.map((date) =>
-              date > today ? (
+              date > last ? (
                 <span key={date} className="h-3 w-3" />
               ) : (
                 <button

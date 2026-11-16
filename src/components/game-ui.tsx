@@ -59,11 +59,17 @@ export function GameCover({
   className?: string;
 }) {
   return (
-    <div className={`book aspect-square bg-surface-raised ${className}`}>
+    <div className={`book aspect-[3/4] bg-surface-raised ${className}`}>
       {game.coverUrl ? (
+        // The picture is shown whole, so no title is cut off: covers come upright (IGDB), wide
+        // (Steam) or square (PlayStation). What it leaves free is filled with a blurred copy of itself.
         // Covers come from many hosts; next/image cannot optimise them in a static export.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={game.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={game.coverUrl} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full scale-125 object-cover blur-md brightness-75" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={game.coverUrl} alt="" loading="lazy" className="relative h-full w-full object-contain" />
+        </>
       ) : (
         <div
           aria-hidden
