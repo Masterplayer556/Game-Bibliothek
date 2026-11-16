@@ -57,6 +57,10 @@ Die Plattform-Karte zeigt dann «Anmeldung abgelaufen». Schritt 3 wiederholen.
 
 Die Store-App zeigt unter Benutzerseite → **«Spielaktivitäten»** pro Spiel jeden Spieltag, zurück bis zum ersten. Einen automatischen Zugriff darauf gibt es nicht.
 
+**Schneller:** Pro Spiel eine Bildschirmaufnahme machen und in einem Claude-Projekt in eine CSV umwandeln lassen. Prompt und Anleitung: [`PROMPT-NINTENDO-VIDEO-IMPORT.md`](PROMPT-NINTENDO-VIDEO-IMPORT.md). Die fertige CSV dann wie in Schritt 3 unten hochladen.
+
+Von Hand:
+
 1. In der Game Bibliothek auf der Karte **«Nintendo-Historie importieren»** die **CSV-Vorlage** herunterladen.
 2. Pro Spiel und Tag eine Zeile eintragen:
 
