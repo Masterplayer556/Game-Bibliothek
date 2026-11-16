@@ -74,6 +74,8 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Pile of Shame**: Bücher über die ganze Breite, Titel mittig und bis zwei Zeilen; Spielzeit links, ⋯-Menü rechts («Spiel öffnen», «Vom Stapel nehmen») statt der grossen Knöpfe.
 - **Erfolge**: Karte «Deine seltensten Erfolge» (seltenster zuerst, mit %; gleiche Erfolge auf PC und PlayStation einmal), die Kachel «Seltene» springt dorthin. Kacheln auf dem Handy nicht mehr abgeschnitten.
 
+**Sechste Runde** (16.11.2026): Steuerkreuz im App-Icon mit deutlich eingravierten Pfeilen (Marcel fand die Fassung mit Pfeilen besser). **Startbilder** für die Home-Bildschirm-App auf dem iPhone (`public/splash/`, je eine pro iPhone-Grösse, eingebunden über `appleWebApp.startupImage` in `layout.tsx`). Icon und Startbilder entstehen mit `node scripts/render-app-images.mjs` aus `design/app-icon.svg` (braucht Playwright mit Chromium). **Bibliothek**: Filter in einem ausklappbaren Glas-Feld neben der Suche (Knopf «Filter» zeigt die Zahl aktiver Filter, «Filter zurücksetzen»). **Pile of Shame**: Das ⋯-Menü der untersten Bücher klappt nach oben auf, damit die Leiste unten es nicht verdeckt.
+
 **Steam-Cover hochkant** (Wunsch Marcel, 16.11.2026): Der Steam-Adapter speichert jetzt `library_600x900.jpg` (das Cover aus der Steam-Bibliothek) statt des queren `header.jpg`. Bestehende Einträge bekommen es beim nächsten Sync. Fehlt das hochkante Bild (ältere oder kleine Spiele), zeigt die App automatisch wieder das quere (`steamCoverFallback` in `src/components/game-ui.tsx`). Spiele mit IGDB-Zuordnung zeigen weiterhin das IGDB-Cover, das ohnehin hochkant ist.
 
 ## Verlauf und Nintendo-Historie (16.11.2026)

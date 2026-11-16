@@ -75,8 +75,9 @@
       <path d="M-40 -120h80v80h80v80h-80v80h-80v-80h-80v-80h80z" fill="url(#brass)"/>
       <path d="M-40 -120h80v16h-80zM-120 -40h80v16h-80zM40 -40h80v16h-80z" fill="#fff3c4" fill-opacity="0.75"/>
       <rect x="-16" y="-16" width="32" height="32" fill="#3a2bc0"/>
-      <!-- arrow notches on the four arms -->
-      <path d="M-12 -92h24l-12-14z M-12 92h24l-12 14z M-92 -12v24l-14-12z M92 -12v24l14-12z" fill="#8a5a00"/>
+      <!-- engraved arrows on the four arms: a bright edge below, the cut above -->
+      <path d="M-24 -64h48l-24-32z M-24 64h48l-24 32z M-64 -24v48l-32-24z M64 -24v48l32-24z" fill="#fff3c4" fill-opacity="0.85" transform="translate(0 5)"/>
+      <path d="M-24 -64h48l-24-32z M-24 64h48l-24 32z M-64 -24v48l-32-24z M64 -24v48l32-24z" fill="#6b4300"/>
     </g>
   </g>
 

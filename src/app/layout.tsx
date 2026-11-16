@@ -6,6 +6,24 @@ import { AppShell } from "@/components/AppShell";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+/**
+ * iPhone screens in CSS pixels and pixel ratio; public/splash has a start screen for each
+ * (made from design/app-icon.svg, see docs/PROGRESS.md).
+ */
+const SPLASH_SIZES: [number, number, number][] = [
+  [375, 667, 2],
+  [414, 896, 2],
+  [375, 812, 3],
+  [390, 844, 3],
+  [428, 926, 3],
+  [393, 852, 3],
+  [430, 932, 3],
+  [402, 874, 3],
+  [440, 956, 3],
+];
+
 export const metadata: Metadata = {
   title: "Game Bibliothek",
   description: "Meine Spiele von Steam, PlayStation und Nintendo an einem Ort.",
@@ -13,7 +31,16 @@ export const metadata: Metadata = {
   // Covers and icons come from Steam, Sony, Nintendo and IGDB: do not tell them which page asked.
   referrer: "no-referrer",
   // On the home screen it opens like an app: full screen, its own name and icon.
-  appleWebApp: { capable: true, title: "Bibliothek", statusBarStyle: "black-translucent" },
+  appleWebApp: {
+    capable: true,
+    title: "Bibliothek",
+    statusBarStyle: "black-translucent",
+    // Shown while the home-screen app starts, instead of a blank screen (one per iPhone size).
+    startupImage: SPLASH_SIZES.map(([width, height, ratio]) => ({
+      url: `${BASE_PATH}/splash/splash-${width * ratio}x${height * ratio}.jpg`,
+      media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`,
+    })),
+  },
 };
 
 export const viewport: Viewport = {
