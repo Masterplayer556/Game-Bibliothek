@@ -15,7 +15,7 @@ import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
 import { CoverBackdrop, DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
-import { Button, Card, fieldClass, Medal, Notice, ProgressBar, Segmented } from "./ui";
+import { Button, Card, fieldClass, Medal, Notice, ProgressBar, RareBadge, Segmented } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
@@ -176,7 +176,10 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
               <li key={m.key} className={`flex gap-3 text-sm ${m.unlockedAt ? "" : "opacity-50"}`}>
                 <AchievementIcon url={m.iconUrl} />
                 <span className="min-w-0 flex-1">
-                  <span className="block">{m.name}</span>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {m.name}
+                    <RareBadge percent={m.rarityPercent} />
+                  </span>
                   {m.description ? <span className="block text-xs text-muted">{m.description}</span> : null}
                   <span className="block text-xs text-muted">
                     {m.platforms.map((p) => `${platformName(p)} ${m.unlockedOn.includes(p) ? "✓" : "–"}`).join(" · ")}
@@ -199,9 +202,10 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
               <li key={`${a.platform_game_id}-${a.external_id}`} className={`flex gap-3 text-sm ${a.unlocked_at ? "" : "opacity-50"}`}>
                 <AchievementIcon url={a.icon_url} />
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex flex-wrap items-center gap-1.5">
                     <Medal tier={a.tier} />
                     {a.name}
+                    <RareBadge percent={a.rarity_percent} />
                   </span>
                   {a.description ? <span className="block text-xs text-muted">{a.description}</span> : null}
                 </span>

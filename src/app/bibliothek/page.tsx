@@ -1,16 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { GameCard } from "@/components/game-ui";
+import { GameCard, GameListRow } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
-import { fieldClass, Notice } from "@/components/ui";
+import { Card, fieldClass, Notice, Segmented } from "@/components/ui";
 import { DEVICE_LABEL, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { allGenres, filterLibrary, type LibraryFilter, type SortKey } from "@/core/library";
 import { DEVICE_KINDS, GAME_STATUSES, PLATFORM_IDS, type DeviceKind, type GameStatus, type PlatformId } from "@/core/types";
 
+type View = "shelf" | "list";
+const VIEW_KEY = "gb-library-view";
+const VIEWS: { id: View; label: string }[] = [
+  { id: "shelf", label: "Regal" },
+  { id: "list", label: "Liste" },
+];
+
 export default function LibraryPage() {
   const [filter, setFilter] = useState<LibraryFilter>({ sort: "lastPlayed" });
   const set = (patch: Partial<LibraryFilter>) => setFilter((f) => ({ ...f, ...patch }));
+  // Shelf or list: remembered in this browser.
+  const [view, setView] = useState<View>(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem(VIEW_KEY) === "list" ? "list" : "shelf";
+    } catch {
+      return "shelf";
+    }
+  });
+  const chooseView = (next: View) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // Without storage the choice holds until the page is closed.
+    }
+  };
 
   return (
     <LibraryGate>
@@ -62,7 +85,12 @@ export default function LibraryPage() {
                 </select>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
-                <span>{games.length} Spiele</span>
+                <span className="flex items-center gap-3">
+                  <span className="w-36">
+                    <Segmented label="Ansicht" options={VIEWS} value={view} onChange={chooseView} />
+                  </span>
+                  {games.length} Spiele
+                </span>
                 {hiddenCount > 0 ? (
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={filter.showHidden ?? false} onChange={(e) => set({ showHidden: e.target.checked })} />
@@ -73,6 +101,16 @@ export default function LibraryPage() {
             </section>
             {games.length === 0 ? (
               <Notice>Keine Spiele für diese Auswahl.</Notice>
+            ) : view === "list" ? (
+              <Card>
+                <ul className="flex flex-col divide-y divide-border">
+                  {games.map((g) => (
+                    <li key={g.id}>
+                      <GameListRow game={g} />
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             ) : (
               <ul className="grid grid-cols-2 gap-stack sm:grid-cols-4">
                 {games.map((g) => (

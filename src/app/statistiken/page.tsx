@@ -66,7 +66,7 @@ export default function StatisticsPage() {
 
             {library.days.length > 0 ? (
               <Card title="Spieltage" icon="calendar">
-                <PlayCalendar days={library.days} today={today} />
+                <PlayCalendar days={library.days} today={today} byId={library.byId} />
               </Card>
             ) : null}
 

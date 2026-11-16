@@ -146,6 +146,23 @@ export function Medal({ tier }: { tier: string | null | undefined }) {
   );
 }
 
+/** Achievements that fewer players than this (in percent) have count as rare. */
+export const RARE_PERCENT = 10;
+
+/** A brass tag for an achievement that few players have. Nothing if the share is unknown or common. */
+export function RareBadge({ percent }: { percent: number | null | undefined }) {
+  if (percent == null || percent >= RARE_PERCENT) return null;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-[3px] bg-highlight-fill px-1 py-px text-[10px] font-semibold uppercase leading-tight tracking-wide text-on-highlight"
+      title={`Nur ${percent} % der Spieler haben das`}
+    >
+      <PixelIcon name="star" className="h-2.5 w-2.5" />
+      Selten
+    </span>
+  );
+}
+
 /** A row of buttons of which exactly one is selected (tabs for a view, not for pages). */
 export function Segmented<T extends string>({
   label,

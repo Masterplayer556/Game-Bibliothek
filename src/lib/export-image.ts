@@ -1,10 +1,18 @@
 // Saves a card as PNG: shares it where the phone supports it, otherwise downloads it.
 import { toPng } from "html-to-image";
 
+const EMPTY_IMAGE = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
 export async function exportCard(node: HTMLElement, fileName: string): Promise<"shared" | "downloaded"> {
   const background = getComputedStyle(document.body).backgroundColor;
   // 3× the CSS size: a 360×640 card becomes 1080×1920, the size of a story.
-  const dataUrl = await toPng(node, { pixelRatio: 3, backgroundColor: background, cacheBust: true });
+  const dataUrl = await toPng(node, {
+    pixelRatio: 3,
+    backgroundColor: background,
+    cacheBust: true,
+    // A cover whose host refuses the download is left out; the card is still saved.
+    imagePlaceholder: EMPTY_IMAGE,
+  });
   const blob = await (await fetch(dataUrl)).blob();
   const file = new File([blob], fileName, { type: "image/png" });
 
