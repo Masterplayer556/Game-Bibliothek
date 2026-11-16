@@ -35,7 +35,7 @@ Alle Phasen sind gebaut. Offen:
 - **Prompt für ein Claude-Projekt** (`docs/PROMPT-NINTENDO-VIDEO-IMPORT.md`): Videos hochladen → CSV pro Spiel, mit Prüfung gegen «Spieltage».
 - **Erfolge nach Plattform** (`src/core/achievements.ts`): Wähler «Zusammen / PC / PlayStation» auf der Seite Erfolge und im Spiel-Detail. Steam-Erfolge und PS-Trophäen sind getrennte Listen; eine Trophäe schaltet nie einen Steam-Erfolg frei. «Zusammen» legt Erfolge mit gleichem Namen zusammen (geschafft, wenn auf einer Plattform freigeschaltet); fehlt eine Liste teilweise, werden die Zahlen addiert.
 - **Trophäen auf Deutsch** (`TROPHY_LANGUAGE` in `sync/adapters/psn/adapter.ts`, Wunsch 16.11.2026): Sony lieferte die Namen auf Englisch, Steam auf Deutsch, so passten keine Namen zusammen. Der Sync liest die alten Listen nach und nach neu (40 Spiele pro Lauf, Fortschritt in `platform_connections.details.trophyLanguageDone`, danach `trophyLanguage: "de-DE"`). Nebenbei behoben: Beim ersten PSN-Sync mit mehr als 40 Spielen wurden die übrigen Trophäen-Listen nie gelesen.
-- **Switch 1 nach dem 13.06.2025**: Marcel hat beide Konsolen benutzt. Der Video-Prompt fragt darum pro Spiel nach dem Gerät; ohne Antwort bleibt es «unbekannt».
+- **Gerät beim Import** (von Marcel bestätigt, 16.11.2026): vor dem 13.06.2025 Switch 1, ab dann nur noch Switch 2, für alle Spiele. Der Video-Prompt trägt das so ein; Minecraft ist entsprechend importiert.
 - **Geschätzte Balken**: hell nur noch, wenn mindestens die Hälfte der Zeit geschätzt ist (`SeriesPoint.estimatedMinutes`); der Tooltip nennt den geschätzten Anteil. Vorher machte ein einziger «Für kurze Zeit»-Tag ein ganzes Jahr hell.
 
 ## Sicherheits-Check und Polish (14.11.2026)
