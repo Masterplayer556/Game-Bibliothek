@@ -12,14 +12,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   // Covers and icons come from Steam, Sony, Nintendo and IGDB: do not tell them which page asked.
   referrer: "no-referrer",
+  // On the home screen it opens like an app: full screen, its own name and icon.
+  appleWebApp: { capable: true, title: "Bibliothek", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
   // Same values as --color-bg in src/styles/tokens.css; the theme switch updates them at runtime.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ebeaf3" },
-    { media: "(prefers-color-scheme: dark)", color: "#0c0c18" },
+    { media: "(prefers-color-scheme: light)", color: "#ebe8f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#09081a" },
   ],
+  // Lets the page reach under the notch and home indicator; the bars keep clear with safe-area padding.
+  viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
 };

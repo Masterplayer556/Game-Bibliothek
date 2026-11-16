@@ -9,14 +9,6 @@
 
   body {
     background-color: var(--color-bg);
-    /* Light from above, over a faint dot grid: squared paper by day, pixel grid by night. */
-    background-image:
-      radial-gradient(60rem 24rem at 50% -8rem, var(--color-glow), transparent),
-      radial-gradient(var(--color-texture) 1px, transparent 1.5px);
-    background-size:
-      100% 40rem,
-      16px 16px;
-    background-repeat: no-repeat, repeat;
     color: var(--color-text);
     font-family: var(--font-sans);
   }
@@ -247,8 +239,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 2.75rem;
-  padding: 0.35rem 1.6rem;
+  min-height: 3rem;
+  padding: 0.4rem 1.35rem;
   border-radius: 3px 5px 5px 3px;
   color: var(--color-cloth-ink);
   box-shadow:
@@ -279,7 +271,7 @@
   }
 
   &:hover {
-    transform: translateX(6px);
+    transform: translateX(4px);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -311,4 +303,79 @@
     );
     border-bottom-left-radius: 4px;
   }
+}
+
+/* ---------- App frame ---------- */
+
+/* Frosted glass, for the bars that float over the page. */
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-surface) 68%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid color-mix(in oklab, var(--color-text) 9%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-edge),
+    0 12px 32px -12px var(--color-shadow),
+    0 2px 6px -2px var(--color-shadow);
+}
+
+/*
+ * Behind the page: two soft glows (the colour of the current section and brass) over the dot
+ * grid. Fixed, so it stays put while the page scrolls.
+ */
+@utility app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-image:
+    radial-gradient(42rem 28rem at 12% -6rem, color-mix(in oklab, var(--section) var(--glow-strength), transparent), transparent 70%),
+    radial-gradient(34rem 24rem at 100% 10rem, color-mix(in oklab, var(--color-highlight-fill) 14%, transparent), transparent 70%),
+    radial-gradient(40rem 30rem at 60% 115%, color-mix(in oklab, var(--color-accent) 12%, transparent), transparent 70%),
+    radial-gradient(var(--color-texture) 1px, transparent 1.5px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    16px 16px;
+  transition: background-image 300ms ease;
+}
+
+/* An icon on a tile of the section colour, with a little shine on top. */
+@utility icon-tile {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-section);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, white 22%, transparent), transparent 55%),
+    var(--section, var(--color-accent));
+  box-shadow:
+    inset 0 -2px 0 color-mix(in oklab, black 18%, transparent),
+    0 6px 14px -6px color-mix(in oklab, var(--section, var(--color-accent)) 70%, transparent);
+}
+
+/* A card: white sheet with a bright top edge and a soft, slightly coloured shadow. */
+@utility sheet {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    inset 0 1px 0 var(--color-glass-edge),
+    0 1px 2px var(--color-shadow),
+    0 14px 30px -18px color-mix(in oklab, var(--section, var(--color-accent)) 40%, var(--color-shadow));
+}
+
+/* A tile that glows faintly in the section colour from its top right corner. */
+@utility glow-tile {
+  background-image: radial-gradient(14rem 9rem at 100% 0%, color-mix(in oklab, var(--section, var(--color-accent)) 16%, transparent), transparent 70%);
+}
+
+/* Room for the bottom bar and the phone's home indicator. */
+@utility pb-tabbar {
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
 }

@@ -54,7 +54,7 @@ export function ThemeToggle() {
   useEffect(() => applyTheme(), []);
 
   return (
-    <div role="group" aria-label="Design" className="flex shrink-0 gap-0.5 rounded-control border border-border bg-surface-raised p-0.5">
+    <div role="group" aria-label="Design" className="flex shrink-0 gap-0.5 rounded-full border border-border bg-surface-raised/80 p-0.5">
       {OPTIONS.map((o) => (
         <button
           key={o.id}
@@ -63,7 +63,7 @@ export function ThemeToggle() {
           aria-label={o.label}
           aria-pressed={choice === o.id}
           onClick={() => saveThemeChoice(o.id)}
-          className={`flex h-8 w-8 items-center justify-center rounded-[5px] ${
+          className={`flex h-7 w-7 items-center justify-center rounded-full ${
             choice === o.id ? "bg-accent text-on-accent" : "text-muted hover:text-text"
           }`}
         >

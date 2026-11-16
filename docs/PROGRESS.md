@@ -65,6 +65,15 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 - **Liste sortieren**: Spaltenköpfe Name, Zuletzt, Spielzeit.
 - **«Selten» einstellbar** auf der Seite Erfolge: höchstens 10, 5, 3, 2, 1 % oder unter 1 % der Spieler (Einstellung `rareLimit` in `app_settings`); dazu die Kachel «Seltene geschafft».
 
+**Fünfte Runde: wie eine App** (Wünsche von Marcel, 16.11.2026):
+
+- **App-Rahmen** (`src/components/AppShell.tsx`): oben eine Glasleiste mit Logo und Hell/Dunkel, darunter ein grosser Seitentitel mit Icon und Untertitel; unten eine schwebende Glasleiste (Vorbild: die Leiste unten in Apps wie Google Drive) mit Übersicht, Bibliothek, Statistiken, Erfolge und «Mehr» (Pile of Shame, Rückblick, Hinzufügen, Plattformen). Ab Tablet-Breite stehen alle acht direkt in der Leiste. Das Spiel-Detail hat «Zurück» statt eines Titels.
+- **Als App auf dem Home-Bildschirm**: `src/app/manifest.webmanifest`, `appleWebApp` in `layout.tsx`, `viewportFit: cover` mit Abständen für Notch und Home-Leiste.
+- **App-Icon** (`design/app-icon.svg`, daraus `src/app/icon.svg`, `src/app/apple-icon.png`, `public/icon-96/192/512.png`): Buch mit goldenem Steuerkreuz und Lesezeichen auf einem Messing-Regal neben zwei Buchrücken, Pixel-Sterne, Hintergrund Tintenblau bis Violett. Das Logo oben ist dasselbe Bild.
+- **Lebhaftere Themes**: kräftigere Bereichsfarben, ein farbiger Schein hinter der Seite in der Farbe des Bereichs (`app-backdrop`), Karten als weisse bzw. dunkle Blätter mit hellem Rand oben (`sheet`), Icons auf farbigen Kacheln (`icon-tile`), runde Schalter und grössere Rundungen.
+- **Pile of Shame**: Bücher über die ganze Breite, Titel mittig und bis zwei Zeilen; Spielzeit links, ⋯-Menü rechts («Spiel öffnen», «Vom Stapel nehmen») statt der grossen Knöpfe.
+- **Erfolge**: Karte «Deine seltensten Erfolge» (seltenster zuerst, mit %; gleiche Erfolge auf PC und PlayStation einmal), die Kachel «Seltene» springt dorthin. Kacheln auf dem Handy nicht mehr abgeschnitten.
+
 **Steam-Cover hochkant** (Wunsch Marcel, 16.11.2026): Der Steam-Adapter speichert jetzt `library_600x900.jpg` (das Cover aus der Steam-Bibliothek) statt des queren `header.jpg`. Bestehende Einträge bekommen es beim nächsten Sync. Fehlt das hochkante Bild (ältere oder kleine Spiele), zeigt die App automatisch wieder das quere (`steamCoverFallback` in `src/components/game-ui.tsx`). Spiele mit IGDB-Zuordnung zeigen weiterhin das IGDB-Cover, das ohnehin hochkant ist.
 
 ## Verlauf und Nintendo-Historie (16.11.2026)

@@ -58,61 +58,64 @@ export default function DashboardPage() {
             {featured ? (
               <section aria-label="Zuletzt gespielt" className="relative overflow-hidden rounded-card border border-border-strong bg-surface shadow-card">
                 <CoverBackdrop game={featured} />
-                <div className="relative flex gap-4 p-card sm:gap-6 sm:p-6">
-                  <Link href={gameHref(featured.id)} className="group w-28 shrink-0 self-start rounded-control sm:w-40">
-                    <GameCover
-                      game={featured}
-                      bookmark={featured.favorite}
-                      className="transition-transform duration-150 group-hover:-rotate-2 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:transform-none"
-                    />
-                  </Link>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <p className="text-[11px] font-medium uppercase tracking-widest text-muted">
-                      Zuletzt gespielt · <span title={formatDay(featured.lastPlayedAt)}>{relativeAge(featured.lastPlayedAt, now)}</span>
-                    </p>
-                    <h2 className="font-display text-2xl font-semibold leading-tight sm:text-3xl">
-                      <Link href={gameHref(featured.id)} className="rounded-control hover:text-accent">
-                        {featured.title}
-                      </Link>
-                    </h2>
-                    <div className="flex flex-wrap gap-1">
-                      {featured.platforms.map((p) => (
-                        <PlatformBadge key={p} platform={p} />
-                      ))}
-                    </div>
-                    <div className="mt-auto flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pt-2">
-                      <dl className="flex flex-wrap gap-x-6 gap-y-2">
-                        <div>
-                          <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">Spielzeit</dt>
-                          <dd className="num text-3xl leading-none">{formatHours(featured.totalMinutes)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">14 Tage</dt>
-                          <dd className="num text-3xl leading-none">{formatHours(fortnight.reduce((s, d) => s + d.minutes, 0))}</dd>
-                        </div>
-                        {featured.achievements ? (
-                          <div>
-                            <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">Erfolge</dt>
-                            <dd className="num text-3xl leading-none">
-                              {featured.achievements.unlocked}
-                              <span className="text-lg text-muted"> / {featured.achievements.total}</span>
-                            </dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex h-14 items-end gap-[3px]" role="img" aria-label={`Spielzeit von ${featured.title} in den letzten 14 Tagen`}>
-                          {fortnight.map((d) => (
-                            <span
-                              key={d.date}
-                              className={`w-2.5 rounded-t-[2px] sm:w-3.5 ${d.minutes > 0 ? "bg-section" : "bg-border-strong"}`}
-                              style={{ height: d.minutes > 0 ? `${Math.max(12, (d.minutes / fortnightMax) * 100)}%` : "2px" }}
-                              title={`${formatDay(d.date)}: ${d.minutes > 0 ? formatMinutes(d.minutes) : "nicht gespielt"}`}
-                            />
-                          ))}
-                        </div>
-                        <div className="text-[11px] text-muted">Letzte 14 Tage</div>
+                <div className="relative flex flex-col gap-4 p-card sm:p-6">
+                  <div className="flex gap-4 sm:gap-6">
+                    <Link href={gameHref(featured.id)} className="group w-24 shrink-0 self-start rounded-control sm:w-36">
+                      <GameCover
+                        game={featured}
+                        bookmark={featured.favorite}
+                        className="transition-transform duration-150 group-hover:-rotate-2 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:transform-none"
+                      />
+                    </Link>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">
+                        <span className="bg-section h-2 w-2 animate-pulse rounded-full motion-reduce:animate-none" aria-hidden />
+                        Zuletzt gespielt · <span title={formatDay(featured.lastPlayedAt)}>{relativeAge(featured.lastPlayedAt, now)}</span>
+                      </p>
+                      <h2 className="font-display text-2xl font-semibold leading-tight sm:text-4xl">
+                        <Link href={gameHref(featured.id)} className="rounded-control hover:text-accent">
+                          {featured.title}
+                        </Link>
+                      </h2>
+                      <div className="flex flex-wrap gap-1">
+                        {featured.platforms.map((p) => (
+                          <PlatformBadge key={p} platform={p} />
+                        ))}
                       </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 rounded-2xl border border-border bg-surface/60 p-3.5 backdrop-blur-sm">
+                    <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                      <div>
+                        <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted">Spielzeit</dt>
+                        <dd className="num text-3xl leading-none">{formatHours(featured.totalMinutes)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted">14 Tage</dt>
+                        <dd className="num text-3xl leading-none">{formatHours(fortnight.reduce((s, d) => s + d.minutes, 0))}</dd>
+                      </div>
+                      {featured.achievements ? (
+                        <div>
+                          <dt className="text-[11px] font-semibold uppercase tracking-wider text-muted">Erfolge</dt>
+                          <dd className="num text-3xl leading-none">
+                            {featured.achievements.unlocked}
+                            <span className="text-lg text-muted"> / {featured.achievements.total}</span>
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex h-12 items-end gap-[3px]" role="img" aria-label={`Spielzeit von ${featured.title} in den letzten 14 Tagen`}>
+                        {fortnight.map((d) => (
+                          <span
+                            key={d.date}
+                            className={`w-2.5 rounded-t-[2px] sm:w-3.5 ${d.minutes > 0 ? "bg-section" : "bg-border-strong"}`}
+                            style={{ height: d.minutes > 0 ? `${Math.max(12, (d.minutes / fortnightMax) * 100)}%` : "2px" }}
+                            title={`${formatDay(d.date)}: ${d.minutes > 0 ? formatMinutes(d.minutes) : "nicht gespielt"}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-[11px] text-muted">Letzte 14 Tage</div>
                     </div>
                   </div>
                 </div>
