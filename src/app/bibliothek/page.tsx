@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GameCard, GameListRow } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
+import { PixelIcon } from "@/components/PixelIcon";
 import { Card, fieldClass, Notice, Segmented } from "@/components/ui";
 import { DEVICE_LABEL, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { allGenres, filterLibrary, type LibraryFilter, type SortKey } from "@/core/library";
@@ -33,6 +34,8 @@ function SortHead({ label, sortKey, current, onSort }: { label: string; sortKey:
 export default function LibraryPage() {
   const [filter, setFilter] = useState<LibraryFilter>({ sort: "lastPlayed" });
   const set = (patch: Partial<LibraryFilter>) => setFilter((f) => ({ ...f, ...patch }));
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters = [filter.platform, filter.device, filter.genre, filter.status].filter(Boolean).length;
   // Shelf or list: remembered in this browser.
   const [view, setView] = useState<View>(() => {
     try {
@@ -59,15 +62,37 @@ export default function LibraryPage() {
         return (
           <>
             <section className="flex flex-col gap-stack" aria-label="Suche und Filter">
-              <input
-                type="search"
-                className={fieldClass}
-                placeholder="Spiel suchen …"
-                aria-label="Spiel suchen"
-                value={filter.search ?? ""}
-                onChange={(e) => set({ search: e.target.value })}
-              />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <div className="flex gap-2">
+                <input
+                  type="search"
+                  className={`${fieldClass} min-w-0 flex-1 rounded-full px-4`}
+                  placeholder="Spiel suchen …"
+                  aria-label="Spiel suchen"
+                  value={filter.search ?? ""}
+                  onChange={(e) => set({ search: e.target.value })}
+                />
+                <button
+                  type="button"
+                  aria-expanded={filtersOpen}
+                  aria-controls="filter"
+                  onClick={() => setFiltersOpen((o) => !o)}
+                  className={`flex shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium ${
+                    filtersOpen || activeFilters > 0 ? "bg-section border-transparent text-on-section" : "border-border-strong bg-field text-text"
+                  }`}
+                >
+                  <PixelIcon name="more" className="h-4 w-4" />
+                  Filter
+                  {activeFilters > 0 ? (
+                    <span className="num rounded-full bg-black/20 px-1.5 text-sm leading-tight">{activeFilters}</span>
+                  ) : null}
+                </button>
+              </div>
+              {/* The filters fold away so the shelf starts right below the search. */}
+              <div
+                id="filter"
+                hidden={!filtersOpen}
+                className="glass grid grid-cols-2 gap-2 rounded-card p-3 sm:grid-cols-5"
+              >
                 <select className={fieldClass} aria-label="Plattform" value={filter.platform ?? ""} onChange={(e) => set({ platform: e.target.value as PlatformId | "" })}>
                   <option value="">Alle Plattformen</option>
                   {PLATFORM_IDS.map((p) => (
@@ -99,6 +124,15 @@ export default function LibraryPage() {
                   <option value="name">Name</option>
                 </select>
               </div>
+              {filtersOpen && activeFilters > 0 ? (
+                <button
+                  type="button"
+                  className="link self-start text-sm"
+                  onClick={() => set({ platform: "", device: "", genre: "", status: "" })}
+                >
+                  Filter zurücksetzen
+                </button>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
                 <span className="flex items-center gap-3">
                   <span className="w-36">
