@@ -17,15 +17,21 @@ export default function AchievementsPage() {
         const platforms = achievementPlatforms(library.games);
         // A platform that disappeared (e.g. after a merge) falls back to «all».
         const active: AchievementFilter = filter === "all" || platforms.includes(filter) ? filter : "all";
-        const { rows, unlocked, total, games } = achievementSummary(library.games, active);
+        const { rows, unlocked, total, games } = achievementSummary(library.games, active, raw.achievements);
         const nintendoOnly = library.games.filter((g) => !g.hidden && g.platforms.every((p) => p === "nintendo")).length;
-        const rowByEntry = new Map(rows.map((r) => [r.entry.id, r] as const));
+        const shownEntries = new Map(
+          rows.flatMap((r) =>
+            r.game.entries
+              .filter((e) => r.platforms.includes(e.platform) && (active === "all" || e.id === r.key))
+              .map((e) => [e.id, { game: r.game, platform: e.platform }] as const),
+          ),
+        );
         const recent = raw.achievements
-          .filter((a) => a.unlocked_at && rowByEntry.has(a.platform_game_id))
+          .filter((a) => a.unlocked_at && shownEntries.has(a.platform_game_id))
           .sort((a, b) => (b.unlocked_at ?? "").localeCompare(a.unlocked_at ?? ""))
           .slice(0, 8);
         const options = [
-          { id: "all" as AchievementFilter, label: "Alle" },
+          { id: "all" as AchievementFilter, label: "Zusammen" },
           ...platforms.map((p) => ({ id: p as AchievementFilter, label: ACHIEVEMENT_PLATFORM_LABEL[p] ?? PLATFORM_LABEL[p] })),
         ];
 
@@ -34,11 +40,11 @@ export default function AchievementsPage() {
             {platforms.length > 1 ? (
               <section className="flex flex-col gap-1">
                 <Segmented label="Plattform" options={options} value={active} onChange={setFilter} />
-                {active === "all" ? (
-                  <span className="text-xs text-muted">
-                    PC und PlayStation zählen getrennt: Eine Trophäe schaltet den Steam-Erfolg nicht frei.
-                  </span>
-                ) : null}
+                <span className="text-xs text-muted">
+                  {active === "all"
+                    ? "Gleiche Erfolge auf PC und PlayStation zählen einmal und gelten als geschafft, wenn sie auf einer der beiden freigeschaltet sind."
+                    : "Nur diese Plattform: Eine Trophäe schaltet den Steam-Erfolg nicht frei und umgekehrt."}
+                </span>
               </section>
             ) : null}
 
@@ -54,14 +60,14 @@ export default function AchievementsPage() {
               <Card title="Zuletzt freigeschaltet">
                 <ul className="flex flex-col gap-2 text-sm">
                   {recent.map((a) => {
-                    const row = rowByEntry.get(a.platform_game_id)!;
+                    const row = shownEntries.get(a.platform_game_id)!;
                     return (
                       <li key={`${a.platform_game_id}-${a.external_id}`} className="flex justify-between gap-2">
                         <span className="min-w-0">
                           <span className="block truncate">{a.name}</span>
                           <span className="block truncate text-xs text-muted">
                             {row.game.title}
-                            {active === "all" ? ` · ${ACHIEVEMENT_PLATFORM_LABEL[row.entry.platform] ?? PLATFORM_LABEL[row.entry.platform]}` : ""}
+                            {active === "all" ? ` · ${ACHIEVEMENT_PLATFORM_LABEL[row.platform] ?? PLATFORM_LABEL[row.platform]}` : ""}
                           </span>
                         </span>
                         <span className="shrink-0 text-xs text-muted">{formatDay(a.unlocked_at)}</span>
@@ -77,8 +83,8 @@ export default function AchievementsPage() {
                 <Notice>Noch keine Erfolge erfasst. Sie kommen mit dem Sync von Steam und PlayStation.</Notice>
               ) : (
                 <ul className="flex flex-col gap-3">
-                  {rows.map(({ game, entry }) => (
-                    <li key={entry.id}>
+                  {rows.map(({ key, game, platforms: on, unlocked: done, total: of }) => (
+                    <li key={key}>
                       <Link href={gameHref(game.id)} className="flex items-center gap-3">
                         <GameCover game={game} className="w-10 shrink-0" />
                         <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -86,14 +92,14 @@ export default function AchievementsPage() {
                             <span className="truncate">
                               {game.title}
                               {active === "all" ? (
-                                <span className="text-muted"> · {ACHIEVEMENT_PLATFORM_LABEL[entry.platform] ?? PLATFORM_LABEL[entry.platform]}</span>
+                                <span className="text-muted"> · {on.map((p) => ACHIEVEMENT_PLATFORM_LABEL[p] ?? PLATFORM_LABEL[p]).join(" + ")}</span>
                               ) : null}
                             </span>
                             <span className="shrink-0 tabular-nums text-muted">
-                              {entry.achievements.unlocked}/{entry.achievements.total}
+                              {done}/{of}
                             </span>
                           </span>
-                          <ProgressBar value={entry.achievements.unlocked} max={entry.achievements.total} label={`Erfolge ${game.title}`} />
+                          <ProgressBar value={done} max={of} label={`Erfolge ${game.title}`} />
                         </span>
                       </Link>
                     </li>

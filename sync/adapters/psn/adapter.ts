@@ -25,6 +25,12 @@ export const NPSSO_KIND = "npsso";
 export const REFRESH_TOKEN_KIND = "refresh_token";
 /** Trophy lists are read for at most this many games per run. */
 export const MAX_TROPHY_GAMES_PER_RUN = 40;
+/**
+ * Language of trophy names. German like the console and like the Steam achievements, so the
+ * same achievement on PC and PS5 has the same name. Changing it re-reads every list, in
+ * portions of MAX_TROPHY_GAMES_PER_RUN.
+ */
+export const TROPHY_LANGUAGE = "de-DE";
 
 const NEW_NPSSO = "Neue NPSSO nötig: Die PlayStation-Anmeldung ist abgelaufen oder ungültig.";
 
@@ -36,6 +42,9 @@ export function parseDuration(value: string | null | undefined): number {
   const [, d = "0", h = "0", m = "0", s = "0"] = match;
   return Math.round(Number(d) * 1440 + Number(h) * 60 + Number(m) + Number(s) / 60);
 }
+
+const stringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 
 const sum = (c: TrophyCounts) => c.bronze + c.silver + c.gold + c.platinum;
 
@@ -126,20 +135,33 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
         warnings.push("Gekaufte Spiele nicht lesbar");
       }
 
-      // Trophies: only for games whose playtime changed (all of them on the first run).
-      const firstRun = ctx.previousGames.size === 0;
-      const due = played
-        .filter((g) => parseDuration(g.playDuration) > 0 || g.lastPlayedDateTime)
-        .filter((g) => firstRun || ctx.previousGames.get(g.titleId)?.totalPlaytimeMinutes !== parseDuration(g.playDuration))
-        .sort((a, b) => (b.lastPlayedDateTime ?? "").localeCompare(a.lastPlayedDateTime ?? ""));
+      // Trophies: for games whose playtime changed, and for every game whose list has not been
+      // read in TROPHY_LANGUAGE yet (all of them on the first run). The second group is worked
+      // off over several runs; the ids done so far are kept in the connection details.
+      const byLastPlayed = (a: { lastPlayedDateTime: string | null }, b: { lastPlayedDateTime: string | null }) =>
+        (b.lastPlayedDateTime ?? "").localeCompare(a.lastPlayedDateTime ?? "");
+      const candidates = played.filter((g) => parseDuration(g.playDuration) > 0 || g.lastPlayedDateTime);
+      const languageReady = ctx.previousDetails.trophyLanguage === TROPHY_LANGUAGE;
+      const doneBefore = new Set(languageReady ? [] : stringList(ctx.previousDetails.trophyLanguageDone));
+      const changed = candidates
+        .filter((g) => ctx.previousGames.get(g.titleId)?.totalPlaytimeMinutes !== parseDuration(g.playDuration))
+        .sort(byLastPlayed);
+      const changedIds = new Set(changed.map((g) => g.titleId));
+      const pending = languageReady
+        ? []
+        : candidates.filter((g) => !doneBefore.has(g.titleId) && !changedIds.has(g.titleId)).sort(byLastPlayed);
+      const due = [...changed, ...pending];
       const now = due.slice(0, MAX_TROPHY_GAMES_PER_RUN);
       if (due.length > now.length) warnings.push(`Trophäen von ${due.length - now.length} Spielen folgen beim nächsten Sync`);
+      const doneNow = new Set(doneBefore);
 
       const progress = new Map<string, { unlocked: number; total: number } | null>();
       if (now.length > 0) {
         let sets = new Map<string, TrophySet>();
+        let setsRead = false;
         try {
           sets = await client.trophySets(token, now.map((g) => g.titleId));
+          setsRead = true;
         } catch {
           warnings.push("Trophäen nicht lesbar");
         }
@@ -149,14 +171,20 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
           const set = sets.get(game.titleId);
           if (!set) {
             if (sets.size > 0) progress.set(game.titleId, null);
+            if (setsRead) doneNow.add(game.titleId); // no trophies: nothing to translate
             continue;
           }
           progress.set(game.titleId, { unlocked: sum(set.earned), total: sum(set.defined) });
           // PS4 and PS5 versions can share one trophy list: read it once.
-          if (seen.has(set.npCommunicationId)) continue;
+          if (seen.has(set.npCommunicationId)) {
+            doneNow.add(game.titleId);
+            continue;
+          }
           seen.add(set.npCommunicationId);
           try {
-            for (const t of await client.trophies(token, set)) {
+            const trophies = await client.trophies(token, set, TROPHY_LANGUAGE);
+            doneNow.add(game.titleId);
+            for (const t of trophies) {
               batch.achievements.push({
                 gameExternalId: game.titleId,
                 externalId: `${set.npCommunicationId}:${t.trophyId}`,
@@ -223,7 +251,14 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
         tokenExpiresAt: expiry(ctx, session.tokens),
         dataSince: toLocalDate(ctx.now),
         warnings,
-        details: { played: played.length, purchased: purchased?.length ?? null },
+        details: {
+          played: played.length,
+          purchased: purchased?.length ?? null,
+          // Every list is in TROPHY_LANGUAGE once all candidates are done.
+          ...(languageReady || candidates.every((g) => doneNow.has(g.titleId))
+            ? { trophyLanguage: TROPHY_LANGUAGE }
+            : { trophyLanguageDone: [...doneNow] }),
+        },
       };
     },
   };

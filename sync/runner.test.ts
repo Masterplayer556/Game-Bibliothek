@@ -50,6 +50,9 @@ class FakeStore implements SyncStore {
   async getPreviousGames() {
     return new Map();
   }
+  async getConnectionDetails() {
+    return {};
+  }
   async saveBatch(batch: SyncBatch) {
     this.order.push("batch");
     if (this.failOnSave) throw new Error("database down");

@@ -48,9 +48,13 @@ Regeln:
 - Spiel: der Titel genau wie im Kopf des Videos.
 - Datum: TT.MM.JJJJ.
 - Dauer: genau wie in der App («1 Std. 15 Min.», «45 Min.», «3 Std. 0 Min.», «Für kurze Zeit»).
-- Gerät: vor dem 13.06.2025 «Switch 1», ab dem 13.06.2025 «Switch 2». Wenn ich für ein Spiel etwas anderes sage, gilt das.
+- Gerät: vor dem 13.06.2025 immer «Switch 1» (die Switch 2 kam erst dann). Ab dem 13.06.2025 habe ich beide Konsolen benutzt: Frag mich pro Spiel einmal, ob es ab dann auf der Switch 1, der Switch 2 oder gemischt lief. Bei «Switch 1» oder «Switch 2» trägst du das ein; bei «gemischt» oder wenn ich es nicht weiss, lässt du das Feld leer (die App zeigt es dann als «Switch (unbekannt)»). Habe ich es schon beim Hochladen gesagt, frag nicht nach.
 - Keine Kommentarzeilen, keine leeren Zeilen, keine Anführungszeichen.
 - Dateiname: der Spieltitel in Kleinbuchstaben mit Bindestrichen, ohne Sonderzeichen, plus «-historie.csv», z. B. «minecraft-for-nintendo-switch-historie.csv».
+
+## Reihenfolge
+
+Hat ein Spiel Tage ab dem 13.06.2025 und weisst du das Gerät noch nicht, stell zuerst die Frage zum Gerät und erstelle die Datei erst nach meiner Antwort. Alles andere (Bilder ziehen, lesen, prüfen) kannst du vorher erledigen.
 
 ## Rückmeldung
 

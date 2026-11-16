@@ -69,7 +69,8 @@ export interface PsnClient {
   purchasedGames(accessToken: string): Promise<PurchasedTitle[]>;
   /** Trophy set of each title the account has trophies for, keyed by titleId. */
   trophySets(accessToken: string, titleIds: readonly string[]): Promise<Map<string, TrophySet>>;
-  trophies(accessToken: string, set: TrophySet): Promise<TrophyDetails[]>;
+  /** `language` e.g. «de-DE»: names and descriptions in that language where Sony has them. */
+  trophies(accessToken: string, set: TrophySet, language?: string): Promise<TrophyDetails[]>;
 }
 
 const auth = (accessToken: string) => ({ accessToken });
@@ -146,10 +147,13 @@ export const psnApiClient: PsnClient = {
     return out;
   },
 
-  async trophies(accessToken, set) {
+  async trophies(accessToken, set, language) {
     const options = { npServiceName: set.npServiceName };
     const [titles, earned] = await Promise.all([
-      getTitleTrophies(auth(accessToken), set.npCommunicationId, "all", options),
+      getTitleTrophies(auth(accessToken), set.npCommunicationId, "all", {
+        ...options,
+        ...(language ? { headerOverrides: { "Accept-Language": language } } : {}),
+      }),
       getUserTrophiesEarnedForTitle(auth(accessToken), "me", set.npCommunicationId, "all", options),
     ]);
     const earnedById = new Map((earned.trophies ?? []).map((t) => [t.trophyId, t]));

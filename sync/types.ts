@@ -36,6 +36,8 @@ export interface AdapterContext {
   env: Readonly<Record<string, string | undefined>>;
   /** State after the last run, by external id. Lets an adapter skip unchanged games. */
   previousGames: ReadonlyMap<string, PreviousGameState>;
+  /** `details` this adapter stored after its last run (empty on the first run and in tests). */
+  previousDetails: Readonly<Record<string, unknown>>;
   now: Date;
   log: Logger;
   fetch: typeof fetch;
@@ -94,6 +96,7 @@ export interface SyncStore {
   getCredentials(adapterId: string): Promise<Record<string, string>>;
   saveCredentials(adapterId: string, updates: readonly CredentialUpdate[]): Promise<void>;
   getPreviousGames(adapter: AdapterInfo): Promise<Map<string, PreviousGameState>>;
+  getConnectionDetails(adapterId: string): Promise<Record<string, unknown>>;
   saveBatch(batch: SyncBatch, now: Date): Promise<PersistSummary>;
   setConnection(adapter: AdapterInfo, patch: ConnectionPatch): Promise<void>;
 }

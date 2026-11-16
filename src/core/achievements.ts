@@ -1,48 +1,173 @@
-// Achievements per platform. Steam achievements and PlayStation trophies are separate lists:
-// a trophy never unlocks the Steam achievement of the same game, and the other way round.
-import type { LibraryGame, PlatformEntry } from "./library";
+// Achievements per platform, and the same achievement on PC and PlayStation joined.
+//
+// Steam achievements and PlayStation trophies are separate lists: a trophy never unlocks the
+// Steam achievement. For «Zusammen» the two lists of one game are joined by name (both are
+// read in German): an achievement counts as unlocked if it is unlocked on either platform.
+// Achievements without a twin (e.g. the platinum trophy) stay on their own.
+import type { AchievementRow as RawAchievement, LibraryGame, PlatformEntry } from "./library";
 import type { PlatformId } from "./types";
 
-/** «all» = every platform, each counted on its own. */
+/** «all» = PC and PlayStation joined. */
 export type AchievementFilter = "all" | PlatformId;
 
-export interface AchievementRow {
+export interface MergedAchievement {
+  key: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  /** Platforms that have this achievement. */
+  platforms: PlatformId[];
+  /** Platforms on which it is unlocked. */
+  unlockedOn: PlatformId[];
+  /** Earliest unlock on any platform. */
+  unlockedAt: string | null;
+  /** Lowest share of players (rarest platform), if known. */
+  rarityPercent: number | null;
+}
+
+export interface ProgressRow {
+  key: string;
   game: LibraryGame;
-  entry: PlatformEntry & { achievements: { unlocked: number; total: number } };
+  platforms: PlatformId[];
+  unlocked: number;
+  total: number;
 }
 
 export interface AchievementSummary {
-  rows: AchievementRow[];
+  rows: ProgressRow[];
   unlocked: number;
   total: number;
-  /** Games with at least one row (a game on PC and PS counts once). */
+  /** Games with at least one row. */
   games: number;
 }
 
-const hasAchievements = (e: PlatformEntry): e is AchievementRow["entry"] => !!e.achievements && e.achievements.total > 0;
+type EntryWithAchievements = PlatformEntry & { achievements: { unlocked: number; total: number } };
+const hasAchievements = (e: PlatformEntry): e is EntryWithAchievements => !!e.achievements && e.achievements.total > 0;
 
-/** Platforms that have achievements in the library, in a fixed order. */
-export function achievementPlatforms(games: readonly LibraryGame[]): PlatformId[] {
-  const found = new Set(games.flatMap((g) => g.entries.filter(hasAchievements).map((e) => e.platform)));
-  return (["steam", "psn"] as PlatformId[]).filter((p) => found.has(p)).concat([...found].filter((p) => p !== "steam" && p !== "psn"));
+/** Lower case letters and digits only: «KENNE DEINEN PARTNER» = «Kenne deinen Partner!». */
+export function achievementKey(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
-/** Rows sorted by share unlocked, best first. Hidden entries («Kein Spiel») are left out. */
-export function achievementSummary(games: readonly LibraryGame[], filter: AchievementFilter): AchievementSummary {
-  const rows: AchievementRow[] = games
-    .filter((g) => !g.hidden)
-    .flatMap((g) =>
-      g.entries.filter(hasAchievements).filter((e) => filter === "all" || e.platform === filter).map((entry) => ({ game: g, entry })),
-    )
-    .sort(
-      (a, b) =>
-        b.entry.achievements.unlocked / b.entry.achievements.total - a.entry.achievements.unlocked / a.entry.achievements.total ||
-        a.game.title.localeCompare(b.game.title, "de"),
-    );
+/**
+ * Joins the achievements of several platform entries of one game by name. Within one
+ * platform nothing is joined, even if two achievements share a name.
+ */
+export function mergeAchievements(
+  rows: readonly RawAchievement[],
+  platformOf: ReadonlyMap<string, PlatformId>,
+): MergedAchievement[] {
+  const groups: (MergedAchievement & { byPlatform: Set<PlatformId> })[] = [];
+  const open = new Map<string, (typeof groups)[number][]>();
+  for (const row of rows) {
+    const platform = platformOf.get(row.platform_game_id);
+    if (!platform) continue;
+    const key = achievementKey(row.name) || `${row.platform_game_id}:${row.external_id}`;
+    const candidates = open.get(key) ?? [];
+    let group = candidates.find((g) => !g.byPlatform.has(platform));
+    if (!group) {
+      group = {
+        key: `${key}#${candidates.length}`,
+        name: row.name,
+        description: row.description,
+        iconUrl: row.icon_url,
+        platforms: [],
+        unlockedOn: [],
+        unlockedAt: null,
+        rarityPercent: null,
+        byPlatform: new Set(),
+      };
+      candidates.push(group);
+      open.set(key, candidates);
+      groups.push(group);
+    }
+    group.byPlatform.add(platform);
+    group.platforms.push(platform);
+    group.description ??= row.description;
+    group.iconUrl ??= row.icon_url;
+    if (row.unlocked_at) {
+      group.unlockedOn.push(platform);
+      if (!group.unlockedAt || row.unlocked_at < group.unlockedAt) group.unlockedAt = row.unlocked_at;
+    }
+    if (row.rarity_percent != null) {
+      group.rarityPercent = group.rarityPercent == null ? row.rarity_percent : Math.min(group.rarityPercent, row.rarity_percent);
+    }
+  }
+  return groups.map((g) => ({
+    key: g.key,
+    name: g.name,
+    description: g.description,
+    iconUrl: g.iconUrl,
+    platforms: g.platforms,
+    unlockedOn: g.unlockedOn,
+    unlockedAt: g.unlockedAt,
+    rarityPercent: g.rarityPercent,
+  }));
+}
+
+/** Platforms that have achievements in the library, PC first. */
+export function achievementPlatforms(games: readonly LibraryGame[]): PlatformId[] {
+  const found = new Set(games.flatMap((g) => g.entries.filter(hasAchievements).map((e) => e.platform)));
+  const order: PlatformId[] = ["steam", "psn"];
+  return [...order.filter((p) => found.has(p)), ...[...found].filter((p) => !order.includes(p))];
+}
+
+/**
+ * Progress rows, best share first. One row per platform entry for a single platform; for
+ * «all» one row per game, with PC and PlayStation joined where the achievement list is known.
+ * Entries marked «Kein Spiel» are left out.
+ */
+export function achievementSummary(
+  games: readonly LibraryGame[],
+  filter: AchievementFilter,
+  achievements: readonly RawAchievement[] = [],
+): AchievementSummary {
+  const byEntry = new Map<string, RawAchievement[]>();
+  for (const a of achievements) {
+    const list = byEntry.get(a.platform_game_id) ?? [];
+    list.push(a);
+    byEntry.set(a.platform_game_id, list);
+  }
+
+  const rows: ProgressRow[] = [];
+  for (const game of games) {
+    if (game.hidden) continue;
+    const entries = game.entries.filter(hasAchievements);
+    if (filter !== "all") {
+      for (const e of entries.filter((x) => x.platform === filter)) {
+        rows.push({ key: e.id, game, platforms: [e.platform], ...e.achievements });
+      }
+      continue;
+    }
+    if (entries.length === 0) continue;
+    const platforms = [...new Set(entries.map((e) => e.platform))];
+    // Join only when every list is stored completely; otherwise add up the counts.
+    const complete = entries.length > 1 && entries.every((e) => (byEntry.get(e.id)?.length ?? 0) === e.achievements.total);
+    if (complete) {
+      const merged = mergeAchievements(
+        entries.flatMap((e) => byEntry.get(e.id)!),
+        new Map(entries.map((e) => [e.id, e.platform] as const)),
+      );
+      rows.push({ key: game.id, game, platforms, unlocked: merged.filter((m) => m.unlockedOn.length > 0).length, total: merged.length });
+    } else {
+      rows.push({
+        key: game.id,
+        game,
+        platforms,
+        unlocked: entries.reduce((s, e) => s + e.achievements.unlocked, 0),
+        total: entries.reduce((s, e) => s + e.achievements.total, 0),
+      });
+    }
+  }
+  rows.sort((a, b) => b.unlocked / b.total - a.unlocked / a.total || a.game.title.localeCompare(b.game.title, "de"));
   return {
     rows,
-    unlocked: rows.reduce((s, r) => s + r.entry.achievements.unlocked, 0),
-    total: rows.reduce((s, r) => s + r.entry.achievements.total, 0),
+    unlocked: rows.reduce((s, r) => s + r.unlocked, 0),
+    total: rows.reduce((s, r) => s + r.total, 0),
     games: new Set(rows.map((r) => r.game.id)).size,
   };
 }

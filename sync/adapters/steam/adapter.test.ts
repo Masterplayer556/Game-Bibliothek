@@ -39,6 +39,7 @@ function context(fetchFn: typeof fetch, over: Partial<AdapterContext> = {}): Ada
     credentials: {},
     env: { STEAM_API_KEY: KEY, STEAM_ID },
     previousGames: new Map(),
+    previousDetails: {},
     now: new Date("2026-11-11T12:00:00Z"),
     log: { info: () => undefined, warn: () => undefined },
     fetch: fetchFn,

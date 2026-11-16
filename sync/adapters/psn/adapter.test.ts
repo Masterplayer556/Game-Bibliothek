@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AdapterError, type AdapterContext, type PreviousGameState } from "../../types";
-import { authenticate, createPsnAdapter, NPSSO_KIND, parseDuration, REFRESH_TOKEN_KIND } from "./adapter";
+import { authenticate, createPsnAdapter, NPSSO_KIND, parseDuration, REFRESH_TOKEN_KIND, TROPHY_LANGUAGE } from "./adapter";
 import type { PlayedTitle, PsnClient, PurchasedTitle, TrophyDetails, TrophySet } from "./client";
 
 const fixture = <T>(name: string): T => JSON.parse(readFileSync(join(__dirname, "fixtures", `${name}.json`), "utf8")) as T;
@@ -46,8 +46,8 @@ function fakeClient(over: Partial<PsnClient> = {}): Fake {
       if (titleIds.includes("CUSA05678_00")) map.set("CUSA05678_00", HK_SET);
       return map;
     },
-    async trophies(_token, set) {
-      calls.push(`trophies:${set.npCommunicationId}`);
+    async trophies(_token, set, language) {
+      calls.push(`trophies:${set.npCommunicationId}:${language ?? "-"}`);
       return fixture<TrophyDetails[]>("trophies-hk");
     },
     ...over,
@@ -60,6 +60,7 @@ function context(credentials: Record<string, string>, over: Partial<AdapterConte
     credentials,
     env: {},
     previousGames: new Map(),
+    previousDetails: {},
     now: new Date("2026-11-13T12:00:00Z"),
     log: { info: () => undefined, warn: () => undefined },
     fetch,
@@ -191,10 +192,52 @@ describe("psnAdapter.sync", () => {
       ["CUSA05678_00", { totalPlaytimeMinutes: 5000, lastPlayedAt: null }],
       ["PPSA09999_00", { totalPlaytimeMinutes: 20, lastPlayedAt: null }],
     ]);
-    const { batch } = await createPsnAdapter(client).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }, { previousGames }));
+    const previousDetails = { trophyLanguage: TROPHY_LANGUAGE };
+    const { batch } = await createPsnAdapter(client).sync(
+      context({ [REFRESH_TOKEN_KIND]: "refresh-0" }, { previousGames, previousDetails }),
+    );
     expect(client.calls.filter((c) => c.startsWith("sets:"))).toEqual(["sets:CUSA05678_00"]);
     const silksong = batch.games.find((g) => g.externalId === "PPSA01234_00")!;
     expect([silksong.achievementsUnlocked, silksong.achievementsTotal]).toEqual([undefined, undefined]);
+  });
+
+  it("reads trophy names in German", async () => {
+    const client = fakeClient();
+    const result = await createPsnAdapter(client).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }));
+    expect(client.calls.filter((c) => c.startsWith("trophies:"))).toEqual([`trophies:NPWR11111_00:${TROPHY_LANGUAGE}`]);
+    expect(result.details).toMatchObject({ trophyLanguage: TROPHY_LANGUAGE });
+  });
+
+  it("re-reads lists from before the language switch, a portion per run, until all are done", async () => {
+    const previousGames = new Map<string, PreviousGameState>([
+      ["PPSA01234_00", { totalPlaytimeMinutes: 2158, lastPlayedAt: null }],
+      ["CUSA05678_00", { totalPlaytimeMinutes: 5400, lastPlayedAt: null }],
+      ["PPSA09999_00", { totalPlaytimeMinutes: 20, lastPlayedAt: null }],
+    ]);
+    // nothing changed, no language yet: every game is due
+    const first = fakeClient();
+    const one = await createPsnAdapter(first).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }, { previousGames }));
+    expect(first.calls.filter((c) => c.startsWith("sets:"))).toEqual(["sets:PPSA01234_00,CUSA05678_00,PPSA09999_00"]);
+    expect(one.details).toMatchObject({ trophyLanguage: TROPHY_LANGUAGE });
+
+    // half done before: only the rest is read, and the language is complete afterwards
+    const second = fakeClient();
+    const two = await createPsnAdapter(second).sync(
+      context({ [REFRESH_TOKEN_KIND]: "refresh-0" }, { previousGames, previousDetails: { trophyLanguageDone: ["PPSA01234_00", "PPSA09999_00"] } }),
+    );
+    expect(second.calls.filter((c) => c.startsWith("sets:"))).toEqual(["sets:CUSA05678_00"]);
+    expect(two.details).toMatchObject({ trophyLanguage: TROPHY_LANGUAGE });
+    expect(two.details).not.toHaveProperty("trophyLanguageDone");
+  });
+
+  it("does not count a list as done when it could not be read", async () => {
+    const client = fakeClient({
+      trophies: async () => {
+        throw new Error("503");
+      },
+    });
+    const result = await createPsnAdapter(client).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }));
+    expect(result.details).toMatchObject({ trophyLanguageDone: ["PPSA01234_00", "PPSA09999_00"] });
   });
 
   it("keeps the rotated token even when the trophy calls fail", async () => {
