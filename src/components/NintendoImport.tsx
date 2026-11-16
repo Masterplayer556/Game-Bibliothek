@@ -6,6 +6,7 @@ import { toLocalDate } from "@/core/time";
 import { importHistory } from "@/lib/nintendo";
 import { getSupabase } from "@/lib/supabase";
 import { Button, Card, Notice } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 const TEMPLATE_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/vorlagen/nintendo-import-vorlage.csv`;
 
@@ -33,7 +34,7 @@ export function NintendoImport({ userId, onDone }: { userId: string; onDone: () 
       setParsed(null);
       onDone();
     } catch (e) {
-      setMessage({ tone: "danger", text: e instanceof Error ? e.message : "Unbekannter Fehler" });
+      setMessage({ tone: "danger", text: errorMessage(e) });
     }
     setBusy(false);
   }

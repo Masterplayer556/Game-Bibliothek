@@ -5,6 +5,7 @@ import type { IgdbGame } from "@/core/igdb/client";
 import { searchIgdb } from "@/lib/igdb";
 import { getSupabase } from "@/lib/supabase";
 import { Button, fieldClass, Notice } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 /** Search field with IGDB results; calls onPick with the chosen entry. */
 export function IgdbPicker({
@@ -30,7 +31,7 @@ export function IgdbPicker({
     try {
       setResults(await searchIgdb(getSupabase(), query));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
     setSearching(false);
   }

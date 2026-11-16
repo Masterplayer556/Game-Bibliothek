@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Game Bibliothek",
   description: "Meine Spiele von Steam, PlayStation und Nintendo an einem Ort.",
   robots: { index: false, follow: false },
+  // Covers and icons come from Steam, Sony, Nintendo and IGDB: do not tell them which page asked.
+  referrer: "no-referrer",
 };
 
 export const viewport: Viewport = {

@@ -1,5 +1,5 @@
 // Checks the LIVE project from the outside, the way a stranger's browser would:
-// with the public key and without login, nothing may be readable or writable.
+// with the public key and without login, nothing may be readable, writable or callable.
 //
 //   npm run check:rls
 import { createClient } from "@supabase/supabase-js";
@@ -20,6 +20,8 @@ const TABLES = [
   "app_settings",
   "metadata_cache",
 ];
+
+const FUNCTIONS = ["nintendo-login", "save-credential", "igdb-search", "trigger-sync"];
 
 async function main(): Promise<void> {
   loadLocalEnv();
@@ -71,11 +73,42 @@ async function main(): Promise<void> {
     console.log("ok      delete_demo_data()      denied without login");
   }
 
+  // The helper that answers «is this e-mail allowed?» must not be usable to probe addresses.
+  const probeEmail = await anon.rpc("is_allowed_email", { candidate: "someone@example.com" });
+  if (!probeEmail.error) {
+    problems++;
+    console.log("PROBLEM is_allowed_email() can be called without login");
+  } else {
+    console.log("ok      is_allowed_email()      denied without login");
+  }
+
+  // Edge Functions check the login themselves: without one they must answer 401.
+  for (const name of FUNCTIONS) {
+    let status: number;
+    try {
+      const response = await fetch(`${url}/functions/v1/${name}`, {
+        method: "POST",
+        headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: "{}",
+      });
+      status = response.status;
+    } catch {
+      status = 0;
+    }
+    // 404 = not deployed (yet): nothing is reachable, so that is fine too.
+    const fine = status === 401 || status === 404;
+    if (!fine) problems++;
+    console.log(
+      `${(fine ? "ok" : "PROBLEM").padEnd(8)}${`fn ${name}`.padEnd(24)}` +
+        (status === 401 ? "denied without login" : status === 404 ? "not deployed" : `UNEXPECTED answer (status ${status})`),
+    );
+  }
+
   if (problems > 0) {
-    console.error(`${problems} problem(s): not every table is clearly locked without login.`);
+    console.error(`${problems} problem(s): not everything is clearly locked without login.`);
     process.exit(1);
   }
-  console.log("All tables are locked without login.");
+  console.log("Everything is locked without login.");
 }
 
 main().catch((error) => {

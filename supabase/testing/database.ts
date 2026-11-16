@@ -43,7 +43,7 @@ export async function createTestDatabase(): Promise<PGlite> {
   return db;
 }
 
-type Filter = { column: string; op: "eq" | "in"; value: unknown };
+type Filter = { column: string; op: "eq" | "in" | "lt"; value: unknown };
 type Result = { data: unknown; error: { message: string; code?: string } | null; count?: number | null };
 
 function encode(value: unknown): unknown {
@@ -111,6 +111,10 @@ class Query implements PromiseLike<Result> {
     this.filters.push({ column, op: "in", value });
     return this;
   }
+  lt(column: string, value: unknown) {
+    this.filters.push({ column, op: "lt", value });
+    return this;
+  }
   order(column: string) {
     this.orderBy = column;
     return this;
@@ -132,7 +136,9 @@ class Query implements PromiseLike<Result> {
     if (this.filters.length === 0) return "";
     const parts = this.filters.map((f) => {
       params.push(f.value);
-      return f.op === "eq" ? `${f.column} = $${params.length}` : `${f.column}::text = any($${params.length}::text[])`;
+      if (f.op === "eq") return `${f.column} = $${params.length}`;
+      if (f.op === "lt") return `${f.column} < $${params.length}`;
+      return `${f.column}::text = any($${params.length}::text[])`;
     });
     return ` where ${parts.join(" and ")}`;
   }
@@ -177,6 +183,7 @@ class Query implements PromiseLike<Result> {
       if (this.returning) sql += ` returning ${this.returning}`;
     } else {
       sql = `delete from ${table}${this.where(params)}`;
+      if (this.returning) sql += ` returning ${this.returning}`;
     }
 
     const result = await this.db.query<Record<string, unknown>>(sql, params);

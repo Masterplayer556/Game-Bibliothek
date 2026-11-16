@@ -21,7 +21,6 @@ function fakeAdapter(id: string, over: Partial<PlatformAdapter> = {}): PlatformA
     credentialSource: "env",
     requiredEnv: [],
     guide: "x.md",
-    availableFromPhase: 1,
     isConfigured: async () => true,
     testConnection: async () => ({ ok: true, message: "Verbindung ok" }),
     sync: async () => ({ batch: emptyBatch("steam", id) }),

@@ -8,14 +8,20 @@
 import { parseArgs } from "node:util";
 import { consoleLogger, loadLocalEnv } from "./env";
 import { markKnownApps } from "./mark-apps";
-import { enrichMetadata, setMetadataStatus } from "./metadata/enrich";
+import { runMetadataProviders } from "./metadata/run";
 import { adapters, metadataProviders } from "./registry";
 import { overallStatus, runAdapters } from "./runner";
 import { createServiceClient, resolveUserId, SupabaseSyncStore } from "./store";
 import type { RunMode } from "./types";
 
-async function main(): Promise<void> {
-  loadLocalEnv();
+// The options come from workflow inputs. Their shape is checked before they are used or
+// echoed into the (public) log.
+const ADAPTER_ID = /^[a-z0-9-]{1,40}$/;
+const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const TRIGGERS = ["schedule", "manual", "local"] as const;
+type Trigger = (typeof TRIGGERS)[number];
+
+function readOptions(): { mode: RunMode; trigger: Trigger; only?: string; runId?: string } {
   const { values } = parseArgs({
     options: {
       adapter: { type: "string" },
@@ -24,22 +30,25 @@ async function main(): Promise<void> {
       trigger: { type: "string", default: "local" },
     },
   });
-  const mode = values.mode as RunMode;
+  const mode = values.mode;
   if (mode !== "sync" && mode !== "test") throw new Error("--mode must be sync or test");
-  const trigger = values.trigger as "schedule" | "manual" | "local";
-  if (!["schedule", "manual", "local"].includes(trigger)) throw new Error("Invalid --trigger");
+  const trigger = TRIGGERS.find((t) => t === values.trigger);
+  if (!trigger) throw new Error("--trigger must be schedule, manual or local");
   const only = values.adapter || undefined;
+  if (only && !ADAPTER_ID.test(only)) throw new Error("--adapter is not a valid adapter id");
+  const runId = values["run-id"] || undefined;
+  if (runId && !UUID.test(runId)) throw new Error("--run-id is not a valid id");
+  return { mode, trigger, only, runId };
+}
+
+async function main(): Promise<void> {
+  loadLocalEnv();
+  const { mode, trigger, only, runId: givenRunId } = readOptions();
 
   const db = createServiceClient(process.env);
   const userId = await resolveUserId(db, process.env);
   const store = new SupabaseSyncStore(db, userId, process.env.CREDENTIALS_ENCRYPTION_KEY);
-
-  const runId = await store.startRun({
-    runId: values["run-id"] || undefined,
-    mode,
-    adapterId: only,
-    trigger,
-  });
+  const runId = await store.startRun({ runId: givenRunId, mode, adapterId: only, trigger });
 
   console.log(`Sync run started (mode: ${mode}, adapters: ${only ?? "all"})`);
   try {
@@ -59,43 +68,24 @@ async function main(): Promise<void> {
     }
 
     // Metadata (IGDB) after the platforms, so new games get cover and genres right away.
-    for (const provider of metadataProviders) {
-      if (only && only !== provider.id && mode === "test") continue;
-      const now = new Date();
-      if (!provider.isConfigured(process.env)) {
-        await setMetadataStatus(db, userId, provider, {
-          status: "not_connected",
-          configured: false,
-          details: { missingEnv: provider.requiredEnv.filter((n) => !process.env[n]) },
-        }, now);
-        continue;
-      }
-      try {
-        if (mode === "test") {
-          const test = await provider.testConnection(process.env, fetch);
-          await setMetadataStatus(db, userId, provider, {
-            status: test.ok ? "ok" : "error",
-            configured: true,
-            error: test.ok ? null : test.message,
-            details: { lastTestMessage: test.message },
-            success: test.ok,
-          }, now);
-          results.push({ adapterId: provider.id, outcome: test.ok ? "ok" : "error", message: test.message });
-        } else {
-          const summary = await enrichMetadata({ db, userId, provider, env: process.env, fetch, now, log: consoleLogger });
-          await setMetadataStatus(db, userId, provider, { status: "ok", configured: true, details: { ...summary }, success: true }, now);
-          results.push({ adapterId: provider.id, outcome: "ok" });
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message.slice(0, 300) : "Unbekannter Fehler";
-        consoleLogger.warn(`${provider.id}: failed`);
-        await setMetadataStatus(db, userId, provider, { status: "error", configured: true, error: message }, now).catch(() => undefined);
-        results.push({ adapterId: provider.id, outcome: "error", message });
-      }
-    }
+    results.push(
+      ...(await runMetadataProviders({
+        db,
+        userId,
+        providers: metadataProviders,
+        mode,
+        only,
+        env: process.env,
+        fetch,
+        log: consoleLogger,
+      })),
+    );
+
     const status = overallStatus(results);
     await store.finishRun(runId, status, results);
-    console.log(`Sync run finished: ${status} (${results.length} adapters)`);
+    console.log(`Sync run finished: ${status} (${results.length} sources)`);
+    // The run log must not grow forever or keep dead runs open.
+    await store.tidyRuns(new Date()).catch(() => consoleLogger.warn("tidying the run log failed"));
   } catch (error) {
     await store.finishRun(runId, "error", []).catch(() => undefined);
     throw error;

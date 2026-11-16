@@ -15,6 +15,7 @@ import { IgdbPicker } from "./IgdbPicker";
 import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
 import { Button, Card, fieldClass, Notice, ProgressBar } from "./ui";
+import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ function useAction(reload: () => Promise<void>) {
       await action();
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
     setBusy(false);
   };

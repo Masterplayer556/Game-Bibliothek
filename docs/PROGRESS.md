@@ -15,6 +15,7 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 | 6 | PSN | fertig (13.11.2026); erster echter Sync erfolgreich (116 Spiele, 1433 Trophäen) |
 | 7 | IGDB | fertig (13.11.2026); 98 von 122 Einträgen zugeordnet, Rest grösstenteils Apps |
 | 8 | Betrieb | fertig (13.11.2026), Knöpfe warten auf `DISPATCH_TOKEN` |
+| – | Sicherheits-Check und Polish | fertig (14.11.2026), keine kritische Lücke, Bericht in `SECURITY.md` |
 
 ## Nächster Schritt
 
@@ -22,14 +23,27 @@ Alle Phasen sind gebaut. Offen:
 
 1. **Marcel:** GitHub-Token `DISPATCH_TOKEN` anlegen und den Workflow «Edge Functions deployen» starten (`SETUP-SUPABASE-GITHUB.md`, Abschnitt 6), damit die Knöpfe in der App funktionieren.
 2. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
-3. **Optional:** gezielter Sicherheits-Check (RLS, Edge Functions, Verschlüsselung, Logs) – Empfehlung Fable 5.2, `/effort high`.
+3. **Marcel:** Nach dem Merge einmal «Edge Functions deployen» starten (die Functions haben sich geändert) und danach «Tools» → `check-rls`.
 4. **Später:** Historie-Import aus der Nintendo-Store-App per Screenshot/Video (Entscheidung 15), Minecraft-Mods (`ADDING-A-PLATFORM.md`), eigenes Design über `tokens.css`.
+
+## Sicherheits-Check und Polish (14.11.2026)
+
+Bericht mit allen Funden, bewusst offenen Punkten und «Was tun, wenn ein Schlüssel bekannt wird»: `docs/SECURITY.md`. Die Datenbank wurde nicht geändert.
+
+- **Workflows**: Aktionen auf feste Commits festgelegt (`.github/dependabot.yml` schlägt monatlich Aktualisierungen vor), `persist-credentials: false`, `SUPABASE_ACCESS_TOKEN` nur in den Schritten, die ihn brauchen. Der Sync-Job hat nur noch `contents: read`; das Wiedereinschalten (60-Tage-Regel) ist ein eigener Job `keep-alive` mit eigenem Zeitplan (montags, `43 4 * * 1`) und `actions: write`.
+- **Edge Functions**: unbestätigte E-Mail gilt nicht als Anmeldung; `trigger-sync` markiert den Lauf als Fehler, wenn GitHub nicht erreichbar ist.
+- **Sync**: `sync/index.ts` prüft seine Optionen (`--adapter`, `--run-id`); die Metadaten-Anbieter laufen über `sync/metadata/run.ts` (Fehlertexte ohne Secrets, «nicht verbunden» erscheint im Ergebnis). Nach jedem Lauf räumt `store.tidyRuns` auf: Läufe ohne Rückmeldung (über 30 Minuten offen) werden geschlossen, Läufe älter als 90 Tage gelöscht.
+- **IGDB**: Twitch-Secret im Inhalt der Anfrage statt in der Adresse.
+- **App**: Ein Lauf ohne Rückmeldung (über 15 Minuten offen) sperrt die Sync-Knöpfe nicht mehr und wird als «keine Rückmeldung» gezeigt. `referrer: no-referrer`. Texte zu NPSSO und Sync stimmen wieder (NPSSO bleibt gespeichert; Sync per Knopf).
+- **Aufgeräumt**: Aufrufe von Edge Functions über `src/lib/functions.ts` (`invokeFunction`, `FunctionError`), Fehlertexte über `src/lib/errors.ts`; `availableFromPhase` / `BUILT_UP_TO_PHASE` entfernt (alle Adapter sind gebaut); alle seitenweisen Abfragen (`fetchAll`) haben eine feste Reihenfolge.
+- **`check-rls`** prüft zusätzlich `is_allowed_email()` und alle vier Edge Functions ohne Login.
+- **Tests**: 219 (neu: Lauf-Protokoll, Metadaten-Lauf, Function-Aufrufe, Nintendo-Link-Prüfung).
 
 ## Was in Phase 8 gebaut wurde
 
 - **Edge Function** `trigger-sync`: legt einen Eintrag in `sync_runs` an und startet den Workflow «Sync» per `workflow_dispatch` mit dessen ID; verweigert einen zweiten Lauf, solange einer in den letzten 15 Minuten nicht fertig ist (gibt dann dessen ID zurück). Secrets `GB_GITHUB_DISPATCH_TOKEN` / `GB_GITHUB_REPO` setzt der Workflow «Edge Functions deployen» aus dem GitHub-Secret `DISPATCH_TOKEN`.
 - **App**: Karte «Synchronisieren» unter Plattformen (`src/components/SyncControls.tsx`, `src/lib/sync-control.ts`) mit «Jetzt synchronisieren» / «Verbindung testen» für alle oder eine Quelle; zeigt den letzten Lauf (auch geplante), fragt alle 5 Sekunden nach, zeigt danach das Ergebnis pro Quelle und lädt die Daten neu.
-- **60-Tage-Regel**: Der Sync-Workflow schaltet sich montags im ersten geplanten Lauf über die API selbst wieder ein (`actions: write`, schlägt den Sync nie fehl). Dazu die Warnung bei über 24 Stunden ohne Erfolg (seit Phase 3).
+- **60-Tage-Regel**: Der Sync-Workflow schaltet sich montags über die API selbst wieder ein (seit 14.11.2026 als eigener Job `keep-alive`, siehe oben). Dazu die Warnung bei über 24 Stunden ohne Erfolg (seit Phase 3).
 - **Apps**: Bekannte Apps (YouTube, Netflix, Spotify, Twitch, …, Liste in `src/core/apps.ts`) markiert der Sync einmal als «Kein Spiel» (`sync/mark-apps.ts`), aber nur Spiele ohne eigene Angaben, sodass ein Zurücksetzen in der App bleibt. Ihre Zeit zählt nicht als Spielzeit, steht aber separat unter Statistiken («Apps») und auf der Übersicht (`library.appDays`). Wunsch von Marcel, 13.11.2026.
 - **Anleitungen** final: README, `SETUP-SUPABASE-GITHUB.md` (Token für die Knöpfe, Schutz gegen Einschlafen).
 

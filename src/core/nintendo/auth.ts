@@ -86,6 +86,11 @@ export async function createLoginRequest(): Promise<NintendoLoginRequest> {
   return { url: `${AUTHORIZE_URL}?${params.toString()}`, verifier, state };
 }
 
+/** True only for an address of Nintendo's own login page. */
+export function isNintendoLoginUrl(url: unknown): url is string {
+  return typeof url === "string" && url.startsWith(`${AUTHORIZE_URL}?`);
+}
+
 /** Step 2: read the code out of the copied «select this account» link. */
 export function parseRedirectLink(link: string): { code: string; state: string | null } {
   const text = link.trim();

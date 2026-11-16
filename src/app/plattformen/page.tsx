@@ -16,9 +16,7 @@ import { DEMO_SOURCE, type ConnectionStatus } from "@/core/types";
 import { loadDemoData, removeDemoData } from "@/lib/library-data";
 import { guideUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
-
-/** Adapters up to this phase exist. */
-const BUILT_UP_TO_PHASE = 8;
+import { errorMessage } from "@/lib/errors";
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -39,16 +37,13 @@ const STATUS_TONE: Record<ConnectionStatus, string> = {
 function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: ConnectionRow | undefined; now: Date }) {
   const status = row?.status ?? "not_connected";
   const details = (row?.details ?? {}) as { missingEnv?: string[]; warnings?: string[]; npssoSavedAt?: string };
-  const built = adapter.availableFromPhase <= BUILT_UP_TO_PHASE;
   return (
     <li className="flex flex-col gap-1 rounded-control bg-surface-raised p-3 text-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{adapter.displayName}</span>
         <span className={STATUS_TONE[status]}>{STATUS_LABEL[status]}</span>
       </div>
-      {!built ? (
-        <p className="text-xs text-muted">Wird in Phase {adapter.availableFromPhase} gebaut.</p>
-      ) : row && status !== "not_connected" ? (
+      {row && status !== "not_connected" ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-xs text-muted">
           <dt>Letzter Erfolg</dt>
           <dd title={formatDateTime(row.last_success_at)}>{relativeAge(row.last_success_at, now)}</dd>
@@ -109,7 +104,7 @@ function DemoData({ demoEntries }: { demoEntries: number }) {
       await action();
       await reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+      setError(errorMessage(e));
     }
     setBusy(null);
   }
@@ -161,7 +156,6 @@ export default function PlatformsPage() {
                     credentialSource: "env",
                     requiredEnv: ["IGDB_CLIENT_ID", "IGDB_CLIENT_SECRET"],
                     guide: "SETUP-IGDB.md",
-                    availableFromPhase: 7,
                   }}
                   row={raw.connections.find((c) => c.adapter_id === "igdb")}
                   now={now}

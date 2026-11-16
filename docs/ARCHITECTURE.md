@@ -225,6 +225,9 @@ Einen einfacheren Weg ohne Edge Functions gibt es nicht: Der GitHub-Token und de
 
 Diese Punkte gelten vor dem Text weiter oben.
 
+- **Sicherheit** (14.11.2026): Prüfbericht, bewusst offene Punkte und Vorgehen bei einem bekannt gewordenen Schlüssel stehen in `SECURITY.md`. Workflows verwenden Aktionen mit festem Commit; der Sync-Job darf das Repo nur lesen, das Wiedereinschalten des Zeitplans macht der eigene Job `keep-alive`.
+- **Edge Functions** (zu Abschnitt 7): Es sind vier (`nintendo-login`, `save-credential`, `igdb-search`, `trigger-sync`); die Anmeldeprüfung liegt in `supabase/functions/_common/http.ts`. Die NPSSO wird nach dem Tausch nicht gelöscht, sondern bleibt verschlüsselt gespeichert, weil Sonys Refresh-Token nur etwa zehn Tage gilt.
+
 - **Kein Terminal nötig.** Der Nintendo-Login läuft in der App über eine Edge Function statt über `npm run setup:nintendo`. Demo-Daten lädt ein Knopf in der App. Sync, Sicherheitsprüfung und Demo-Daten gibt es zusätzlich als manuell startbare Workflows.
 - **Öffentliche Werte im Repo.** Adresse und öffentlicher Schlüssel des Supabase-Projekts stehen in `.env.production`. GitHub-Variablen mit demselben Namen haben Vorrang.
 - **Adapter-Katalog.** `src/core/adapter-catalog.ts` beschreibt alle Quellen einmal, für App und Sync. Die Registry (`sync/registry.ts`) enthält nur die fertigen Adapter.

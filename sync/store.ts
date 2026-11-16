@@ -13,6 +13,9 @@ import type {
   SyncStore,
 } from "./types";
 
+/** The workflow stops a sync after 20 minutes; a run still open after this is dead. */
+const STALE_RUN_MINUTES = 30;
+
 export function createServiceClient(env: Readonly<Record<string, string | undefined>>): SupabaseClient {
   const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
   const key = env.SUPABASE_SECRET_KEY;
@@ -116,6 +119,7 @@ export class SupabaseSyncStore implements SyncStore {
         .eq("user_id", this.userId)
         .eq("platform", adapter.platform)
         .eq("source", adapter.id)
+        .order("id")
         .range(from, to),
     );
     return new Map(
@@ -158,6 +162,35 @@ export class SupabaseSyncStore implements SyncStore {
       .from("platform_connections")
       .upsert(row, { onConflict: "user_id,adapter_id" });
     if (error) throw new Error(`Could not save connection status: ${error.message}`);
+  }
+
+  /**
+   * Housekeeping for the run log: runs that never reported back (cancelled workflow) are
+   * closed, runs older than `keepDays` are removed. Returns how many rows were touched.
+   */
+  async tidyRuns(now: Date, keepDays = 90): Promise<{ closed: number; removed: number }> {
+    const staleBefore = new Date(now.getTime() - STALE_RUN_MINUTES * 60_000).toISOString();
+    const closed = await this.db
+      .from("sync_runs")
+      .update({
+        status: "error",
+        finished_at: now.toISOString(),
+        results: [{ adapterId: "github", outcome: "error", message: "Abgebrochen: Der Lauf hat sich nicht zurückgemeldet." }],
+      })
+      .eq("user_id", this.userId)
+      .in("status", ["queued", "running"])
+      .lt("created_at", staleBefore)
+      .select("id");
+    if (closed.error) throw new Error(`Could not close old sync runs: ${closed.error.message}`);
+    const removeBefore = new Date(now.getTime() - keepDays * 86_400_000).toISOString();
+    const removed = await this.db
+      .from("sync_runs")
+      .delete()
+      .eq("user_id", this.userId)
+      .lt("created_at", removeBefore)
+      .select("id");
+    if (removed.error) throw new Error(`Could not remove old sync runs: ${removed.error.message}`);
+    return { closed: (closed.data ?? []).length, removed: (removed.data ?? []).length };
   }
 
   /** Marks a run as started. Reuses the row created by the trigger-sync function if given. */

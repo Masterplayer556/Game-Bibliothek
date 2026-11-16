@@ -8,6 +8,7 @@ import { formatMinutes } from "@/core/labels";
 import { DEFAULT_PILE_THRESHOLD_MINUTES, pileOfShame } from "@/core/library";
 import { saveSettings, saveUserData } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
+import { errorMessage } from "@/lib/errors";
 
 export default function PileOfShamePage() {
   const [busy, setBusy] = useState(false);
@@ -27,7 +28,7 @@ export default function PileOfShamePage() {
             await action();
             await reload();
           } catch (e) {
-            setError(e instanceof Error ? e.message : "Unbekannter Fehler");
+            setError(errorMessage(e));
           }
           setBusy(false);
         };
