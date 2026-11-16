@@ -8,7 +8,7 @@ import { formatMinutes } from "@/core/labels";
 import { playtimeSeries, type Bucket, type GameDay } from "@/core/library";
 import type { LocalDate } from "@/core/types";
 import { bucketLabel, PlaytimeChart } from "./charts";
-import { Button } from "./ui";
+import { Button, Segmented } from "./ui";
 
 const BUCKETS: { id: Bucket; label: string }[] = [
   { id: "day", label: "Tage" },
@@ -95,19 +95,7 @@ export function PlaytimeHistory({
 
   return (
     <div className="flex flex-col gap-stack">
-      <div role="group" aria-label="Einteilung" className="flex gap-1 rounded-control bg-surface-raised p-1 text-sm">
-        {BUCKETS.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            aria-pressed={bucket === b.id}
-            onClick={() => switchBucket(b.id)}
-            className={`flex-1 rounded-control px-2 py-1.5 ${bucket === b.id ? "bg-accent text-on-accent" : "text-muted"}`}
-          >
-            {b.label}
-          </button>
-        ))}
-      </div>
+      <Segmented label="Einteilung" options={BUCKETS} value={bucket} onChange={switchBucket} />
 
       <div className="flex items-center justify-between gap-2">
         <Button aria-label="Früher" disabled={!canGoBack} onClick={() => move(step)}>

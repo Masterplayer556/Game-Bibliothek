@@ -33,6 +33,7 @@ Alle Phasen sind gebaut. Offen:
 - **Verlauf im Spiel-Detail** (`src/components/PlaytimeHistory.tsx`, Wunsch von Marcel): Tage, Wochen, Monate oder Jahre; ‹ / › oder seitlich wischen verschiebt den Zeitraum, «Zurück zu heute». Beim Wechsel der Einteilung bleibt der Zeitpunkt am rechten Rand gleich (`src/core/history-window.ts`). `playtimeSeries` kennt dafür `day` und `year`.
 - **Statistik-Seite**: derselbe Verlauf über alle Spiele (oben); der Zeitraum-Filter gilt nur noch für Zahlen und Listen darunter.
 - **Prompt für ein Claude-Projekt** (`docs/PROMPT-NINTENDO-VIDEO-IMPORT.md`): Videos hochladen → CSV pro Spiel, mit Prüfung gegen «Spieltage».
+- **Erfolge nach Plattform** (`src/core/achievements.ts`): Wähler «Alle / PC / PlayStation» auf der Seite Erfolge und im Spiel-Detail. Steam-Erfolge und PS-Trophäen sind getrennte Listen; «Alle» zählt beide zusammen, ein Spiel auf zwei Plattformen hat zwei Zeilen. Eine Trophäe schaltet nie einen Steam-Erfolg frei.
 - **Geschätzte Balken**: hell nur noch, wenn mindestens die Hälfte der Zeit geschätzt ist (`SeriesPoint.estimatedMinutes`); der Tooltip nennt den geschätzten Anteil. Vorher machte ein einziger «Für kurze Zeit»-Tag ein ganzes Jahr hell.
 
 ## Sicherheits-Check und Polish (14.11.2026)
