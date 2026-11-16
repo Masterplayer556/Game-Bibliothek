@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
+import { ACHIEVEMENT_PLATFORM_LABEL, DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
+import type { AchievementFilter } from "@/core/achievements";
 import { deviceTotals, type LibraryGame, type RawData } from "@/core/library";
 import { toLocalDate } from "@/core/time";
-import { GAME_STATUSES, type GameStatus } from "@/core/types";
+import { GAME_STATUSES, type GameStatus, type PlatformId } from "@/core/types";
 import { deleteManualEntry, mergeGames, saveUserData, splitEntry, type UserDataPatch } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import { applyIgdb } from "@/lib/igdb";
@@ -14,7 +15,7 @@ import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
 import { DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
-import { Button, Card, fieldClass, Notice, ProgressBar } from "./ui";
+import { Button, Card, fieldClass, Notice, ProgressBar, Segmented } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
@@ -93,7 +94,8 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
 }
 
 function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
-  const withAchievements = game.entries.filter((e) => e.achievements);
+  const [filter, setFilter] = useState<AchievementFilter>("all");
+  const withAchievements = game.entries.filter((e) => e.achievements && e.achievements.total > 0);
   if (withAchievements.length === 0) {
     return (
       <Card title="Erfolge">
@@ -105,23 +107,41 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
       </Card>
     );
   }
-  const entryIds = new Set(withAchievements.map((e) => e.id));
+  const platformName = (p: PlatformId) => ACHIEVEMENT_PLATFORM_LABEL[p] ?? PLATFORM_LABEL[p];
+  const several = withAchievements.length > 1;
+  const shown = withAchievements.filter((e) => filter === "all" || e.platform === filter);
+  const visible = shown.length > 0 ? shown : withAchievements;
+  const platformOf = new Map(visible.map((e) => [e.id, e.platform] as const));
   const list = raw.achievements
-    .filter((a) => entryIds.has(a.platform_game_id))
+    .filter((a) => platformOf.has(a.platform_game_id))
     .sort((a, b) => (b.unlocked_at ?? "").localeCompare(a.unlocked_at ?? "") || a.name.localeCompare(b.name, "de"));
   return (
     <Card title="Erfolge">
-      {withAchievements.map((e) => (
+      {several ? (
+        <Segmented
+          label="Plattform"
+          options={[
+            { id: "all" as AchievementFilter, label: "Alle" },
+            ...withAchievements.map((e) => ({ id: e.platform as AchievementFilter, label: platformName(e.platform) })),
+          ]}
+          value={filter}
+          onChange={setFilter}
+        />
+      ) : null}
+      {visible.map((e) => (
         <div key={e.id} className="flex flex-col gap-1">
           <div className="flex justify-between text-sm">
-            <span>{PLATFORM_LABEL[e.platform]}</span>
+            <span>{platformName(e.platform)}</span>
             <span className="tabular-nums text-muted">
               {e.achievements!.unlocked}/{e.achievements!.total}
             </span>
           </div>
-          <ProgressBar value={e.achievements!.unlocked} max={e.achievements!.total} label={`Erfolge ${PLATFORM_LABEL[e.platform]}`} />
+          <ProgressBar value={e.achievements!.unlocked} max={e.achievements!.total} label={`Erfolge ${platformName(e.platform)}`} />
         </div>
       ))}
+      {several && filter === "all" ? (
+        <Notice>Jede Plattform zählt für sich: Eine Trophäe auf der PlayStation schaltet den Erfolg auf dem PC nicht frei.</Notice>
+      ) : null}
       {list.length > 0 ? (
         <details>
           <summary className="cursor-pointer text-sm text-muted">Alle {list.length} Erfolge anzeigen</summary>
@@ -137,6 +157,9 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
                 <span className="min-w-0 flex-1">
                   <span className="block">{a.name}</span>
                   {a.description ? <span className="block text-xs text-muted">{a.description}</span> : null}
+                  {several && filter === "all" ? (
+                    <span className="block text-xs text-muted">{platformName(platformOf.get(a.platform_game_id)!)}</span>
+                  ) : null}
                 </span>
                 <span className="shrink-0 text-right text-xs text-muted">
                   {a.unlocked_at ? formatDay(a.unlocked_at) : "gesperrt"}

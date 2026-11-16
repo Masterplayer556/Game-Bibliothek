@@ -69,3 +69,32 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
     </div>
   );
 }
+
+/** A row of buttons of which exactly one is selected (tabs for a view, not for pages). */
+export function Segmented<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex gap-1 rounded-control bg-surface-raised p-1 text-sm">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          aria-pressed={value === o.id}
+          onClick={() => onChange(o.id)}
+          className={`flex-1 rounded-control px-2 py-1.5 ${value === o.id ? "bg-accent text-on-accent" : "text-muted"}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}

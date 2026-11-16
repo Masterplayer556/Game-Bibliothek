@@ -8,6 +8,12 @@ export const PLATFORM_LABEL: Record<PlatformId, string> = {
   manual: "Manuell",
 };
 
+/** Names in the achievement filter: Steam achievements are shown as «PC». */
+export const ACHIEVEMENT_PLATFORM_LABEL: Partial<Record<PlatformId, string>> = {
+  steam: "PC",
+  psn: "PlayStation",
+};
+
 export const DEVICE_LABEL: Record<DeviceKind, string> = {
   pc: "PC",
   ps5: "PS5",
