@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { PlaytimeChart, ShareBars } from "@/components/charts";
+import { ShareBars } from "@/components/charts";
 import { formatDay, gameHref } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
+import { PlaytimeHistory } from "@/components/PlaytimeHistory";
 import { Card, fieldClass, Notice, StatTile } from "@/components/ui";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
-import { distribution, playtimeSeries, topGames, totalInRange, type Bucket, type Range } from "@/core/library";
+import { distribution, topGames, totalInRange, type Range } from "@/core/library";
 import { addDays, toLocalDate } from "@/core/time";
 import type { DeviceKind, LocalDate, PlatformId } from "@/core/types";
 
@@ -41,7 +42,6 @@ function rangeFor(key: RangeKey, today: LocalDate, firstDay: LocalDate | undefin
 
 export default function StatisticsPage() {
   const [rangeKey, setRangeKey] = useState<RangeKey>("12m");
-  const [bucket, setBucket] = useState<Bucket>("month");
 
   return (
     <LibraryGate>
@@ -55,16 +55,21 @@ export default function StatisticsPage() {
 
         return (
           <>
-            <section className="grid grid-cols-2 gap-2" aria-label="Zeitraum">
+            <Card title="Verlauf">
+              {library.days.length === 0 ? (
+                <Notice>Noch keine Spielzeit erfasst.</Notice>
+              ) : (
+                <PlaytimeHistory days={library.days} today={today} title="Spielzeit aller Spiele" />
+              )}
+            </Card>
+
+            <section className="flex flex-col gap-1" aria-label="Zeitraum">
               <select className={fieldClass} aria-label="Zeitraum" value={rangeKey} onChange={(e) => setRangeKey(e.target.value as RangeKey)}>
                 {(Object.keys(RANGE_LABEL) as RangeKey[]).map((k) => (
                   <option key={k} value={k}>{RANGE_LABEL[k]}</option>
                 ))}
               </select>
-              <select className={fieldClass} aria-label="Einteilung" value={bucket} onChange={(e) => setBucket(e.target.value as Bucket)}>
-                <option value="week">Pro Woche</option>
-                <option value="month">Pro Monat</option>
-              </select>
+              <span className="text-xs text-muted">Gilt für die Zahlen und Listen darunter.</span>
             </section>
 
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
@@ -72,10 +77,6 @@ export default function StatisticsPage() {
               <StatTile label="Spieltage" value={String(playedDays)} />
               <StatTile label="Verschiedene Spiele" value={String(topGames(library.days, range, 10_000).length)} />
             </section>
-
-            <Card title={bucket === "week" ? "Spielzeit pro Woche" : "Spielzeit pro Monat"}>
-              <PlaytimeChart points={playtimeSeries(library.days, range, bucket)} bucket={bucket} title="Spielzeit im gewählten Zeitraum" />
-            </Card>
 
             <Card title="Top-Spiele">
               {top.length === 0 ? (
@@ -119,7 +120,7 @@ export default function StatisticsPage() {
                 label={(k) => k}
                 color={() => "var(--color-chart-1)"}
               />
-              <Notice>Genres kommen ab Phase 7 von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
+              <Notice>Genres kommen von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
             </Card>
 
             <Card title="Apps (kein Spiel)">
@@ -149,8 +150,8 @@ export default function StatisticsPage() {
             <Card title="Datenbasis">
               <Notice>
                 Spielzeit pro Tag gibt es erst ab dem ersten Sync einer Plattform. Lücken davor heissen
-                nicht «nicht gespielt». * und hellere Balken markieren geschätzte Werte (z. B. mehrere
-                Tage zwischen zwei Syncs).
+                nicht «nicht gespielt». * markiert geschätzte Werte (z. B. mehrere Tage zwischen zwei
+                Syncs oder «Für kurze Zeit» aus dem Import), hellere Balken sind grösstenteils geschätzt.
               </Notice>
               <ul className="text-sm">
                 {coverage.length === 0 ? <li className="text-muted">Noch keine Daten.</li> : null}
