@@ -15,11 +15,11 @@ export function Card({
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-card border border-border p-card shadow-card ${variant === "note" ? "note" : "bg-surface"}`}>
+    <section className={`rounded-card p-card sm:p-5 ${variant === "note" ? "note border shadow-card" : "sheet"}`}>
       {title ? (
-        <h2 className="rule-dashed mb-stack flex items-center gap-2.5 pb-2.5 font-display text-xl font-semibold leading-snug">
+        <h2 className="rule-dashed mb-stack flex items-center gap-3 pb-3 font-display text-xl font-semibold leading-snug">
           {icon ? (
-            <span className="bg-section-soft text-section flex h-7 w-7 shrink-0 items-center justify-center rounded-[5px]">
+            <span className="icon-tile h-8 w-8 rounded-[10px]">
               <PixelIcon name={icon} />
             </span>
           ) : null}
@@ -36,7 +36,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primar
 export function Button({ variant = "secondary", className = "", ...props }: ButtonProps) {
   const look =
     variant === "primary"
-      ? "key-accent bg-accent text-on-accent"
+      ? "key-accent bg-accent text-on-accent shadow-[0_8px_18px_-10px_var(--color-accent)]"
       : "key border border-border-strong bg-surface text-text";
   return (
     <button
@@ -68,11 +68,15 @@ export const fieldClass =
 
 export function StatTile({ label, value, hint, icon }: { label: string; value: string; hint?: string; icon?: PixelIconName }) {
   return (
-    <div className="relative overflow-hidden rounded-control border border-border bg-surface p-3 pl-4 shadow-card">
-      {/* A coloured edge, like the tab of an index card. */}
-      <span aria-hidden className="bg-section absolute inset-y-0 left-0 w-1" />
-      {icon ? <PixelIcon name={icon} className="text-section absolute right-3 top-3 h-5 w-5 opacity-80" /> : null}
-      <div className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</div>
+    <div className="sheet glow-tile flex h-full flex-col gap-1.5 rounded-card p-3.5">
+      <div className="flex items-center gap-2">
+        {icon ? (
+          <span className="icon-tile h-6 w-6 rounded-[7px]">
+            <PixelIcon name={icon} className="h-3.5 w-3.5" />
+          </span>
+        ) : null}
+        <span className="min-w-0 text-[11px] font-semibold uppercase leading-tight tracking-wider text-muted">{label}</span>
+      </div>
       <div className="num text-[1.75rem] leading-tight">{value}</div>
       {hint ? <div className="text-xs text-muted">{hint}</div> : null}
     </div>
@@ -194,14 +198,14 @@ export function Segmented<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex gap-1 rounded-control border border-border bg-surface-raised p-1 text-sm">
+    <div role="group" aria-label={label} className="flex gap-1 rounded-full border border-border bg-surface-raised p-1 text-sm">
       {options.map((o) => (
         <button
           key={o.id}
           type="button"
           aria-pressed={value === o.id}
           onClick={() => onChange(o.id)}
-          className={`flex-1 rounded-[5px] px-2 py-1.5 ${value === o.id ? "bg-accent font-medium text-on-accent" : "text-muted hover:text-text"}`}
+          className={`flex-1 rounded-full px-3 py-1.5 transition-colors ${value === o.id ? "bg-section font-semibold text-on-section shadow-[0_4px_12px_-6px_var(--section,var(--color-accent))]" : "text-muted hover:text-text"}`}
         >
           {o.label}
         </button>

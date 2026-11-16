@@ -24,7 +24,7 @@ Eine Web-App, die Spiele von **Steam**, **PlayStation 5** und **Nintendo Switch 
 - **Sync**: ein Node-Skript (`sync/`), das GitHub Actions alle 6 Stunden startet, per Knopf in der App oder von Hand. Jede Plattform ist ein austauschbarer Adapter; fällt einer aus, laufen die anderen weiter.
 - **Edge Functions** (`supabase/functions/`): Nintendo-Login, Tokens verschlüsselt speichern, IGDB-Suche, Sync starten.
 - **Tokens** von PlayStation und Nintendo liegen verschlüsselt (AES-256-GCM) in der Datenbank, nie im Browser lesbar.
-- **Design**: «Lesesaal trifft Spielhalle», hell und dunkel (folgt dem Gerät, umschaltbar oben rechts). Alle Farben, Abstände und Schriften in [`src/styles/tokens.css`](src/styles/tokens.css); Logik (`src/core`, `src/lib`) und Darstellung (`src/components`, `src/app`) sind getrennt.
+- **Design**: «Lesesaal trifft Spielhalle», hell und dunkel (folgt dem Gerät, umschaltbar oben rechts), mit Glasleiste unten wie in einer App; lässt sich auf dem Handy zum Home-Bildschirm hinzufügen. Alle Farben, Abstände und Schriften in [`src/styles/tokens.css`](src/styles/tokens.css); Logik (`src/core`, `src/lib`) und Darstellung (`src/components`, `src/app`) sind getrennt.
 
 ## Befehle
 

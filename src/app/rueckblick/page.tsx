@@ -39,7 +39,7 @@ function WrappedContent() {
         return (
           <>
             <div className="flex items-center justify-between gap-2">
-              <h2 className="font-display text-2xl font-semibold">Jahresrückblick</h2>
+              <h2 className="text-sm font-medium text-muted">Jahr</h2>
               <select
                 className={fieldClass}
                 aria-label="Jahr"

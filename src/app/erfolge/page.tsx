@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDay, gameHref, GameCover } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
+import { PixelIcon } from "@/components/PixelIcon";
 import {
+  Button,
   Card,
   fieldClass,
   isRare,
@@ -30,6 +32,7 @@ export default function AchievementsPage() {
   const [filter, setFilter] = useState<AchievementFilter>("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allRare, setAllRare] = useState(false);
 
   return (
     <LibraryGate>
@@ -51,9 +54,18 @@ export default function AchievementsPage() {
           .sort((a, b) => (b.unlocked_at ?? "").localeCompare(a.unlocked_at ?? ""))
           .slice(0, 8);
         const rareLimit = readRareLimit(raw.settings);
-        const rareUnlocked = raw.achievements.filter(
-          (a) => a.unlocked_at && shownEntries.has(a.platform_game_id) && isRare(a.rarity_percent, rareLimit),
-        ).length;
+        // Rare ones I have, rarest first. In «Zusammen» the same achievement on PC and PlayStation
+        // appears once, with the lower share.
+        const rareByKey = new Map<string, (typeof raw.achievements)[number]>();
+        for (const a of raw.achievements) {
+          if (!a.unlocked_at || !shownEntries.has(a.platform_game_id) || !isRare(a.rarity_percent, rareLimit)) continue;
+          const key = `${shownEntries.get(a.platform_game_id)!.game.id}|${a.name.trim().toLowerCase()}`;
+          const known = rareByKey.get(key);
+          if (!known || (a.rarity_percent ?? 100) < (known.rarity_percent ?? 100)) rareByKey.set(key, a);
+        }
+        const rare = [...rareByKey.values()].sort((a, b) => (a.rarity_percent ?? 100) - (b.rarity_percent ?? 100));
+        const rareUnlocked = rare.length;
+        const rareShown = allRare ? rare : rare.slice(0, 10);
         const saveRareLimit = async (next: RareLimit) => {
           setBusy(true);
           setError(null);
@@ -83,24 +95,26 @@ export default function AchievementsPage() {
               </section>
             ) : null}
 
-            <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
-              <div className="flex items-center gap-3 rounded-control border border-border bg-surface p-3 shadow-card">
+            <section className="grid grid-cols-2 gap-stack sm:grid-cols-4">
+              <div className="sheet glow-tile col-span-2 flex items-center gap-4 rounded-card p-4">
                 <ProgressRing value={unlocked} max={total} label="Erfolge freigeschaltet" />
                 <div className="min-w-0">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted">Freigeschaltet</div>
-                  <div className="num text-[1.75rem] leading-tight">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">Freigeschaltet</div>
+                  <div className="num whitespace-nowrap text-4xl leading-tight">
                     {unlocked}
-                    <span className="text-lg text-muted"> / {total}</span>
+                    <span className="text-xl text-muted"> / {total}</span>
                   </div>
                 </div>
               </div>
-              <StatTile label="Spiele mit Erfolgen" value={String(games)} icon="gamepad" />
-              <div className="col-span-2 sm:col-span-1">
-                <StatTile label="Seltene geschafft" value={String(rareUnlocked)} icon="star" hint={`${rareLimitLabel(rareLimit)} der Spieler`} />
-              </div>
+              <StatTile label="Spiele" value={String(games)} icon="gamepad" hint="mit Erfolgen" />
+              <a href="#selten" className="rounded-card">
+                <StatTile label="Seltene" value={String(rareUnlocked)} icon="star" hint="Liste ansehen ↓" />
+              </a>
             </section>
             {nintendoOnly > 0 && active === "all" ? (
-              <Notice>{nintendoOnly} Nintendo-Spiele sind nicht aufgeführt: Nintendo hat keine Erfolge.</Notice>
+              <Notice>
+                {nintendoOnly === 1 ? "1 Nintendo-Spiel ist" : `${nintendoOnly} Nintendo-Spiele sind`} nicht aufgeführt: Nintendo hat keine Erfolge.
+              </Notice>
             ) : null}
 
             <section className="flex flex-col gap-1">
@@ -119,6 +133,58 @@ export default function AchievementsPage() {
                 der Spieler haben.
               </label>
               {error ? <Notice tone="danger">{error}</Notice> : null}
+            </section>
+
+            <section id="selten" className="scroll-mt-20">
+              <Card title="Deine seltensten Erfolge" icon="star">
+                {rare.length === 0 ? (
+                  <Notice>Noch kein Erfolg, den {rareLimitLabel(rareLimit)} der Spieler haben. Die Grenze stellst du oben ein.</Notice>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted">
+                      {rare.length} Erfolge, die {rareLimitLabel(rareLimit)} der Spieler haben, der seltenste zuerst.
+                    </p>
+                    <ol className="flex flex-col gap-1">
+                      {rareShown.map((a, i) => {
+                        const row = shownEntries.get(a.platform_game_id)!;
+                        const percent = a.rarity_percent ?? 0;
+                        return (
+                          <li key={`${a.platform_game_id}-${a.external_id}`} className="flex items-center gap-3 rounded-xl p-1.5 hover:bg-surface-raised">
+                            <span className={`num w-6 shrink-0 text-center text-lg leading-none ${i < 3 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
+                            {a.icon_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={a.icon_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-[10px] border border-border" />
+                            ) : (
+                              <span className="icon-tile h-10 w-10 rounded-[10px]">
+                                <PixelIcon name="trophy" className="h-5 w-5" />
+                              </span>
+                            )}
+                            <Link href={gameHref(row.game.id)} className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5 text-sm font-medium">
+                                <Medal tier={a.tier} />
+                                <span className="truncate">{a.name}</span>
+                              </span>
+                              <span className="block truncate text-xs text-muted">
+                                {row.game.title} · {ACHIEVEMENT_PLATFORM_LABEL[row.platform] ?? PLATFORM_LABEL[row.platform]}
+                                {a.unlocked_at ? ` · ${formatDay(a.unlocked_at)}` : ""}
+                              </span>
+                            </Link>
+                            <span className="flex shrink-0 flex-col items-end">
+                              <span className="num text-xl leading-none text-highlight">{percent.toLocaleString("de-CH")} %</span>
+                              <span className="text-[10px] text-muted">der Spieler</span>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    {rare.length > 10 ? (
+                      <div>
+                        <Button onClick={() => setAllRare((v) => !v)}>{allRare ? "Weniger zeigen" : `Alle ${rare.length} zeigen`}</Button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </Card>
             </section>
 
             {recent.length > 0 ? (

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- App icon: a bound book with a gold D-pad on its cover, standing on a brass shelf beside two
+       spines, under pixel stars. Full bleed: the phone rounds the corners itself. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b4bf0"/>
+      <stop offset="0.55" stop-color="#3a2bc0"/>
+      <stop offset="1" stop-color="#1c1466"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#b9b3ff" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#b9b3ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="floor" cx="0.5" cy="1" r="0.6">
+      <stop offset="0" stop-color="#f2bd3a" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#f2bd3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#efe4cc"/>
+    </linearGradient>
+    <linearGradient id="spineA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d4405f"/>
+      <stop offset="1" stop-color="#a32a46"/>
+    </linearGradient>
+    <linearGradient id="spineB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22a58a"/>
+      <stop offset="1" stop-color="#17786a"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd76a"/>
+      <stop offset="1" stop-color="#c98a12"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <rect x="15" y="15" width="3" height="3" fill="#ffffff" fill-opacity="0.07"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0b0730" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#grid)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <rect width="1024" height="1024" fill="url(#floor)"/>
+
+  <!-- pixel stars -->
+  <g fill="#ffe28a">
+    <path d="M176 196h24v24h24v24h-24v24h-24v-24h-24v-24h24z"/>
+    <path d="M836 268h16v16h16v16h-16v16h-16v-16h-16v-16h16z" fill-opacity="0.8"/>
+    <path d="M800 120h12v12h12v12h-12v12h-12v-12h-12v-12h12z" fill-opacity="0.6"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <!-- two spines behind, on the right -->
+    <rect x="642" y="292" width="92" height="508" rx="14" fill="url(#spineA)"/>
+    <rect x="654" y="352" width="68" height="10" fill="#ffd76a" fill-opacity="0.85"/>
+    <rect x="654" y="730" width="68" height="10" fill="#ffd76a" fill-opacity="0.85"/>
+    <g transform="rotate(9 790 800)">
+      <rect x="748" y="356" width="84" height="444" rx="14" fill="url(#spineB)"/>
+      <rect x="760" y="410" width="60" height="9" fill="#ffd76a" fill-opacity="0.85"/>
+      <rect x="760" y="736" width="60" height="9" fill="#ffd76a" fill-opacity="0.85"/>
+    </g>
+
+    <!-- the book: pages, cover, spine -->
+    <rect x="232" y="236" width="420" height="566" rx="30" fill="#e6dcc6"/>
+    <rect x="210" y="216" width="420" height="566" rx="30" fill="url(#cover)"/>
+    <path d="M240 216h46v566h-46a30 30 0 0 1-30-30V246a30 30 0 0 1 30-30z" fill="#3a2bc0"/>
+    <rect x="286" y="216" width="10" height="566" fill="#2a1e96"/>
+    <!-- embossed frame -->
+    <rect x="332" y="268" width="250" height="462" rx="10" fill="none" stroke="#c98a12" stroke-opacity="0.45" stroke-width="6"/>
+    <!-- gold D-pad, pixel edged -->
+    <g transform="translate(457 470)">
+      <path d="M-40 -120h80v80h80v80h-80v80h-80v-80h-80v-80h80z" fill="#a8700a" transform="translate(0 10)"/>
+      <path d="M-40 -120h80v80h80v80h-80v80h-80v-80h-80v-80h80z" fill="url(#brass)"/>
+      <path d="M-40 -120h80v16h-80zM-120 -40h80v16h-80zM40 -40h80v16h-80z" fill="#fff3c4" fill-opacity="0.75"/>
+      <rect x="-16" y="-16" width="32" height="32" fill="#3a2bc0"/>
+      <!-- arrow notches on the four arms -->
+      <path d="M-12 -92h24l-12-14z M-12 92h24l-12 14z M-92 -12v24l-14-12z M92 -12v24l14-12z" fill="#8a5a00"/>
+    </g>
+  </g>
+
+  <!-- brass shelf -->
+  <rect x="120" y="800" width="784" height="34" rx="8" fill="url(#brass)"/>
+  <rect x="120" y="800" width="784" height="8" rx="4" fill="#fff0b8" fill-opacity="0.7"/>
+  <!-- ribbon bookmark hanging over the shelf -->
+  <path d="M520 776h52v134l-26-24-26 24z" fill="#ff5d6c"/>
+  <path d="M520 776h52v14h-52z" fill="#c23a4a"/>
+</svg>
