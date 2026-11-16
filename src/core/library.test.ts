@@ -127,9 +127,9 @@ describe("statistics", () => {
   it("fills empty weeks and months", () => {
     const weeks = playtimeSeries(lib.days, { from: "2026-02-23", to: "2026-03-15" }, "week");
     expect(weeks).toEqual([
-      { key: "2026-02-23", minutes: 60, estimated: false }, // Sunday 01.03. belongs to this week
-      { key: "2026-03-02", minutes: 100, estimated: false },
-      { key: "2026-03-09", minutes: 90, estimated: false },
+      { key: "2026-02-23", minutes: 60, estimatedMinutes: 0, estimated: false }, // Sunday 01.03. belongs to this week
+      { key: "2026-03-02", minutes: 100, estimatedMinutes: 0, estimated: false },
+      { key: "2026-03-09", minutes: 90, estimatedMinutes: 0, estimated: false },
     ]);
     const months = playtimeSeries(lib.days, { from: "2025-12-15", to: "2026-03-31" }, "month");
     expect(months.map((p) => [p.key, p.minutes])).toEqual([
@@ -137,6 +137,30 @@ describe("statistics", () => {
       ["2026-01", 0],
       ["2026-02", 0],
       ["2026-03", 250],
+    ]);
+  });
+
+  it("marks a bar as estimated only when most of its time is", () => {
+    const day = (date: string, minutes: number, estimated: boolean) =>
+      ({ gameId: "g", platform: "nintendo", deviceKind: "switch1", date, minutes, estimated }) as (typeof lib.days)[number];
+    const range = { from: "2025-01-01", to: "2025-02-28" };
+    const days = [day("2025-01-05", 300, false), day("2025-01-06", 5, true), day("2025-02-01", 5, true), day("2025-02-02", 4, false)];
+    const [jan, feb] = playtimeSeries(days, range, "month");
+    expect([jan!.estimatedMinutes, jan!.estimated]).toEqual([5, false]);
+    expect([feb!.estimatedMinutes, feb!.estimated]).toEqual([5, true]);
+  });
+
+  it("also counts by day and by year", () => {
+    const daily = playtimeSeries(lib.days, { from: "2026-02-28", to: "2026-03-03" }, "day");
+    expect(daily.map((p) => p.key)).toEqual(["2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03"]);
+    expect(daily.reduce((sum, p) => sum + p.minutes, 0)).toBe(
+      lib.days.filter((d) => d.date >= "2026-02-28" && d.date <= "2026-03-03").reduce((sum, d) => sum + d.minutes, 0),
+    );
+    const yearly = playtimeSeries(lib.days, { from: "2024-07-01", to: "2026-03-31" }, "year");
+    expect(yearly.map((p) => [p.key, p.minutes])).toEqual([
+      ["2024", 0],
+      ["2025", 0],
+      ["2026", 250],
     ]);
   });
 

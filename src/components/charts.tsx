@@ -7,12 +7,19 @@ import type { Bucket, SeriesPoint, Share } from "@/core/library";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 
+const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
 export function bucketLabel(key: string, bucket: Bucket, long = false): string {
+  if (bucket === "year") return key;
   if (bucket === "month") {
     const month = MONTHS[Number(key.slice(5, 7)) - 1] ?? key;
     return long ? `${month} ${key.slice(0, 4)}` : `${month} ${key.slice(2, 4)}`;
   }
   const [, m, d] = key.split("-");
+  if (bucket === "day") {
+    const weekday = WEEKDAYS[new Date(`${key}T12:00:00Z`).getUTCDay()];
+    return long ? `${weekday}, ${d}.${m}.${key.slice(0, 4)}` : `${d}.${m}.`;
+  }
   return long ? `Woche ab ${d}.${m}.${key.slice(0, 4)}` : `${d}.${m}.`;
 }
 
@@ -29,12 +36,14 @@ function PlaytimeTooltip({ active, payload, bucket }: TooltipProps) {
     <div className="rounded-control border border-border bg-surface-raised px-3 py-2 text-xs text-text">
       <div className="text-muted">{bucketLabel(point.key, bucket, true)}</div>
       <div className="font-semibold tabular-nums">{formatMinutes(point.minutes)}</div>
-      {point.estimated ? <div className="text-muted">enthält geschätzte Werte</div> : null}
+      {point.estimatedMinutes > 0 ? (
+        <div className="text-muted">davon {formatMinutes(point.estimatedMinutes)} geschätzt</div>
+      ) : null}
     </div>
   );
 }
 
-/** Playtime per week or month. Lighter bars contain estimated values. */
+/** Playtime per day, week, month or year. Lighter bars contain estimated values. */
 export function PlaytimeChart({ points, bucket, title }: { points: SeriesPoint[]; bucket: Bucket; title: string }) {
   const data = points.map((p) => ({ ...p, hours: p.minutes / 60 }));
   const anyEstimated = points.some((p) => p.estimated && p.minutes > 0);
@@ -70,7 +79,7 @@ export function PlaytimeChart({ points, bucket, title }: { points: SeriesPoint[]
         </ResponsiveContainer>
       </div>
       <figcaption className="flex flex-wrap justify-between gap-2 text-xs text-muted">
-        <span>Stunden{anyEstimated ? " · hellere Balken enthalten geschätzte Werte" : ""}</span>
+        <span>Stunden{anyEstimated ? " · hellere Balken sind grösstenteils geschätzt" : ""}</span>
         <details>
           <summary className="cursor-pointer">Als Tabelle</summary>
           <table className="mt-2 text-left">
@@ -80,7 +89,7 @@ export function PlaytimeChart({ points, bucket, title }: { points: SeriesPoint[]
                   <td className="pr-4">{bucketLabel(p.key, bucket, true)}</td>
                   <td className="tabular-nums">
                     {formatMinutes(p.minutes)}
-                    {p.estimated && p.minutes > 0 ? " (geschätzt)" : ""}
+                    {p.estimatedMinutes > 0 ? ` (davon ${formatMinutes(p.estimatedMinutes)} geschätzt)` : ""}
                   </td>
                 </tr>
               ))}
