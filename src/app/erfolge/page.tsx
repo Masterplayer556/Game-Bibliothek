@@ -107,7 +107,7 @@ export default function AchievementsPage() {
                 </div>
               </div>
               <StatTile label="Spiele" value={String(games)} icon="gamepad" hint="mit Erfolgen" />
-              <a href="#selten" className="rounded-card">
+              <a href="#selten" className="lift rounded-card">
                 <StatTile label="Seltene" value={String(rareUnlocked)} icon="star" hint="Liste ansehen ↓" />
               </a>
             </section>

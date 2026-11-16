@@ -5,6 +5,13 @@
 @layer base {
   html {
     color-scheme: light;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 
   body {
@@ -378,4 +385,148 @@
 
 @utility pt-safe {
   padding-top: env(safe-area-inset-top);
+}
+
+/* ---------- Tab bar and small motions ---------- */
+
+/* One slot in the bottom bar: icon over a label, pressed in a little when tapped. */
+@utility tab-item {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 4rem;
+  padding: 0.5rem 0.25rem 0.375rem;
+  border-radius: 1.1rem;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    transform 120ms ease-out,
+    background-color 200ms ease,
+    color 200ms ease,
+    opacity 260ms ease;
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  @media (min-width: 48rem) {
+    width: auto;
+    min-width: 4.1rem;
+    padding-inline: 0.5rem;
+  }
+}
+
+/* Five slots wide (5 × 4rem plus four gaps of 2px). */
+@utility tab-viewport {
+  width: calc(5 * 4rem + 4 * 2px);
+}
+
+/* The row of nine slots; open, it moves four slots to the left. */
+@utility tab-track {
+  display: flex;
+  gap: 2px;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &[data-open="true"] {
+    transform: translateX(calc(-4 * (4rem + 2px)));
+  }
+}
+
+/* The main pages fade as they slide out to the left. */
+@utility tab-leaving {
+  [data-open="true"] > & {
+    opacity: 0;
+  }
+}
+
+/* The «more» pages trail behind «Mehr» and catch up one after the other. */
+@utility tab-following {
+  opacity: 0;
+  transform: translateX(var(--follow, 16px));
+  transition:
+    transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 260ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+
+  [data-open="true"] > & {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-open="true"] > &:active {
+    transform: scale(0.9);
+  }
+}
+
+@utility tab-icon-swap {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* A new page rises in gently. */
+@utility anim-page-in {
+  animation: page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Menus open with a small pop. */
+@utility anim-pop-in {
+  animation: pop-in 160ms ease-out both;
+  transform-origin: top right;
+}
+
+/* Panels that fold out slide down. */
+@utility anim-drop-in {
+  animation: drop-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Cards and tiles that are links lift a little under the pointer. */
+@utility lift {
+  transition:
+    transform 160ms ease-out,
+    box-shadow 160ms ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.99);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
 }
