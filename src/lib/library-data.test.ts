@@ -51,8 +51,8 @@ describe("actions", () => {
     const after = await find("Cuphead");
     expect([after.status, after.note, after.favorite]).toEqual(["completed", "Alle Bosse", true]);
 
-    await saveSettings(db, USER, { pileThresholdMinutes: 120 });
-    expect((await loadRawData(db)).settings).toEqual({ pileThresholdMinutes: 120 });
+    await saveSettings(db, USER, { rareLimit: "5" });
+    expect((await loadRawData(db)).settings).toEqual({ rareLimit: "5" });
   });
 
   it("adds a game by hand and links it to an existing game by title", async () => {

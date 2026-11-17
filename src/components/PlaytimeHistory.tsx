@@ -2,13 +2,13 @@
 
 // Playtime over time: switch between days, weeks, months and years, and move back in time
 // with the arrows or by swiping the chart sideways.
-import { useRef, useState, type PointerEvent, type WheelEvent } from "react";
+import { useMemo, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import { clampOffset, maxOffset, offsetKeepingEnd, WINDOW_SIZE, windowBounds } from "@/core/history-window";
 import { formatMinutes } from "@/core/labels";
 import { playtimeSeries, type Bucket, type GameDay } from "@/core/library";
 import type { LocalDate } from "@/core/types";
 import { bucketLabel, PlaytimeChart } from "./charts";
-import { Button, Segmented } from "./ui";
+import { IconButton, Segmented } from "./ui";
 
 const BUCKETS: { id: Bucket; label: string }[] = [
   { id: "day", label: "Tage" },
@@ -36,10 +36,11 @@ export function PlaytimeHistory({
   const area = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; offset: number; swiping: boolean } | null>(null);
 
-  const first = days.reduce<LocalDate>((min, d) => (d.date < min ? d.date : min), today);
+  const first = useMemo(() => days.reduce<LocalDate>((min, d) => (d.date < min ? d.date : min), today), [days, today]);
   const seriesFor = (b: Bucket) => playtimeSeries(days, { from: first, to: today }, b);
-  // The React compiler memoises this; a day series over years is a few thousand points.
-  const series = seriesFor(bucket);
+  // Computed once per bucket, not on every move of a swipe: a day series over years has
+  // thousands of points.
+  const series = useMemo(() => playtimeSeries(days, { from: first, to: today }, bucket), [days, first, today, bucket]);
 
   const size = WINDOW_SIZE[bucket];
   const [start, end] = windowBounds(series.length, size, offset);
@@ -98,18 +99,14 @@ export function PlaytimeHistory({
       <Segmented label="Einteilung" options={BUCKETS} value={bucket} onChange={switchBucket} />
 
       <div className="flex items-center justify-between gap-2">
-        <Button aria-label="Früher" disabled={!canGoBack} onClick={() => move(step)}>
-          ‹
-        </Button>
-        <div className="min-w-0 text-center text-sm" aria-live="polite">
+        <IconButton icon="back" label="Früher" disabled={!canGoBack} onClick={() => move(step)} />
+        <div className="min-w-0 text-center text-sm font-semibold" aria-live="polite">
           <div className="truncate">
             {from && to ? (from.key === to.key ? bucketLabel(from.key, bucket, true) : `${bucketLabel(from.key, bucket, true)} – ${bucketLabel(to.key, bucket, true)}`) : "–"}
           </div>
-          <div className="text-xs tabular-nums text-muted">zusammen {formatMinutes(total)}</div>
+          <div className="text-xs font-normal tabular-nums text-muted">zusammen {formatMinutes(total)}</div>
         </div>
-        <Button aria-label="Später" disabled={offset === 0} onClick={() => move(-step)}>
-          ›
-        </Button>
+        <IconButton icon="forward" label="Später" disabled={offset === 0} onClick={() => move(-step)} />
       </div>
 
       <div

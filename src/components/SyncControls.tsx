@@ -93,7 +93,7 @@ export function SyncControls({ onFinished }: { onFinished: () => void }) {
   const running = run !== null && !isFinished(run.status) && !stale;
 
   return (
-    <Card title="Synchronisieren">
+    <Card title="Synchronisieren" icon="sync" tone="stats">
       <Notice>
         Der Sync läuft automatisch alle 6 Stunden. Hier startest du ihn sofort. Er läuft auf GitHub
         und dauert etwa 1 bis 3 Minuten; die Seite zeigt das Ergebnis, sobald er fertig ist.

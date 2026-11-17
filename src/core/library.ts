@@ -139,6 +139,7 @@ export interface LibraryGame {
   status: GameStatus | null;
   favorite: boolean;
   note: string;
+  /** Column of the former pile of shame; only kept so saving my data leaves it as it is. */
   hideFromPile: boolean;
   /** Not a game (YouTube, system apps): hidden from lists and statistics. */
   hidden: boolean;
@@ -525,23 +526,6 @@ export function playtimeSeries(days: readonly GameDay[], range: Range, bucket: B
   }
   for (const point of points.values()) point.estimated = point.minutes > 0 && point.estimatedMinutes * 2 >= point.minutes;
   return [...points.values()];
-}
-
-export const DEFAULT_PILE_THRESHOLD_MINUTES = 60;
-
-/** Owned, barely played, not finished or given up, and not hidden by me. */
-export function pileOfShame(games: readonly LibraryGame[], thresholdMinutes: number): LibraryGame[] {
-  return games
-    .filter(
-      (g) =>
-        !g.hidden &&
-        !g.hideFromPile &&
-        g.owned &&
-        g.status !== "completed" &&
-        g.status !== "dropped" &&
-        g.totalMinutes < thresholdMinutes,
-    )
-    .sort((a, b) => a.totalMinutes - b.totalMinutes || a.title.localeCompare(b.title, "de"));
 }
 
 // ---------------------------------------------------------------------------

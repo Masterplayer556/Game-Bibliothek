@@ -8,7 +8,6 @@ import {
   lifetimeByPlatform,
   lifetimeDistribution,
   lifetimeTopGames,
-  pileOfShame,
   playtimeSeries,
   staleConnections,
   topGames,
@@ -193,22 +192,6 @@ describe("statistics", () => {
       { platform: "nintendo", deviceKind: "switch2", minutes: 90 },
       { platform: "nintendo", deviceKind: "switch1", minutes: 60 },
     ]);
-  });
-});
-
-describe("pileOfShame", () => {
-  it("lists owned, barely played games that are not finished or hidden", () => {
-    expect(pileOfShame(lib.games, 60).map((g) => g.id)).toEqual(["g-hk"]);
-    // Peggle is not owned any more, YouTube is hidden
-    expect(pileOfShame(lib.games, 100_000).map((g) => g.id)).toEqual(["g-hk", "g-mc"]);
-  });
-
-  it("respects status and the per-game opt-out", () => {
-    const data = raw();
-    data.userData[1] = { ...data.userData[1]!, status: "completed" };
-    expect(pileOfShame(buildLibrary(data).games, 60)).toEqual([]);
-    data.userData[1] = { ...data.userData[1]!, status: null, hide_from_pile: true };
-    expect(pileOfShame(buildLibrary(data).games, 60)).toEqual([]);
   });
 });
 

@@ -223,7 +223,7 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
           raw: { titleId: game.titleId, category: game.category },
         });
       }
-      // Bought but never started: important for the pile of shame.
+      // Bought but never started: they belong in the library too («Nie gespielt»).
       const unplayed = new Map<string, NonNullable<typeof purchased>[number]>();
       for (const p of purchased ?? []) {
         if (!playedIds.has(p.titleId) && !unplayed.has(p.titleId)) unplayed.set(p.titleId, p);

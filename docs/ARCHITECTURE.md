@@ -83,7 +83,7 @@ src/
   app/               Seiten (nur Darstellung)
   components/        UI-Bausteine
   styles/tokens.css  ALLE Farben, Abstände, Schriften (einzige Stelle), je ein Block für hell und dunkel
-  styles/design.css  Sonderformen aus den Tokens: Buch-Cover, Regalbrett, Tasten, Pixel-Linie
+  styles/design.css  Sonderformen aus den Tokens: Hintergrund, Glas, Icon-Kacheln, Cover, Abschnitts-Balken, Liquid-Glass-Leiste
   lib/               Supabase-Client und Abfragen für den Browser
   core/              reine Logik ohne Next.js und ohne Node-Abhängigkeit:
                      Typen, Spielzeit-Berechnung, Statistiken, Titel-Abgleich, Zeitzone
@@ -143,12 +143,12 @@ Alle Tabellen haben `user_id` und RLS (`user_id = auth.uid()` plus Prüfung der 
 | `playtime_snapshots` | Gesamtspielzeit zu einem Zeitpunkt (Steam, PSN) | Wird nur geschrieben, wenn sich der Wert geändert hat (plus der erste) |
 | `daily_playtime` | Minuten pro Spiel, **Gerät**, Tag und **Quelle** | Eindeutig über `(platform_game_id, device_id, play_date, source)` |
 | `achievements` | Einzelne Trophäen/Erfolge: Name, Beschreibung, Icon, freigeschaltet am, Seltenheit, Stufe | |
-| `game_user_data` | Status, Favorit, Notiz, «nicht im Pile of Shame» | Hängt am `games`-Eintrag |
+| `game_user_data` | Status, Favorit, Notiz, «Kein Spiel»; `hide_from_pile` stammt vom früheren Pile of Shame und wird nicht mehr gezeigt | Hängt am `games`-Eintrag |
 | `platform_connections` | Status pro Adapter, letzter Sync, letzter Erfolg, Fehlermeldung, `data_since`, `token_expires_at`, fehlende Secrets | Von der App lesbar |
 | `platform_credentials` | Verschlüsselte Tokens | RLS an, **keine** Policy: aus dem Browser unlesbar |
 | `sync_runs` | Protokoll: Modus, Adapter, Status, Start, Ende, Ergebnis pro Adapter | |
 | `metadata_cache` | Zwischengespeicherte IGDB-Antworten | Phase 7 |
-| `app_settings` | Einstellungen, z. B. Grenze für den Pile of Shame | |
+| `app_settings` | Einstellungen, z. B. Grenze für «Selten» (`rareLimit`) | |
 
 ### Warum eine eigene `devices`-Tabelle?
 Im Auftrag steht das Gerät an `platform_games`. Bei Nintendo reicht das nicht: Dasselbe Spiel kann auf Switch 1 **und** Switch 2 laufen. Darum hängt das Gerät an den Tagesdaten. Für Steam, PS5 und manuelle Spiele bleibt zusätzlich `platform_games.device_kind` als fester Wert.

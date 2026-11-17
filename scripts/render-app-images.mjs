@@ -21,19 +21,23 @@ const ICONS = [
 const SPLASH = [[375, 667, 2], [414, 896, 2], [375, 812, 3], [390, 844, 3], [428, 926, 3], [393, 852, 3], [430, 932, 3], [402, 874, 3], [440, 956, 3]];
 
 const splashHtml = `<!doctype html><html><head>
-<link rel="stylesheet" href="file://${root}/node_modules/@fontsource-variable/fraunces/opsz.css">
-<link rel="stylesheet" href="file://${root}/node_modules/@fontsource/jersey-15/400.css">
+<link rel="stylesheet" href="file://${root}/node_modules/@fontsource-variable/bricolage-grotesque/standard.css">
 <style>
 html,body{margin:0;height:100%}
-body{background:#09081a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
- background-image:radial-gradient(28rem 20rem at 15% 0%, rgba(169,172,255,.30), transparent 70%),
-  radial-gradient(24rem 18rem at 100% 35%, rgba(240,192,79,.14), transparent 70%),
-  radial-gradient(30rem 22rem at 50% 110%, rgba(83,87,216,.35), transparent 70%)}
-img{width:34%;border-radius:22%;box-shadow:0 24px 50px -18px rgba(0,0,0,.7)}
-.w{display:flex;align-items:baseline;gap:10px;color:#ecebf8}
-.g{font-family:"Jersey 15";font-size:34px;letter-spacing:.08em;text-transform:uppercase;color:#a9acff}
-.b{font-family:"Fraunces Variable";font-weight:600;font-size:34px;letter-spacing:-.01em}
-</style></head><body><img src="file://${root}/public/icon-512.png"><div class="w"><span class="g">Game</span><span class="b">Bibliothek</span></div></body></html>`;
+body{background:#08061a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;overflow:hidden;position:relative;
+ background-image:radial-gradient(28rem 20rem at 0% 0%, rgba(133,119,255,.42), transparent 70%),
+  radial-gradient(24rem 18rem at 100% 8%, rgba(192,123,255,.26), transparent 70%),
+  radial-gradient(30rem 22rem at 110% 85%, rgba(255,47,180,.24), transparent 70%),
+  radial-gradient(26rem 20rem at -10% 70%, rgba(25,227,255,.14), transparent 70%),
+  linear-gradient(to bottom, transparent 55%, rgba(123,92,255,.22))}
+.grid{position:absolute;left:-60%;right:-60%;bottom:0;height:42%;opacity:.7;
+ background-image:linear-gradient(to right, rgba(133,119,255,.55) 1.5px, transparent 1.5px),linear-gradient(to top, rgba(133,119,255,.55) 1.5px, transparent 1.5px);
+ background-size:56px 56px;background-position:center bottom;transform:perspective(260px) rotateX(64deg);transform-origin:50% 100%;
+ -webkit-mask-image:linear-gradient(to top, black, transparent 80%)}
+img{position:relative;width:34%;border-radius:22%;box-shadow:0 24px 50px -18px rgba(0,0,0,.7), 0 0 60px -10px rgba(133,119,255,.6)}
+.w{position:relative;font-family:"Bricolage Grotesque Variable";font-weight:800;font-size:36px;letter-spacing:-.02em;color:#f4f2ff}
+.g{background:linear-gradient(90deg,#9d85ff,#ff5cc0);-webkit-background-clip:text;color:transparent}
+</style></head><body><div class="grid"></div><img src="file://${root}/public/icon-512.png"><div class="w"><span class="g">Game</span> Bibliothek</div></body></html>`;
 
 (async () => {
   const browser = await chromium.launch();

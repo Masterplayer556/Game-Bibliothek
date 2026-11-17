@@ -43,7 +43,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
   }
 
   return (
-    <Card title={title}>
+    <Card title={title} icon="switch" tone="library">
       <Notice>
         Holt die Spielzeit pro Tag aus der Jugendschutz-App. Voraussetzung: Die Konsole ist in der
         App «Nintendo Switch Parental Controls» verknüpft.

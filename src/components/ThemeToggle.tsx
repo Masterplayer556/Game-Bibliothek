@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { applyTheme, readThemeChoice, saveThemeChoice, subscribeTheme, type ThemeChoice } from "@/lib/theme";
 
 const icon = {
@@ -46,15 +46,22 @@ const OPTIONS: { id: ThemeChoice; label: string; icon: ReactNode }[] = [
   },
 ];
 
-/** Three small buttons: follow the device, always light, always dark. */
+/** Three small buttons: follow the device, always light, always dark. A pill glides to the choice. */
 export function ThemeToggle() {
   const choice = useSyncExternalStore<ThemeChoice>(subscribeTheme, readThemeChoice, () => "auto");
 
   // The script in <head> has already set the theme; this also colours the browser bar.
   useEffect(() => applyTheme(), []);
 
+  const index = OPTIONS.findIndex((o) => o.id === choice);
   return (
-    <div role="group" aria-label="Design" className="flex shrink-0 gap-0.5 rounded-full border border-border bg-surface-raised/80 p-0.5">
+    <div
+      role="group"
+      aria-label="Design"
+      className="segmented shrink-0 !p-[3px]"
+      style={{ "--count": OPTIONS.length, "--index": index } as CSSProperties}
+    >
+      <span aria-hidden className="segmented-pill" />
       {OPTIONS.map((o) => (
         <button
           key={o.id}
@@ -63,9 +70,7 @@ export function ThemeToggle() {
           aria-label={o.label}
           aria-pressed={choice === o.id}
           onClick={() => saveThemeChoice(o.id)}
-          className={`flex h-7 w-7 items-center justify-center rounded-full ${
-            choice === o.id ? "bg-accent text-on-accent" : "text-muted hover:text-text"
-          }`}
+          className="segmented-option flex h-7 w-8 items-center justify-center !p-0"
         >
           {o.icon}
         </button>

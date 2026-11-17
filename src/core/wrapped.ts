@@ -30,7 +30,7 @@ export interface BestDay {
   gameIds: string[];
 }
 
-export interface PileExit {
+export interface Rediscovered {
   gameId: string;
   minutesBefore: number;
   minutesInYear: number;
@@ -56,10 +56,14 @@ export interface WrappedYear {
   longestStreak: StreakResult | null;
   newGames: string[];
   achievements: { unlocked: number; rarest: (AchievementRow & { gameId: string }) | null };
-  pileExits: PileExit[];
+  /** Games barely touched before the year that got real playtime in it. */
+  rediscovered: Rediscovered[];
   /** Platforms whose data starts after 1 January: their values for this year are incomplete. */
   coverageGaps: CoverageGap[];
 }
+
+/** «Barely touched» before the year means less than this; «real playtime» means past it. */
+export const REDISCOVER_MINUTES = 60;
 
 export function yearRange(year: number, today: LocalDate): Range {
   const from = `${year}-01-01`;
@@ -132,7 +136,7 @@ export function buildWrapped(
   library: Library,
   achievements: readonly AchievementRow[],
   year: number,
-  options: { today: LocalDate; pileThresholdMinutes: number },
+  options: { today: LocalDate; rediscoverMinutes?: number },
 ): WrappedYear {
   const range = yearRange(year, options.today);
   const { days, byId } = library;
@@ -172,7 +176,7 @@ export function buildWrapped(
     }
   }
 
-  // Out of the pile: started before the year but stayed below the threshold, and crossed it
+  // Rediscovered: started before the year but stayed below the threshold, and crossed it
   // during the year. Games never played before 1 January are left out: without a purchase
   // date they cannot be told apart from games bought this year (those are «new games»).
   const minutesInYear = new Map<string, number>();
@@ -181,17 +185,18 @@ export function buildWrapped(
     if (d.date >= range.from && d.date <= range.to) minutesInYear.set(d.gameId, (minutesInYear.get(d.gameId) ?? 0) + d.minutes);
     if (d.date > range.to) minutesAfterYear.set(d.gameId, (minutesAfterYear.get(d.gameId) ?? 0) + d.minutes);
   }
-  const pileExits: PileExit[] = [];
+  const threshold = options.rediscoverMinutes ?? REDISCOVER_MINUTES;
+  const rediscovered: Rediscovered[] = [];
   for (const g of library.games) {
     if (g.hidden || !g.owned) continue;
     const inYear = minutesInYear.get(g.id) ?? 0;
     if (inYear === 0) continue;
     const before = Math.max(0, g.totalMinutes - inYear - (minutesAfterYear.get(g.id) ?? 0));
-    if (before > 0 && before < options.pileThresholdMinutes && before + inYear >= options.pileThresholdMinutes) {
-      pileExits.push({ gameId: g.id, minutesBefore: before, minutesInYear: inYear });
+    if (before > 0 && before < threshold && before + inYear >= threshold) {
+      rediscovered.push({ gameId: g.id, minutesBefore: before, minutesInYear: inYear });
     }
   }
-  pileExits.sort((a, b) => b.minutesInYear - a.minutesInYear);
+  rediscovered.sort((a, b) => b.minutesInYear - a.minutesInYear);
 
   const coverageGaps = (Object.entries(library.dataSince) as [PlatformId, LocalDate][])
     .filter(([, since]) => since > range.from && since <= range.to)
@@ -213,7 +218,7 @@ export function buildWrapped(
     longestStreak: longestStreak(days, range),
     newGames,
     achievements: { unlocked, rarest },
-    pileExits,
+    rediscovered,
     coverageGaps,
   };
 }

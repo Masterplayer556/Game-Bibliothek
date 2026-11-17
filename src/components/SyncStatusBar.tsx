@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ADAPTER_CATALOG } from "@/core/adapter-catalog";
 import { staleConnections, STALE_SYNC_HOURS, type ConnectionRow } from "@/core/library";
 import { relativeAge } from "./game-ui";
+import { Icon } from "./Icon";
 
 const STATUS_TEXT: Record<string, string> = {
   ok: "verbunden",
@@ -21,17 +22,20 @@ export function SyncStatusBar({ connections, now }: { connections: ConnectionRow
   return (
     <section aria-label="Status der Plattformen" className="flex flex-col gap-2">
       {stale.length > 0 ? (
-        <p className="rounded-control border border-warning bg-surface px-3 py-2 text-sm text-warning shadow-card">
-          ⚠ Seit über {STALE_SYNC_HOURS} Stunden kein erfolgreicher Sync für{" "}
+        <p className="card flex gap-2 !rounded-2xl px-3.5 py-2.5 text-sm text-warning">
+          <Icon name="warning" className="mt-px h-4 w-4" />
+          <span>
+          Seit über {STALE_SYNC_HOURS} Stunden kein erfolgreicher Sync für{" "}
           {stale.map((c) => ADAPTER_CATALOG.find((a) => a.id === c.adapter_id)?.displayName ?? c.adapter_id).join(", ")}.
           Prüfe unter <Link className="link" href="/plattformen/">Plattformen</Link>, ob der automatische Sync noch läuft.
+          </span>
         </p>
       ) : null}
       {connected.length > 0 ? (
-        <ul className="flex flex-wrap gap-2 text-xs">
+        <ul className="flex flex-wrap gap-1.5 text-xs">
           {connected.map(({ adapter, row }) => (
-            <li key={adapter.id} className="flex items-center gap-1.5 rounded-control border border-border bg-surface px-2 py-1 text-muted">
-              <span className={`h-2 w-2 shrink-0 ${row!.status === "ok" ? "bg-success" : "bg-danger"}`} aria-hidden />
+            <li key={adapter.id} className="chip !py-1 !font-medium text-muted">
+              <span className={`h-2 w-2 shrink-0 rounded-full ${row!.status === "ok" ? "bg-success shadow-[0_0_6px_var(--color-success)]" : "bg-danger"}`} aria-hidden />
               {adapter.displayName}: {row!.status === "ok" ? `aktualisiert ${relativeAge(row!.last_success_at, now)}` : STATUS_TEXT[row!.status]}
             </li>
           ))}

@@ -62,7 +62,7 @@ export default function AddGamePage() {
         </label>
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Button type="button" onClick={() => setSearchOpen((o) => !o)}>
+            <Button type="button" icon="search" onClick={() => setSearchOpen((o) => !o)}>
               {searchOpen ? "IGDB-Suche schliessen" : "Auf IGDB suchen"}
             </Button>
             {igdb && igdb.title === title ? <span className="text-success">Mit IGDB verknüpft (Cover und Genres)</span> : null}
@@ -100,7 +100,7 @@ export default function AddGamePage() {
           Noch im Besitz
         </label>
         <div>
-          <Button type="submit" variant="primary" disabled={busy || title.trim() === ""}>
+          <Button type="submit" variant="primary" icon="plus" disabled={busy || title.trim() === ""}>
             {busy ? "Speichere …" : "Hinzufügen"}
           </Button>
         </div>

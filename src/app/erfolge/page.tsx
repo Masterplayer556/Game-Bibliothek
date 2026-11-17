@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatDay, gameHref, GameCover } from "@/components/game-ui";
+import { Icon } from "@/components/Icon";
 import { LibraryGate } from "@/components/LibraryGate";
-import { PixelIcon } from "@/components/PixelIcon";
 import {
   Button,
   Card,
@@ -12,13 +12,13 @@ import {
   isRare,
   Medal,
   Notice,
-  ProgressBar,
   ProgressRing,
   RARE_LIMITS,
   RareBadge,
   rareLimitLabel,
   readRareLimit,
   Segmented,
+  SegmentedProgress,
   StatTile,
   type RareLimit,
 } from "@/components/ui";
@@ -28,11 +28,15 @@ import { errorMessage } from "@/lib/errors";
 import { saveSettings } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 
+/** Games in the progress list before «Alle zeigen». */
+const GAMES_SHOWN = 12;
+
 export default function AchievementsPage() {
   const [filter, setFilter] = useState<AchievementFilter>("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allRare, setAllRare] = useState(false);
+  const [allGames, setAllGames] = useState(false);
 
   return (
     <LibraryGate>
@@ -95,20 +99,71 @@ export default function AchievementsPage() {
               </section>
             ) : null}
 
+            <Card
+              title="Fortschritt pro Spiel"
+              subtitle={rows.length > 0 ? `${games} Spiele · ein Abschnitt pro Erfolg` : undefined}
+              icon="trophy"
+              action={
+                total > 0 ? (
+                  <span className="num shrink-0 text-right text-xl leading-none">
+                    {Math.round((unlocked / total) * 100)}
+                    <span className="text-sm text-muted"> %</span>
+                  </span>
+                ) : null
+              }
+            >
+              {rows.length === 0 ? (
+                <Notice>Noch keine Erfolge erfasst. Sie kommen mit dem Sync von Steam und PlayStation.</Notice>
+              ) : (
+                <>
+                  <ul className="-mx-1.5 flex flex-col gap-1">
+                    {(allGames ? rows : rows.slice(0, GAMES_SHOWN)).map(({ key, game, platforms: on, unlocked: done, total: of }) => (
+                      <li key={key}>
+                        <Link href={gameHref(game.id)} className="group flex items-center gap-3 rounded-2xl p-1.5 transition-colors hover:bg-section-soft">
+                          <GameCover game={game} className="w-12 shrink-0 !rounded-lg" />
+                          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span className="truncate text-sm font-semibold group-hover:text-section">{game.title}</span>
+                              <span className="num shrink-0 text-base leading-none">
+                                {done}
+                                <span className="text-xs text-muted"> / {of}</span>
+                              </span>
+                            </span>
+                            <SegmentedProgress value={done} max={of} label={`Erfolge ${game.title}`} />
+                            <span className="flex justify-between gap-2 text-[11px] text-muted">
+                              <span className="truncate">{on.map((p) => ACHIEVEMENT_PLATFORM_LABEL[p] ?? PLATFORM_LABEL[p]).join(" + ")}</span>
+                              <span className={`shrink-0 font-semibold ${done >= of ? "text-highlight" : ""}`}>
+                                {done >= of ? "Komplett" : `${Math.floor((done / of) * 100)} % · ${of - done} offen`}
+                              </span>
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {rows.length > GAMES_SHOWN ? (
+                    <div>
+                      <Button onClick={() => setAllGames((v) => !v)}>{allGames ? "Weniger zeigen" : `Alle ${rows.length} Spiele zeigen`}</Button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </Card>
+
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-4">
-              <div className="sheet glow-tile col-span-2 flex items-center gap-4 rounded-card p-4">
+              <div className="card card-glow col-span-2 flex items-center gap-4 rounded-tile p-4">
                 <ProgressRing value={unlocked} max={total} label="Erfolge freigeschaltet" />
                 <div className="min-w-0">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">Freigeschaltet</div>
+                  <div className="eyebrow">Freigeschaltet</div>
                   <div className="num whitespace-nowrap text-4xl leading-tight">
                     {unlocked}
                     <span className="text-xl text-muted"> / {total}</span>
                   </div>
                 </div>
               </div>
-              <StatTile label="Spiele" value={String(games)} icon="gamepad" hint="mit Erfolgen" />
-              <a href="#selten" className="lift rounded-card">
-                <StatTile label="Seltene" value={String(rareUnlocked)} icon="star" hint="Liste ansehen ↓" />
+              <StatTile label="Spiele" value={String(games)} icon="gamepad" hint="mit Erfolgen" tone="stats" />
+              <a href="#selten" className="lift rounded-tile">
+                <StatTile label="Seltene" value={String(rareUnlocked)} icon="star" hint="Liste ansehen ↓" tone="review" />
               </a>
             </section>
             {nintendoOnly > 0 && active === "all" ? (
@@ -136,7 +191,7 @@ export default function AchievementsPage() {
             </section>
 
             <section id="selten" className="scroll-mt-20">
-              <Card title="Deine seltensten Erfolge" icon="star">
+              <Card title="Deine seltensten Erfolge" icon="star" tone="review">
                 {rare.length === 0 ? (
                   <Notice>Noch kein Erfolg, den {rareLimitLabel(rareLimit)} der Spieler haben. Die Grenze stellst du oben ein.</Notice>
                 ) : (
@@ -149,14 +204,14 @@ export default function AchievementsPage() {
                         const row = shownEntries.get(a.platform_game_id)!;
                         const percent = a.rarity_percent ?? 0;
                         return (
-                          <li key={`${a.platform_game_id}-${a.external_id}`} className="flex items-center gap-3 rounded-xl p-1.5 hover:bg-surface-raised">
-                            <span className={`num w-6 shrink-0 text-center text-lg leading-none ${i < 3 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
+                          <li key={`${a.platform_game_id}-${a.external_id}`} className="flex items-center gap-3 rounded-2xl p-1.5 hover:bg-section-soft">
+                            <span className={`num w-6 shrink-0 text-center text-lg leading-none ${i < 3 ? "text-section" : "text-muted"}`}>{i + 1}</span>
                             {a.icon_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={a.icon_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-[10px] border border-border" />
+                              <img src={a.icon_url} alt="" loading="lazy" decoding="async" className="h-11 w-11 shrink-0 rounded-xl shadow-[var(--shadow-cover)]" />
                             ) : (
-                              <span className="icon-tile h-10 w-10 rounded-[10px]">
-                                <PixelIcon name="trophy" className="h-5 w-5" />
+                              <span className="icon-tile h-11 w-11 rounded-xl">
+                                <Icon name="trophy" className="h-6 w-6" />
                               </span>
                             )}
                             <Link href={gameHref(row.game.id)} className="min-w-0 flex-1">
@@ -170,7 +225,7 @@ export default function AchievementsPage() {
                               </span>
                             </Link>
                             <span className="flex shrink-0 flex-col items-end">
-                              <span className="num text-xl leading-none text-highlight">{percent.toLocaleString("de-CH")} %</span>
+                              <span className="num text-xl leading-none text-section">{percent.toLocaleString("de-CH")} %</span>
                               <span className="text-[10px] text-muted">der Spieler</span>
                             </span>
                           </li>
@@ -188,7 +243,7 @@ export default function AchievementsPage() {
             </section>
 
             {recent.length > 0 ? (
-              <Card title="Zuletzt freigeschaltet" icon="star">
+              <Card title="Zuletzt freigeschaltet" icon="medal" tone="chronicle">
                 <ul className="flex flex-col gap-2 text-sm">
                   {recent.map((a) => {
                     const row = shownEntries.get(a.platform_game_id)!;
@@ -213,35 +268,6 @@ export default function AchievementsPage() {
               </Card>
             ) : null}
 
-            <Card title="Fortschritt pro Spiel" icon="trophy">
-              {rows.length === 0 ? (
-                <Notice>Noch keine Erfolge erfasst. Sie kommen mit dem Sync von Steam und PlayStation.</Notice>
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {rows.map(({ key, game, platforms: on, unlocked: done, total: of }) => (
-                    <li key={key}>
-                      <Link href={gameHref(game.id)} className="flex items-center gap-3">
-                        <GameCover game={game} className="w-10 shrink-0" />
-                        <span className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className="flex justify-between gap-2 text-sm">
-                            <span className="truncate">
-                              {game.title}
-                              {active === "all" ? (
-                                <span className="text-muted"> · {on.map((p) => ACHIEVEMENT_PLATFORM_LABEL[p] ?? PLATFORM_LABEL[p]).join(" + ")}</span>
-                              ) : null}
-                            </span>
-                            <span className="shrink-0 tabular-nums text-muted">
-                              {done}/{of}
-                            </span>
-                          </span>
-                          <ProgressBar value={done} max={of} label={`Erfolge ${game.title}`} />
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
           </>
         );
       }}

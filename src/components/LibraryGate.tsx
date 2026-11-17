@@ -14,7 +14,7 @@ export function LibraryGate({
   const { library, raw, error, reload, session } = useLibraryContext();
   if (error && !library) {
     return (
-      <Card title="Daten nicht verfügbar">
+      <Card title="Daten nicht verfügbar" icon="warning">
         <Notice tone="danger">Die Datenbank antwortet mit einem Fehler: {error}</Notice>
       </Card>
     );

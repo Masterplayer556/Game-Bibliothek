@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ACHIEVEMENT_PLATFORM_LABEL, DEVICE_LABEL, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
+import { ACHIEVEMENT_PLATFORM_LABEL, DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { achievementSummary, mergeAchievements, type AchievementFilter } from "@/core/achievements";
 import { deviceTotals, type LibraryGame, type RawData } from "@/core/library";
 import { toLocalDate } from "@/core/time";
-import { GAME_STATUSES, type GameStatus, type PlatformId } from "@/core/types";
+import { GAME_STATUSES, type DeviceKind, type GameStatus, type PlatformId } from "@/core/types";
 import { deleteManualEntry, mergeGames, saveUserData, splitEntry, type UserDataPatch } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import { applyIgdb } from "@/lib/igdb";
+import { ShareBars } from "./charts";
 import { PlaytimeHistory } from "./PlaytimeHistory";
 import { IgdbPicker } from "./IgdbPicker";
-import { CoverBackdrop, DeviceBadge, formatDay, gameHref, GameCover, PlatformBadge, shelfMark } from "./game-ui";
+import { CoverBackdrop, formatDay, gameHref, GameCover, PlatformBadge, shelfMark, STATUS_LOOK } from "./game-ui";
 import { LibraryGate } from "./LibraryGate";
-import { Button, Card, fieldClass, Medal, Notice, ProgressBar, RareBadge, readRareLimit, Segmented } from "./ui";
+import { Icon } from "./Icon";
+import { Button, Card, fieldClass, Medal, Notice, RareBadge, readRareLimit, Segmented, SegmentedProgress } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
 function useAction(reload: () => Promise<void>) {
@@ -48,9 +50,9 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
   const save = (patch: UserDataPatch) => run(() => saveUserData(getSupabase(), userId, game.id, current, patch));
 
   return (
-    <Card title="Meine Angaben" icon="star">
+    <Card title="Meine Angaben" icon="pencil" tone="review">
       <div className="grid grid-cols-1 gap-stack sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-sm font-medium">
           Status
           <select
             className={fieldClass}
@@ -70,16 +72,12 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
             Favorit
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={game.hideFromPile} disabled={busy} onChange={(e) => save({ hide_from_pile: e.target.checked })} />
-            Nicht im Pile of Shame anzeigen
-          </label>
-          <label className="flex items-center gap-2">
             <input type="checkbox" checked={game.hidden} disabled={busy} onChange={(e) => save({ hidden: e.target.checked })} />
             Kein Spiel (App): zählt nicht als Spielzeit, erscheint separat unter Statistiken
           </label>
         </div>
       </div>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-sm font-medium">
         Notiz
         <textarea className={`${fieldClass} min-h-20`} value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
@@ -96,9 +94,11 @@ function MyData({ game, userId, reload }: { game: LibraryGame; userId: string; r
 function AchievementIcon({ url }: { url: string | null }) {
   return url ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt="" className="h-8 w-8 shrink-0 rounded-[3px] border border-border" loading="lazy" />
+    <img src={url} alt="" className="h-10 w-10 shrink-0 rounded-[10px] shadow-[var(--shadow-cover)]" loading="lazy" decoding="async" />
   ) : (
-    <span aria-hidden className="h-8 w-8 shrink-0 rounded-[3px] border border-border bg-surface-raised" />
+    <span aria-hidden className="icon-tile h-10 w-10 rounded-[10px]">
+      <Icon name="trophy" className="h-5 w-5" />
+    </span>
   );
 }
 
@@ -108,7 +108,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const withAchievements = game.entries.filter((e) => e.achievements && e.achievements.total > 0);
   if (withAchievements.length === 0) {
     return (
-      <Card title="Erfolge" icon="trophy">
+      <Card title="Erfolge" icon="trophy" tone="achievements">
         <Notice>
           {game.platforms.every((p) => p === "nintendo")
             ? "Nintendo hat keine Erfolge."
@@ -131,7 +131,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const together = joined ? achievementSummary([game], "all", raw.achievements).rows[0] : undefined;
 
   return (
-    <Card title="Erfolge" icon="trophy">
+    <Card title="Erfolge" subtitle="Ein Abschnitt pro Erfolg" icon="trophy" tone="achievements">
       {several ? (
         <Segmented
           label="Plattform"
@@ -144,25 +144,27 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
         />
       ) : null}
       {together ? (
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-sm">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between text-sm font-semibold">
             <span>Zusammen</span>
-            <span className="tabular-nums text-muted">
-              {together.unlocked}/{together.total}
+            <span className="num text-lg leading-none">
+              {together.unlocked}
+              <span className="text-xs text-muted"> / {together.total}</span>
             </span>
           </div>
-          <ProgressBar value={together.unlocked} max={together.total} label="Erfolge zusammen" />
+          <SegmentedProgress value={together.unlocked} max={together.total} label="Erfolge zusammen" className="!h-3" />
         </div>
       ) : null}
       {visible.map((e) => (
-        <div key={e.id} className="flex flex-col gap-1">
-          <div className={`flex justify-between ${joined ? "text-xs text-muted" : "text-sm"}`}>
+        <div key={e.id} className="flex flex-col gap-1.5">
+          <div className={`flex items-baseline justify-between ${joined ? "text-xs text-muted" : "text-sm font-semibold"}`}>
             <span>{platformName(e.platform)}</span>
-            <span className="tabular-nums text-muted">
-              {e.achievements!.unlocked}/{e.achievements!.total}
+            <span className={joined ? "tabular-nums" : "num text-lg leading-none"}>
+              {e.achievements!.unlocked}
+              <span className="text-xs text-muted"> / {e.achievements!.total}</span>
             </span>
           </div>
-          {joined ? null : <ProgressBar value={e.achievements!.unlocked} max={e.achievements!.total} label={`Erfolge ${platformName(e.platform)}`} />}
+          {joined ? null : <SegmentedProgress value={e.achievements!.unlocked} max={e.achievements!.total} label={`Erfolge ${platformName(e.platform)}`} className="!h-3" />}
         </div>
       ))}
       {joined ? (
@@ -171,7 +173,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
 
       {merged.length > 0 ? (
         <details>
-          <summary className="cursor-pointer text-sm text-muted">Alle {merged.length} Erfolge anzeigen</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-section">Alle {merged.length} Erfolge anzeigen</summary>
           <ul className="mt-2 flex flex-col gap-2">
             {merged.map((m) => (
               <li key={m.key} className={`flex gap-3 text-sm ${m.unlockedAt ? "" : "opacity-50"}`}>
@@ -197,7 +199,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
       ) : null}
       {list.length > 0 ? (
         <details>
-          <summary className="cursor-pointer text-sm text-muted">Alle {list.length} Erfolge anzeigen</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-section">Alle {list.length} Erfolge anzeigen</summary>
           <ul className="mt-2 flex flex-col gap-2">
             {list.map((a) => (
               <li key={`${a.platform_game_id}-${a.external_id}`} className={`flex gap-3 text-sm ${a.unlocked_at ? "" : "opacity-50"}`}>
@@ -245,10 +247,10 @@ function Entries({
           .slice(0, 6);
 
   return (
-    <Card title="Plattform-Einträge" icon="pile">
+    <Card title="Plattform-Einträge" icon="layers" tone="platforms">
       <ul className="flex flex-col gap-2">
         {game.entries.map((e) => (
-          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface-raised p-2 text-sm">
+          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-section-soft p-2.5 text-sm">
             <span className="flex min-w-0 flex-col">
               <span className="truncate">{e.title}</span>
               <span className="text-xs text-muted">
@@ -333,7 +335,7 @@ function IgdbCard({ game, reload }: { game: LibraryGame; reload: () => Promise<v
   const [open, setOpen] = useState(false);
   const searchFor = game.entries[0]?.title ?? game.title;
   return (
-    <Card title="Cover und Genres (IGDB)" icon="book">
+    <Card title="Cover und Genres (IGDB)" icon="image" tone="chronicle">
       {game.igdbId ? (
         <Notice>
           Zugeordnet{game.releaseYear ? `: erschienen ${game.releaseYear}` : ""}
@@ -377,7 +379,7 @@ export function GameDetail({ id }: { id: string }) {
         const game = library.byId.get(id);
         if (!game) {
           return (
-            <Card title="Spiel nicht gefunden">
+            <Card title="Spiel nicht gefunden" icon="search">
               <Notice>
                 Vielleicht wurde es zusammengeführt oder gelöscht.{" "}
                 <Link className="link" href="/bibliothek/">Zur Bibliothek</Link>
@@ -391,61 +393,72 @@ export function GameDetail({ id }: { id: string }) {
 
         return (
           <>
-            <section className="relative overflow-hidden rounded-card border border-border-strong bg-surface shadow-card">
+            <section className="relative overflow-hidden rounded-card bg-[#1a1438] text-white shadow-[0_24px_48px_-24px_rgb(20_10_60/0.7)]">
               <CoverBackdrop game={game} />
-              <div className="relative flex gap-4 p-card sm:gap-6 sm:p-6">
-              <GameCover game={game} bookmark={game.favorite} stamp={game.status} className="w-28 shrink-0 self-start sm:w-40" />
-              <div className="flex min-w-0 flex-col gap-2">
-                <span
-                  className="self-start rounded-[3px] border border-border-strong bg-field px-1.5 py-0.5 font-mono text-[11px] tracking-wide text-muted"
-                  title="Signatur: Plattform, Erscheinungsjahr, Titel"
-                >
-                  <span className="sr-only">Signatur </span>
-                  {shelfMark(game)}
-                </span>
-                <h2 className="font-display text-2xl font-semibold leading-tight sm:text-3xl">
-                  {game.favorite ? <span className="sr-only">Favorit: </span> : null}
-                  {game.title}
-                </h2>
-                <div className="flex flex-wrap gap-1">
-                  {game.platforms.map((p) => <PlatformBadge key={p} platform={p} />)}
-                  {game.deviceKinds.map((k) => <DeviceBadge key={k} kind={k} />)}
-                </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-sm">
-                  <dt className="text-muted">Spielzeit</dt>
-                  <dd className="num text-2xl leading-5">{formatMinutes(game.totalMinutes)}</dd>
-                  <dt className="text-muted">Zuletzt</dt>
-                  <dd>{formatDay(game.lastPlayedAt)}</dd>
+              <div className="relative flex gap-4 p-4 sm:gap-6 sm:p-6">
+                <GameCover game={game} favorite={game.favorite} className="w-32 shrink-0 self-start shadow-[0_18px_30px_-12px_rgb(0_0_0/0.7)] sm:w-44" eager />
+                <div className="flex min-w-0 flex-col gap-2">
+                  <span
+                    className="self-start rounded-full border border-white/25 bg-white/12 px-2 py-0.5 font-mono text-[10.5px] tracking-wide text-white/85"
+                    title="Signatur: Plattform, Erscheinungsjahr, Titel"
+                  >
+                    <span className="sr-only">Signatur </span>
+                    {shelfMark(game)}
+                  </span>
+                  <h2 className="font-display text-[1.6rem] font-extrabold leading-[1.05] tracking-tight sm:text-4xl">
+                    {game.favorite ? <span className="sr-only">Favorit: </span> : null}
+                    {game.title}
+                  </h2>
+                  <div className="flex flex-wrap gap-1">
+                    {game.platforms.map((p) => <PlatformBadge key={p} platform={p} onDark />)}
+                  </div>
                   {game.status ? (
-                    <>
-                      <dt className="text-muted">Status</dt>
-                      <dd>{STATUS_LABEL[game.status]}</dd>
-                    </>
+                    <span className={`self-start rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${STATUS_LOOK[game.status]}`}>{STATUS_LABEL[game.status]}</span>
                   ) : null}
-                </dl>
+                </div>
               </div>
-              </div>
+              <dl className="relative mx-4 mb-4 grid grid-cols-2 gap-3 rounded-[1.25rem] border border-white/15 bg-white/10 p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] sm:mx-6 sm:mb-6 sm:grid-cols-3">
+                <div>
+                  <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">Spielzeit</dt>
+                  <dd className="num mt-1 text-2xl leading-none" title={formatMinutes(game.totalMinutes)}>
+                    {game.totalMinutes >= 60 ? formatHours(game.totalMinutes) : formatMinutes(game.totalMinutes)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">Zuletzt</dt>
+                  <dd className="mt-1 text-sm font-semibold">{formatDay(game.lastPlayedAt)}</dd>
+                </div>
+                {game.achievements ? (
+                  <div className="col-span-2 sm:col-span-1">
+                    <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/75">Erfolge</dt>
+                    <dd className="num mt-1 text-2xl leading-none">
+                      {game.achievements.unlocked}
+                      <span className="text-sm text-white/70"> / {game.achievements.total}</span>
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
             </section>
 
-            <Card title="Spielzeit nach Plattform und Gerät" icon="gamepad">
+            <Card title="Spielzeit nach Gerät" subtitle="Plattform und Konsole" icon="gamepad" tone="stats">
               {totals.length === 0 ? (
                 <Notice>Noch keine Spielzeit erfasst.</Notice>
               ) : (
-                <ul className="flex flex-col gap-1 text-sm">
-                  {totals.map((t) => (
-                    <li key={`${t.platform}-${t.deviceKind}`} className="flex justify-between gap-2">
-                      <span>
-                        {PLATFORM_LABEL[t.platform]}
-                        {t.deviceKind ? ` · ${DEVICE_LABEL[t.deviceKind]}` : ""}
-                      </span>
-                      <span className="tabular-nums text-muted">{formatMinutes(t.minutes)}</span>
-                    </li>
-                  ))}
-                </ul>
+                <ShareBars
+                  shares={totals.map((t) => ({ key: `${t.platform}|${t.deviceKind ?? ""}`, minutes: t.minutes }))}
+                  label={(k) => {
+                    const [platform, device] = k.split("|") as [PlatformId, DeviceKind | ""];
+                    return device ? DEVICE_LABEL[device] : PLATFORM_LABEL[platform];
+                  }}
+                  color={(k) => {
+                    const [platform, device] = k.split("|");
+                    return device ? `var(--color-device-${device})` : `var(--color-platform-${platform})`;
+                  }}
+                />
               )}
             </Card>
 
-            <Card title="Verlauf" icon="chart">
+            <Card title="Verlauf" icon="stats">
               {gameDays.length === 0 ? (
                 <Notice>Noch kein Verlauf: Er beginnt mit dem ersten Sync nach dem Spielen.</Notice>
               ) : (

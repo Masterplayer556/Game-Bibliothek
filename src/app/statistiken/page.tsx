@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ShareBars } from "@/components/charts";
-import { formatDay, gameHref } from "@/components/game-ui";
+import { formatDay, gameHref, GameCover } from "@/components/game-ui";
+import { Icon } from "@/components/Icon";
 import { LibraryGate } from "@/components/LibraryGate";
 import { PlayCalendar } from "@/components/PlayCalendar";
 import { PlaytimeHistory } from "@/components/PlaytimeHistory";
@@ -76,7 +77,7 @@ export default function StatisticsPage() {
 
         return (
           <>
-            <Card title="Verlauf" icon="chart">
+            <Card title="Verlauf" subtitle="Ziehen oder ‹ › für frühere Zeiten" icon="stats">
               {library.days.length === 0 ? (
                 <Notice>Noch keine Spielzeit erfasst.</Notice>
               ) : (
@@ -85,17 +86,22 @@ export default function StatisticsPage() {
             </Card>
 
             {library.days.length > 0 ? (
-              <Card title="Spieltage" icon="calendar">
+              <Card title="Spieltage" subtitle="Ein Feld pro Tag" icon="calendar">
                 <PlayCalendar days={library.days} today={today} byId={library.byId} />
               </Card>
             ) : null}
 
-            <section className="flex flex-col gap-1" aria-label="Zeitraum">
-              <select className={fieldClass} aria-label="Zeitraum" value={rangeKey} onChange={(e) => setRangeKey(e.target.value as RangeKey)}>
+            <section className="flex flex-col gap-1.5" aria-label="Zeitraum">
+              <label className="flex items-center gap-3">
+                <span className="icon-tile h-9 w-9 rounded-xl">
+                  <Icon name="filter" className="h-5 w-5" />
+                </span>
+                <select className={`${fieldClass} min-w-0 flex-1 !rounded-full font-semibold`} aria-label="Zeitraum" value={rangeKey} onChange={(e) => setRangeKey(e.target.value as RangeKey)}>
                 {(Object.keys(RANGE_LABEL) as RangeKey[]).map((k) => (
                   <option key={k} value={k}>{RANGE_LABEL[k]}</option>
                 ))}
               </select>
+              </label>
               <span className="text-xs text-muted">
                 Gilt für die Zahlen und Listen darunter.
                 {everything && undatedMinutes > 0
@@ -111,33 +117,39 @@ export default function StatisticsPage() {
             </section>
 
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
-              <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} icon="clock" />
-              <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" hint={everything && undatedMinutes > 0 ? "nur Tage mit Datum" : undefined} />
-              <StatTile label="Verschiedene Spiele" value={String(ranked.length)} icon="book" />
+              <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} icon="clock" tone="stats" />
+              <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" hint={everything && undatedMinutes > 0 ? "nur Tage mit Datum" : undefined} tone="chronicle" />
+              <div className="col-span-2 sm:col-span-1">
+                <StatTile label="Verschiedene Spiele" value={String(ranked.length)} icon="library" tone="library" />
+              </div>
             </section>
 
-            <Card title="Top-Spiele" icon="trophy">
+            <Card title="Top-Spiele" subtitle={RANGE_LABEL[rangeKey]} icon="trophy" tone="achievements">
               {top.length === 0 ? (
                 <Notice>Keine Spielzeit im gewählten Zeitraum.</Notice>
               ) : (
-                <ol className="flex flex-col gap-1 text-sm">
-                  {top.map((t, i) => (
-                    <li key={t.gameId} className="flex justify-between gap-2">
-                      <Link href={gameHref(t.gameId)} className="flex min-w-0 items-baseline gap-2 hover:text-accent">
-                        <span className={`num w-5 shrink-0 text-right text-lg leading-none ${i === 0 ? "text-highlight" : "text-muted"}`}>{i + 1}</span>
-                        <span className="truncate">{library.byId.get(t.gameId)?.title}</span>
-                      </Link>
-                      <span className="shrink-0 tabular-nums text-muted">
-                        {formatMinutes(t.minutes)}
-                        {t.estimated ? "*" : ""}
-                      </span>
-                    </li>
-                  ))}
+                <ol className="-mx-1.5 flex flex-col gap-0.5 text-sm">
+                  {top.map((t, i) => {
+                    const game = library.byId.get(t.gameId);
+                    return (
+                      <li key={t.gameId}>
+                        <Link href={gameHref(t.gameId)} className="group flex items-center gap-3 rounded-2xl p-1.5 transition-colors hover:bg-section-soft">
+                          <span className={`num w-6 shrink-0 text-center text-lg leading-none ${i < 3 ? "text-section" : "text-muted"}`}>{i + 1}</span>
+                          {game ? <GameCover game={game} className="w-9 shrink-0 !rounded-md" /> : null}
+                          <span className="min-w-0 flex-1 truncate font-semibold group-hover:text-section">{game?.title}</span>
+                          <span className="shrink-0 font-semibold tabular-nums text-muted">
+                            {formatMinutes(t.minutes)}
+                            {t.estimated ? "*" : ""}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ol>
               )}
             </Card>
 
-            <Card title="Plattformen" icon="gamepad">
+            <Card title="Plattformen" icon="gamepad" tone="platforms">
               <ShareBars
                 shares={shares("platform")}
                 label={(k) => PLATFORM_LABEL[k as PlatformId] ?? k}
@@ -145,7 +157,7 @@ export default function StatisticsPage() {
               />
             </Card>
 
-            <Card title="Geräte" icon="gamepad">
+            <Card title="Geräte" icon="switch" tone="chronicle">
               <ShareBars
                 shares={shares("device")}
                 label={(k) => DEVICE_LABEL[k as DeviceKind] ?? k}
@@ -153,16 +165,16 @@ export default function StatisticsPage() {
               />
             </Card>
 
-            <Card title="Genres" icon="book">
+            <Card title="Genres" icon="library" tone="review">
               <ShareBars
                 shares={shares("genre")}
                 label={(k) => k}
-                color={() => "var(--color-chart-bar)"}
+                color={() => "var(--section)"}
               />
               <Notice>Genres kommen von IGDB. Ein Spiel mit mehreren Genres zählt bei jedem.</Notice>
             </Card>
 
-            <Card title="Apps (kein Spiel)" icon="clock">
+            <Card title="Apps (kein Spiel)" icon="play" tone="home">
               {(() => {
                 const apps = topGames(library.appDays, range, 50);
                 if (apps.length === 0) return <Notice>Keine App-Zeit im gewählten Zeitraum.</Notice>;
@@ -174,7 +186,7 @@ export default function StatisticsPage() {
                     <ul className="flex flex-col gap-1 text-sm">
                       {apps.map((a) => (
                         <li key={a.gameId} className="flex justify-between gap-2">
-                          <Link href={gameHref(a.gameId)} className="truncate hover:text-accent">
+                          <Link href={gameHref(a.gameId)} className="truncate hover:text-section">
                             {library.byId.get(a.gameId)?.title}
                           </Link>
                           <span className="shrink-0 tabular-nums text-muted">{formatMinutes(a.minutes)}</span>
@@ -186,7 +198,7 @@ export default function StatisticsPage() {
               })()}
             </Card>
 
-            <Card title="Datenbasis" variant="note">
+            <Card title="Datenbasis" icon="info" tone="add">
               <Notice>
                 Spielzeit pro Tag gibt es erst ab dem ersten Sync einer Plattform. Lücken davor heissen
                 nicht «nicht gespielt». * markiert geschätzte Werte (z. B. mehrere Tage zwischen zwei

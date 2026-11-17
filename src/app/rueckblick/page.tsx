@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { LibraryGate } from "@/components/LibraryGate";
 import { Card, fieldClass, Notice } from "@/components/ui";
 import { WrappedCards } from "@/components/WrappedCards";
-import { DEFAULT_PILE_THRESHOLD_MINUTES } from "@/core/library";
 import { toLocalDate } from "@/core/time";
 import { availableYears, buildWrapped } from "@/core/wrapped";
 
@@ -21,7 +20,7 @@ function WrappedContent() {
         const currentYear = Number(today.slice(0, 4));
         if (years.length === 0) {
           return (
-            <Card title="Jahresrückblick">
+            <Card title="Jahresrückblick" icon="review">
               <Notice>
                 {library.days.length === 0
                   ? "Noch keine Spielzeit erfasst. Lade Demo-Daten oder verbinde eine Plattform."
@@ -31,17 +30,13 @@ function WrappedContent() {
           );
         }
         const year = years.includes(requested) ? requested : years[0]!;
-        const stored = Number(raw.settings.pileThresholdMinutes);
-        const wrapped = buildWrapped(library, raw.achievements, year, {
-          today,
-          pileThresholdMinutes: Number.isFinite(stored) && stored > 0 ? stored : DEFAULT_PILE_THRESHOLD_MINUTES,
-        });
+        const wrapped = buildWrapped(library, raw.achievements, year, { today });
         return (
           <>
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-medium text-muted">Jahr</h2>
+              <h2 className="eyebrow">Jahr</h2>
               <select
-                className={fieldClass}
+                className={`${fieldClass} !rounded-full font-semibold`}
                 aria-label="Jahr"
                 value={year}
                 onChange={(e) => router.replace(`/rueckblick/?year=${e.target.value}`)}
