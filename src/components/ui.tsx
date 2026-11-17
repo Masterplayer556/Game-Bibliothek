@@ -1,50 +1,83 @@
 // Small presentational building blocks. Styling only, no logic.
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { PixelIcon, type PixelIconName } from "./PixelIcon";
+import { useId, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
+import { Icon, type IconName } from "./Icon";
+import { sectionStyle, type Section } from "./section";
 
-/** An index card. `icon` sits in a tile in the colour of the section; `variant="note"` is a pinned note. */
+/**
+ * A card of tinted glass. `icon` sits on a glossy tile in the colour of the section; `tone`
+ * gives the card the colour of another section; `action` sits at the right of the title.
+ */
 export function Card({
   title,
+  subtitle,
   icon,
-  variant = "card",
+  tone,
+  action,
+  glow = false,
+  className = "",
   children,
 }: {
   title?: string;
-  icon?: PixelIconName;
-  variant?: "card" | "note";
+  subtitle?: string;
+  icon?: IconName;
+  tone?: Section;
+  action?: ReactNode;
+  glow?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-card p-card sm:p-5 ${variant === "note" ? "note border shadow-card" : "sheet"}`}>
+    <section className={`card p-card sm:p-5 ${glow ? "card-glow" : ""} ${className}`} style={tone ? sectionStyle(tone) : undefined}>
       {title ? (
-        <h2 className="rule-dashed mb-stack flex items-center gap-3 pb-3 font-display text-xl font-semibold leading-snug">
+        <div className="mb-4 flex items-center gap-3">
           {icon ? (
-            <span className="icon-tile h-8 w-8 rounded-[10px]">
-              <PixelIcon name={icon} />
+            <span className="icon-tile h-10 w-10 rounded-[13px]">
+              <Icon name={icon} className="h-[22px] w-[22px]" />
             </span>
           ) : null}
-          {title}
-        </h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-[1.3rem] font-bold leading-tight tracking-tight">{title}</h2>
+            {subtitle ? <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p> : null}
+          </div>
+          {action}
+        </div>
       ) : null}
       <div className="flex flex-col gap-stack">{children}</div>
     </section>
   );
 }
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" };
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary"; icon?: IconName };
 
-export function Button({ variant = "secondary", className = "", ...props }: ButtonProps) {
-  const look =
-    variant === "primary"
-      ? "key-accent bg-accent text-on-accent shadow-[0_8px_18px_-10px_var(--color-accent)]"
-      : "key border border-border-strong bg-surface text-text";
+export function Button({ variant = "secondary", icon, className = "", children, ...props }: ButtonProps) {
   return (
-    <button
-      {...props}
-      className={`rounded-control px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${look} ${className}`}
-    />
+    <button {...props} className={`btn ${variant === "primary" ? "btn-primary" : "btn-secondary"} ${className}`}>
+      {icon ? <Icon name={icon} className="h-4 w-4" /> : null}
+      {children}
+    </button>
   );
 }
+
+/** A round button with an icon only: arrows and menus. */
+export function IconButton({
+  icon,
+  label,
+  className = "",
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { icon: IconName; label: string }) {
+  return (
+    <button {...props} aria-label={label} title={label} className={`btn btn-secondary btn-icon ${className}`}>
+      <Icon name={icon} className="h-[18px] w-[18px]" />
+    </button>
+  );
+}
+
+const NOTICE_TONE = {
+  muted: { text: "text-muted", icon: null },
+  success: { text: "text-success", icon: "check" },
+  warning: { text: "text-warning", icon: "warning" },
+  danger: { text: "text-danger", icon: "warning" },
+} as const;
 
 export function Notice({
   tone = "muted",
@@ -53,38 +86,71 @@ export function Notice({
   tone?: "muted" | "success" | "warning" | "danger";
   children: ReactNode;
 }) {
-  const color = {
-    muted: "text-muted",
-    success: "text-success",
-    warning: "text-warning",
-    danger: "text-danger",
-  }[tone];
-  return <p className={`text-sm ${color}`}>{children}</p>;
+  const look = NOTICE_TONE[tone];
+  return (
+    <p className={`flex gap-2 text-sm ${look.text}`}>
+      {look.icon ? <Icon name={look.icon} className="mt-px h-4 w-4" /> : null}
+      <span className="min-w-0">{children}</span>
+    </p>
+  );
 }
 
 // 16px on phones: iOS zooms into smaller fields.
 export const fieldClass =
-  "rounded-control border border-border-strong bg-field px-3 py-2 text-base text-text outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent-soft disabled:opacity-60 sm:text-sm";
+  "rounded-control border border-border-strong bg-field px-3.5 py-2.5 text-base text-text shadow-[inset_0_1px_2px_var(--color-border)] outline-none placeholder:text-muted focus:border-[var(--section-ink,var(--color-accent))] focus:ring-4 focus:ring-[color-mix(in_oklab,var(--section,var(--color-accent))_22%,transparent)] disabled:opacity-60 sm:text-sm";
 
-export function StatTile({ label, value, hint, icon }: { label: string; value: string; hint?: string; icon?: PixelIconName }) {
+/** A number with its label on a tile. `tone` picks the colour of another section, for variety. */
+export function StatTile({
+  label,
+  value,
+  hint,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon?: IconName;
+  tone?: Section;
+}) {
   return (
-    <div className="sheet glow-tile flex h-full flex-col gap-1.5 rounded-card p-3.5">
+    <div className="card card-glow flex h-full flex-col gap-2 rounded-tile p-3.5" style={tone ? sectionStyle(tone) : undefined}>
       <div className="flex items-center gap-2">
         {icon ? (
-          <span className="icon-tile h-6 w-6 rounded-[7px]">
-            <PixelIcon name={icon} className="h-3.5 w-3.5" />
+          <span className="icon-tile h-8 w-8 rounded-[10px]">
+            <Icon name={icon} className="h-[18px] w-[18px]" />
           </span>
         ) : null}
-        <span className="min-w-0 text-[11px] font-semibold uppercase leading-tight tracking-wider text-muted">{label}</span>
+        <span className="eyebrow min-w-0 leading-tight">{label}</span>
       </div>
-      <div className="num text-[1.75rem] leading-tight">{value}</div>
+      <div className="num text-[1.85rem] leading-none">{value}</div>
       {hint ? <div className="text-xs text-muted">{hint}</div> : null}
     </div>
   );
 }
 
-export function ProgressBar({ value, max, label }: { value: number; max: number; label: string }) {
-  const percent = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+/** Width of the cut between two segments: wide for a few, a hairline for very many. */
+function segmentGap(count: number): number {
+  if (count <= 12) return 4;
+  if (count <= 30) return 3;
+  if (count <= 60) return 2;
+  if (count <= 110) return 1.25;
+  return 0.75;
+}
+
+/**
+ * Progress in as many segments as there are steps: a game with 4 achievements has four, one
+ * with 137 has 137. Finished, it turns gold. Above 400 steps it is one plain bar.
+ */
+export function SegmentedProgress({ value, max, label, className = "" }: { value: number; max: number; label: string; className?: string }) {
+  const steps = Math.max(1, max);
+  const done = Math.max(0, Math.min(value, steps));
+  const segmented = steps <= 400;
+  const style = {
+    "--n": segmented ? steps : 1,
+    "--k": segmented ? done : done / steps,
+    "--g": `${segmented && steps > 1 ? segmentGap(steps) : 0}px`,
+  } as CSSProperties;
   return (
     <div
       role="progressbar"
@@ -92,41 +158,36 @@ export function ProgressBar({ value, max, label }: { value: number; max: number;
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={value}
-      className="xp h-2.5 w-full overflow-hidden rounded-[3px] bg-surface-raised shadow-[inset_0_0_0_1px_var(--color-border)]"
+      data-complete={max > 0 && value >= max}
+      className={`seg-bar ${className}`}
+      style={style}
     >
-      {/* A finished bar turns to brass. */}
-      <div className={`h-full ${percent === 100 ? "bg-highlight-fill" : "bg-accent"}`} style={{ width: `${percent}%` }} />
+      <div className="seg-bar-strip">
+        <div className="seg-bar-fill" />
+      </div>
     </div>
   );
 }
 
 /** Progress as a ring with the percentage in the middle. */
-export function ProgressRing({ value, max, label }: { value: number; max: number; label: string }) {
+export function ProgressRing({ value, max, label, size = "h-20 w-20" }: { value: number; max: number; label: string; size?: string }) {
   const share = max > 0 ? Math.min(1, value / max) : 0;
   const radius = 26;
   const length = 2 * Math.PI * radius;
+  const id = `ring${useId().replace(/:/g, "")}`;
   return (
-    <div
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      className="relative h-16 w-16 shrink-0"
-    >
+    <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} className={`relative shrink-0 ${size}`}>
       <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="32" cy="32" r={radius} fill="none" stroke="var(--color-surface-raised)" strokeWidth="8" />
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke={share === 1 ? "var(--color-highlight-fill)" : "var(--section, var(--color-accent))"}
-          strokeWidth="8"
-          strokeDasharray={`${share * length} ${length}`}
-        />
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor={share === 1 ? "var(--color-highlight-fill)" : "var(--section, var(--color-accent))"} />
+            <stop offset="1" stopColor={share === 1 ? "var(--color-highlight-fill-2)" : "var(--section-2, var(--color-accent-2))"} />
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r={radius} fill="none" stroke="color-mix(in oklab, var(--color-text) 10%, transparent)" strokeWidth="8" />
+        <circle cx="32" cy="32" r={radius} fill="none" stroke={`url(#${id})`} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${share * length} ${length}`} />
       </svg>
-      <span className="num absolute inset-0 flex items-center justify-center text-lg leading-none">{Math.round(share * 100)}%</span>
+      <span className="num absolute inset-0 flex items-center justify-center text-xl leading-none">{Math.round(share * 100)}%</span>
     </div>
   );
 }
@@ -144,7 +205,7 @@ export function Medal({ tier }: { tier: string | null | undefined }) {
   if (!medal) return null;
   return (
     <span className="inline-flex shrink-0 items-center" style={{ color: medal.color }} title={medal.label}>
-      <PixelIcon name="trophy" className="h-3.5 w-3.5" />
+      <Icon name="trophy" className="h-4 w-4" />
       <span className="sr-only">{medal.label}</span>
     </span>
   );
@@ -171,45 +232,56 @@ export function isRare(percent: number | null | undefined, limit: RareLimit): bo
   return limit === "<1" ? percent < 1 : percent <= Number(limit);
 }
 
-/** A brass tag for an achievement that few players have. Nothing if the share is unknown or common. */
+/** A gold tag for an achievement that few players have. Nothing if the share is unknown or common. */
 export function RareBadge({ percent, limit }: { percent: number | null | undefined; limit: RareLimit }) {
   if (percent == null || !isRare(percent, limit)) return null;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-[3px] bg-highlight-fill px-1 py-px text-[10px] font-semibold uppercase leading-tight tracking-wide text-on-highlight"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-linear-to-r from-highlight-fill to-highlight-fill-2 px-1.5 py-px text-[10px] font-bold uppercase leading-tight tracking-wide text-on-highlight shadow-[inset_0_1px_0_rgb(255_255_255/0.5)]"
       title={`Nur ${percent} % der Spieler haben das`}
     >
-      <PixelIcon name="star" className="h-2.5 w-2.5" />
+      <Icon name="star" className="h-2.5 w-2.5" />
       Selten
     </span>
   );
 }
 
-/** A row of buttons of which exactly one is selected (tabs for a view, not for pages). */
+/** A row of options of which exactly one is chosen (for a view, not for pages); the pill glides. */
 export function Segmented<T extends string>({
   label,
   options,
   value,
   onChange,
+  className = "",
 }: {
   label: string;
   options: readonly { id: T; label: string }[];
   value: T;
   onChange: (id: T) => void;
+  className?: string;
 }) {
+  const index = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <div role="group" aria-label={label} className="flex gap-1 rounded-full border border-border bg-surface-raised p-1 text-sm">
+    <div role="group" aria-label={label} className={`segmented ${className}`} style={{ "--count": options.length, "--index": index } as CSSProperties}>
+      <span aria-hidden className="segmented-pill" />
       {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          aria-pressed={value === o.id}
-          onClick={() => onChange(o.id)}
-          className={`flex-1 rounded-full px-3 py-1.5 transition-colors ${value === o.id ? "bg-section font-semibold text-on-section shadow-[0_4px_12px_-6px_var(--section,var(--color-accent))]" : "text-muted hover:text-text"}`}
-        >
+        <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onChange(o.id)} className="segmented-option">
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** A label above a big number, for heroes and summaries. */
+export function Figure({ label, value, unit, className = "" }: { label: string; value: ReactNode; unit?: string; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="text-[11px] font-bold uppercase tracking-[0.08em] opacity-80">{label}</div>
+      <div className="num mt-1 text-[2rem] leading-none">
+        {value}
+        {unit ? <span className="ml-1 text-base font-semibold opacity-75">{unit}</span> : null}
+      </div>
     </div>
   );
 }

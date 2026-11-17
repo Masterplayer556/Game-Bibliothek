@@ -33,7 +33,7 @@ function PlaytimeTooltip({ active, payload, bucket }: TooltipProps) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
   return (
-    <div className="rounded-control border border-border-strong bg-surface px-3 py-2 text-xs text-text shadow-card">
+    <div className="glass rounded-2xl px-3 py-2 text-xs text-text">
       <div className="text-muted">{bucketLabel(point.key, bucket, true)}</div>
       <div className="num text-lg leading-tight">{formatMinutes(point.minutes)}</div>
       {point.estimatedMinutes > 0 ? (
@@ -69,10 +69,10 @@ export function PlaytimeChart({ points, bucket, title }: { points: SeriesPoint[]
               axisLine={false}
               width={40}
             />
-            <Tooltip content={<PlaytimeTooltip bucket={bucket} />} cursor={{ fill: "var(--color-surface-raised)" }} />
-            <Bar dataKey="hours" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+            <Tooltip content={<PlaytimeTooltip bucket={bucket} />} cursor={{ fill: "color-mix(in oklab, var(--section) 12%, transparent)", radius: 6 }} />
+            <Bar dataKey="hours" radius={[4, 4, 0, 0]} isAnimationActive={false}>
               {data.map((p) => (
-                <Cell key={p.key} fill="var(--color-chart-bar)" fillOpacity={p.estimated ? 0.45 : 1} />
+                <Cell key={p.key} fill="var(--color-chart-bar)" fillOpacity={p.estimated ? 0.4 : 1} />
               ))}
             </Bar>
           </BarChart>
@@ -119,15 +119,18 @@ export function ShareBars({
   return (
     <ul className="flex flex-col gap-2">
       {shares.map((s) => (
-        <li key={s.key} className="grid grid-cols-[7rem_1fr_auto] items-center gap-2 text-sm">
-          <span className="truncate">{label(s.key)}</span>
-          <span className="h-2.5 overflow-hidden rounded-[3px] bg-surface-raised shadow-[inset_0_0_0_1px_var(--color-border)]">
+        <li key={s.key} className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-2.5 text-sm">
+          <span className="flex min-w-0 items-center gap-2 font-medium">
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color(s.key) }} />
+            <span className="truncate">{label(s.key)}</span>
+          </span>
+          <span className="h-3 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--color-text)_8%,transparent)]">
             <span
-              className="block h-full rounded-[3px]"
+              className="block h-full rounded-full shadow-[inset_0_1px_0_rgb(255_255_255/0.35)]"
               style={{ width: `${Math.max(2, (s.minutes / max) * 100)}%`, background: color(s.key) }}
             />
           </span>
-          <span className="tabular-nums text-muted" title={formatMinutes(s.minutes)}>
+          <span className="text-xs font-semibold tabular-nums text-muted" title={formatMinutes(s.minutes)}>
             {formatHours(s.minutes)} · {Math.round((s.minutes / total) * 100)} %
           </span>
         </li>

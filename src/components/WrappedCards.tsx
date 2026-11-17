@@ -7,53 +7,58 @@ import type { DeviceKind, PlatformId } from "@/core/types";
 import type { WrappedYear } from "@/core/wrapped";
 import { exportCard } from "@/lib/export-image";
 import { formatDay, GameCover } from "./game-ui";
-import { PixelIcon, type PixelIconName } from "./PixelIcon";
-import { Button } from "./ui";
+import { Icon, type IconName } from "./Icon";
+import { sectionStyle, type Section } from "./section";
+import { Button, IconButton } from "./ui";
 
 interface CardDef {
   id: string;
-  accent: string;
-  icon: PixelIconName;
+  /** The colour gradient of the card. */
+  tone: Section;
+  icon: IconName;
   estimated?: boolean;
   body: ReactNode;
 }
 
 function Big({ children }: { children: ReactNode }) {
-  return <div className="num text-7xl leading-none">{children}</div>;
+  return <div className="num text-[5.25rem] leading-[0.9] drop-shadow-[0_4px_14px_rgb(0_0_0/0.18)]">{children}</div>;
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <div className="text-xs font-medium uppercase tracking-widest text-muted">{children}</div>;
+  return <div className="text-xs font-bold uppercase tracking-[0.14em] text-muted">{children}</div>;
 }
+
+/** White text on the card's gradient: the usual text colours are replaced inside a card. */
+const ON_GRADIENT = {
+  "--color-text": "#ffffff",
+  "--color-muted": "rgb(255 255 255 / 0.8)",
+  "--color-highlight": "#fff1a8",
+} as CSSProperties;
 
 function CardFrame({ card, year, index, count }: { card: CardDef; year: number; index: number; count: number }) {
   return (
     <div
-      className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-card border border-border-strong bg-surface"
-      // A wash of the card's colour from the top.
-      style={{ backgroundImage: `linear-gradient(color-mix(in oklab, ${card.accent} 22%, var(--color-surface)), var(--color-surface) 60%)` }}
+      className="relative flex aspect-[9/16] w-full flex-col overflow-hidden rounded-[2rem] text-white shadow-[0_24px_48px_-24px_rgb(20_10_60/0.6)]"
+      style={{
+        ...sectionStyle(card.tone),
+        ...ON_GRADIENT,
+        backgroundColor: "var(--section)",
+        backgroundImage:
+          "radial-gradient(24rem 16rem at 100% 0%, rgb(255 255 255 / 0.32), transparent 60%), radial-gradient(22rem 18rem at 0% 100%, rgb(0 0 0 / 0.22), transparent 60%), linear-gradient(160deg, var(--section), var(--section-2))",
+      }}
     >
-      <div className="h-2.5 shrink-0" style={{ background: card.accent }} />
-      {/* A bookplate: thin frame, four pixel corners in the colour of the card. */}
-      <div
-        className="bookplate relative mx-3 mt-3 flex flex-1 flex-col justify-center gap-5 p-5"
-        style={{ "--frame-accent": card.accent } as CSSProperties}
-      >
-        <span
-          aria-hidden
-          className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-[5px] text-surface"
-          style={{ background: card.accent }}
-        >
-          <PixelIcon name={card.icon} className="h-5 w-5" />
+      {/* Rings in the corner, like the heroes in the app. */}
+      <span aria-hidden className="absolute -right-16 -top-16 h-56 w-56 rounded-full border-[26px] border-white/10" />
+      <span aria-hidden className="absolute -bottom-20 -left-12 h-48 w-48 rounded-full border-[18px] border-white/[0.07]" />
+      <div className="relative flex items-center gap-2.5 px-5 pt-5">
+        <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-[13px] border border-white/30 bg-white/20 shadow-[inset_0_1px_0_rgb(255_255_255/0.5)]">
+          <Icon name={card.icon} className="h-[22px] w-[22px]" />
         </span>
-        {card.body}
+        <span className="font-display text-sm font-extrabold tracking-tight">Wrapped {year}</span>
       </div>
-      <div className="flex shrink-0 items-baseline justify-between px-4 py-3 text-[11px] text-muted">
-        <span className="flex items-baseline gap-1">
-          <span className="font-pixel text-base uppercase leading-none tracking-wider text-accent">Game</span>
-          <span className="font-display text-sm font-semibold text-text">Bibliothek</span>
-          <span>· Wrapped {year}</span>
-        </span>
+      <div className="relative flex flex-1 flex-col justify-center gap-5 px-6 py-4">{card.body}</div>
+      <div className="relative flex shrink-0 items-baseline justify-between px-5 pb-4 text-[11px] text-white/80">
+        <span className="font-display text-sm font-extrabold text-white">Game Bibliothek</span>
         <span>
           {card.estimated ? "* geschätzt · " : ""}
           {index + 1}/{count}
@@ -62,7 +67,6 @@ function CardFrame({ card, year, index, count }: { card: CardDef; year: number; 
     </div>
   );
 }
-
 function title(library: Library, id: string): string {
   return library.byId.get(id)?.title ?? "Unbekannt";
 }
@@ -78,8 +82,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
 
   cards.push({
     id: "intro",
-    icon: "star",
-    accent: "var(--color-chart-1)",
+      icon: "star",
+    tone: "review",
     estimated: w.estimated,
     body: (
       <>
@@ -107,8 +111,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     const change = prev > 0 ? Math.round(((w.totalMinutes - prev) / prev) * 100) : null;
     cards.push({
       id: "compare",
-    icon: "chart",
-      accent: "var(--color-chart-2)",
+      icon: "stats",
+      tone: "stats",
       estimated: w.estimated,
       body: (
         <>
@@ -128,8 +132,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.top.length > 0) {
     cards.push({
       id: "top",
-    icon: "trophy",
-      accent: "var(--color-chart-3)",
+      icon: "trophy",
+      tone: "achievements",
       estimated: w.top.some((t) => t.estimated),
       body: (
         <>
@@ -158,8 +162,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     const total = w.totalMinutes || 1;
     cards.push({
       id: "favorites",
-    icon: "gamepad",
-      accent: "var(--color-chart-4)",
+      icon: "gamepad",
+      tone: "platforms",
       body: (
         <>
           {w.favoritePlatform ? (
@@ -183,8 +187,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
 
   cards.push({
     id: "genre",
-    icon: "book",
-    accent: "var(--color-chart-5)",
+      icon: "library",
+    tone: "library",
     body: w.favoriteGenre ? (
       <>
         <Label>Lieblings-Genre</Label>
@@ -202,8 +206,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.bestDay || w.longestStreak) {
     cards.push({
       id: "days",
-    icon: "calendar",
-      accent: "var(--color-chart-6)",
+      icon: "calendar",
+      tone: "chronicle",
       estimated: (w.bestDay?.estimated ?? false) || (w.longestStreak?.estimated ?? false),
       body: (
         <>
@@ -239,8 +243,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.newGames.length > 0) {
     cards.push({
       id: "new",
-    icon: "plus",
-      accent: "var(--color-chart-7)",
+      icon: "plus",
+      tone: "add",
       body: (
         <>
           <Label>Neu angefangen</Label>
@@ -261,8 +265,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
 
   cards.push({
     id: "achievements",
-    icon: "trophy",
-    accent: "var(--color-chart-8)",
+      icon: "trophy",
+    tone: "home",
     body:
       w.achievements.unlocked > 0 ? (
         <>
@@ -287,17 +291,18 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
       ),
   });
 
-  if (w.pileExits.length > 0) {
+  if (w.rediscovered.length > 0) {
     cards.push({
-      id: "pile",
-    icon: "pile",
-      accent: "var(--color-chart-1)",
+      id: "rediscovered",
+      icon: "sync",
+      tone: "library",
       body: (
         <>
-          <Label>Aus dem Pile of Shame geholt</Label>
-          <Big>{w.pileExits.length}</Big>
+          <Label>Wiederentdeckt</Label>
+          <Big>{w.rediscovered.length}</Big>
+          <p className="text-white/85">Vorher kaum gespielt, dieses Jahr richtig losgelegt:</p>
           <ul className="flex flex-col gap-1 text-lg">
-            {w.pileExits.slice(0, 6).map((e) => (
+            {w.rediscovered.slice(0, 6).map((e) => (
               <li key={e.gameId} className="flex justify-between gap-2">
                 <span className="truncate">{title(library, e.gameId)}</span>
                 <span className="shrink-0 text-muted">+{formatHours(e.minutesInYear)}</span>
@@ -312,8 +317,8 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
   if (w.coverageGaps.length > 0) {
     cards.push({
       id: "coverage",
-    icon: "clock",
-      accent: "var(--color-border)",
+      icon: "clock",
+      tone: "home",
       body: (
         <>
           <Label>Gut zu wissen</Label>
@@ -396,20 +401,16 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
         ))}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <Button aria-label="Vorherige Karte" disabled={current === 0} onClick={() => goTo(current - 1)}>
-          ←
-        </Button>
+        <IconButton icon="back" label="Vorherige Karte" disabled={current === 0} onClick={() => goTo(current - 1)} />
         <div className="flex gap-1.5" aria-hidden>
           {cards.map((c, i) => (
-            <span key={c.id} className={`h-2 w-2 ${i === current ? "bg-accent" : "bg-border-strong"}`} />
+            <span key={c.id} className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-section" : "w-2 bg-border-strong"}`} />
           ))}
         </div>
-        <Button aria-label="Nächste Karte" disabled={current >= cards.length - 1} onClick={() => goTo(current + 1)}>
-          →
-        </Button>
+        <IconButton icon="forward" label="Nächste Karte" disabled={current >= cards.length - 1} onClick={() => goTo(current + 1)} />
       </div>
       <div className="flex flex-wrap items-center gap-stack">
-        <Button variant="primary" onClick={save}>
+        <Button variant="primary" icon="download" onClick={save}>
           Karte als Bild speichern
         </Button>
         {status ? <span className="text-sm text-muted">{status}</span> : null}

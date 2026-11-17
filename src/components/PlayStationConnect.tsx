@@ -28,7 +28,7 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
   }
 
   return (
-    <Card title={title}>
+    <Card title={title} icon="gamepad" tone="chronicle">
       <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
         <li>
           Im Browser auf{" "}

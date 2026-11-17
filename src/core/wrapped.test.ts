@@ -92,7 +92,7 @@ describe("buildWrapped with demo data", () => {
   const now = new Date("2026-11-11T12:00:00Z");
   const raw = demoRaw(now);
   const library = buildLibrary(raw);
-  const wrapped = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", pileThresholdMinutes: 60 });
+  const wrapped = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11" });
 
   it("sums the year and compares it with a partly tracked previous year", () => {
     expect(wrapped.range).toEqual({ from: "2026-01-01", to: "2026-11-11" });
@@ -125,15 +125,15 @@ describe("buildWrapped with demo data", () => {
     // the demo window starts in September 2025, so 2026 is fully covered …
     expect(wrapped.coverageGaps).toEqual([]);
     // … but 2025 is not
-    const previous = buildWrapped(library, raw.achievements, 2025, { today: "2026-11-11", pileThresholdMinutes: 60 });
+    const previous = buildWrapped(library, raw.achievements, 2025, { today: "2026-11-11" });
     expect(previous.coverageGaps.length).toBeGreaterThan(0);
     expect(previous.previousYear).toBeNull();
   });
 
-  it("finds games that left the pile of shame, but not new purchases", () => {
+  it("finds rediscovered games, but not new purchases", () => {
     for (const threshold of [30, 60, 600]) {
-      const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", pileThresholdMinutes: threshold });
-      for (const exit of w.pileExits) {
+      const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", rediscoverMinutes: threshold });
+      for (const exit of w.rediscovered) {
         expect(exit.minutesBefore).toBeGreaterThan(0);
         expect(exit.minutesBefore).toBeLessThan(threshold);
         expect(exit.minutesBefore + exit.minutesInYear).toBeGreaterThanOrEqual(threshold);
@@ -141,7 +141,7 @@ describe("buildWrapped with demo data", () => {
       }
     }
     // With a high threshold, older games that were barely touched before 2026 qualify
-    const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", pileThresholdMinutes: 600 });
-    expect(w.pileExits.length).toBeGreaterThan(0);
+    const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", rediscoverMinutes: 600 });
+    expect(w.rediscovered.length).toBeGreaterThan(0);
   });
 });

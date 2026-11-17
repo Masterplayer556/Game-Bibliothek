@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { GameCard, GameListRow } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
-import { PixelIcon } from "@/components/PixelIcon";
+import { Icon } from "@/components/Icon";
 import { Card, fieldClass, Notice, Segmented } from "@/components/ui";
 import { DEVICE_LABEL, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { allGenres, filterLibrary, type LibraryFilter, type SortKey } from "@/core/library";
@@ -12,7 +12,7 @@ import { DEVICE_KINDS, GAME_STATUSES, PLATFORM_IDS, type DeviceKind, type GameSt
 type View = "shelf" | "list";
 const VIEW_KEY = "gb-library-view";
 const VIEWS: { id: View; label: string }[] = [
-  { id: "shelf", label: "Regal" },
+  { id: "shelf", label: "Raster" },
   { id: "list", label: "Liste" },
 ];
 
@@ -23,7 +23,7 @@ function SortHead({ label, sortKey, current, onSort }: { label: string; sortKey:
       type="button"
       aria-pressed={active}
       onClick={() => onSort(sortKey)}
-      className={`rounded-[3px] px-1 py-0.5 uppercase tracking-wider ${active ? "bg-section-soft text-section font-semibold" : "hover:text-text"}`}
+      className={`rounded-full px-2 py-0.5 uppercase tracking-wider ${active ? "bg-section-soft font-bold text-section" : "hover:text-text"}`}
     >
       {label}
       {active ? " ▾" : ""}
@@ -63,24 +63,25 @@ export default function LibraryPage() {
           <>
             <section className="flex flex-col gap-stack" aria-label="Suche und Filter">
               <div className="flex gap-2">
+                <label className="relative min-w-0 flex-1">
+                  <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" />
                 <input
                   type="search"
-                  className={`${fieldClass} min-w-0 flex-1 rounded-full px-4`}
+                  className={`${fieldClass} w-full !rounded-full !pl-10`}
                   placeholder="Spiel suchen …"
                   aria-label="Spiel suchen"
                   value={filter.search ?? ""}
                   onChange={(e) => set({ search: e.target.value })}
                 />
+                </label>
                 <button
                   type="button"
                   aria-expanded={filtersOpen}
                   aria-controls="filter"
                   onClick={() => setFiltersOpen((o) => !o)}
-                  className={`flex shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium ${
-                    filtersOpen || activeFilters > 0 ? "bg-section border-transparent text-on-section" : "border-border-strong bg-field text-text"
-                  }`}
+                  className={`btn shrink-0 ${filtersOpen || activeFilters > 0 ? "btn-primary" : "btn-secondary"}`}
                 >
-                  <PixelIcon name="more" className="h-4 w-4" />
+                  <Icon name="filter" className="h-4 w-4" />
                   Filter
                   {activeFilters > 0 ? (
                     <span className="num rounded-full bg-black/20 px-1.5 text-sm leading-tight">{activeFilters}</span>
@@ -91,7 +92,7 @@ export default function LibraryPage() {
               <div
                 id="filter"
                 hidden={!filtersOpen}
-                className="glass anim-drop-in grid grid-cols-2 gap-2 rounded-card p-3 sm:grid-cols-5"
+                className="card anim-drop-in grid grid-cols-2 gap-2 !rounded-[1.4rem] p-3 sm:grid-cols-5"
               >
                 <select className={fieldClass} aria-label="Plattform" value={filter.platform ?? ""} onChange={(e) => set({ platform: e.target.value as PlatformId | "" })}>
                   <option value="">Alle Plattformen</option>
@@ -135,10 +136,12 @@ export default function LibraryPage() {
               ) : null}
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
                 <span className="flex items-center gap-3">
-                  <span className="w-36">
+                  <span className="w-40">
                     <Segmented label="Ansicht" options={VIEWS} value={view} onChange={chooseView} />
                   </span>
-                  {games.length} Spiele
+                  <span>
+                    <span className="num text-base text-text">{games.length}</span> Spiele
+                  </span>
                 </span>
                 {hiddenCount > 0 ? (
                   <label className="flex items-center gap-2">
@@ -163,7 +166,7 @@ export default function LibraryPage() {
                     <SortHead label="Spielzeit" sortKey="playtime" current={filter.sort ?? "lastPlayed"} onSort={(sort) => set({ sort })} />
                   </span>
                 </div>
-                <ul className="flex flex-col divide-y divide-border">
+                <ul className="-mx-1.5 flex flex-col">
                   {games.map((g) => (
                     <li key={g.id}>
                       <GameListRow game={g} />
@@ -172,7 +175,7 @@ export default function LibraryPage() {
                 </ul>
               </Card>
             ) : (
-              <ul className="grid grid-cols-2 gap-stack sm:grid-cols-4">
+              <ul className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-5">
                 {games.map((g) => (
                   <li key={g.id}>
                     <GameCard game={g} />

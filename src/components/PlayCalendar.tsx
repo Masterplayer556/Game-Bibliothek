@@ -9,7 +9,7 @@ import type { GameDay, LibraryGame } from "@/core/library";
 import { addDays, weekStart } from "@/core/time";
 import type { LocalDate } from "@/core/types";
 import { gameHref, GameCover } from "./game-ui";
-import { Button } from "./ui";
+import { IconButton } from "./ui";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
@@ -84,15 +84,11 @@ export function PlayCalendar({
   return (
     <figure className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <Button aria-label="Früher" disabled={!canGoBack} onClick={() => move(1)}>
-          ‹
-        </Button>
-        <div className="text-center text-sm" aria-live="polite">
+        <IconButton icon="back" label="Früher" disabled={!canGoBack} onClick={() => move(1)} />
+        <div className="text-center text-sm font-semibold" aria-live="polite">
           {label(first)} – {label(last)}
         </div>
-        <Button aria-label="Später" disabled={back === 0} onClick={() => move(-1)}>
-          ›
-        </Button>
+        <IconButton icon="forward" label="Später" disabled={back === 0} onClick={() => move(-1)} />
       </div>
       {/* Weeks that do not fit wrap onto a second line, which is cut off: no half columns on a phone. */}
       <div
@@ -114,7 +110,7 @@ export function PlayCalendar({
                   type="button"
                   aria-pressed={selected === date}
                   onClick={() => setSelected(selected === date ? null : date)}
-                  className={`h-3 w-3 rounded-[2px] ${selected === date ? "outline outline-2 outline-offset-1 outline-text" : ""}`}
+                  className={`h-3 w-3 rounded-[3.5px] ${selected === date ? "outline-2 outline-offset-1 outline-text" : ""}`}
                   style={{ background: `var(--color-heat-${level(minutesOn.get(date) ?? 0)})` }}
                   title={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
                   aria-label={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
@@ -127,9 +123,9 @@ export function PlayCalendar({
 
       <div aria-live="polite">
         {selected ? (
-          <div className="flex flex-col gap-2 rounded-control border border-border bg-surface-raised p-3">
+          <div className="anim-drop-in flex flex-col gap-2 rounded-2xl border border-border bg-section-soft p-3">
             <div className="flex items-baseline justify-between gap-2">
-              <span className="font-display font-semibold">
+              <span className="font-display font-bold">
                 {weekday(selected)}, {label(selected)}
               </span>
               <span className="num text-lg leading-none">{minutesOn.has(selected) ? formatMinutes(minutesOn.get(selected)!) : "–"}</span>
@@ -143,8 +139,8 @@ export function PlayCalendar({
                   if (!game) return null;
                   return (
                     <li key={gameId}>
-                      <Link href={gameHref(gameId)} className="flex items-center gap-3 rounded-control p-1 hover:bg-surface">
-                        <GameCover game={game} className="w-8 shrink-0" />
+                      <Link href={gameHref(gameId)} className="flex items-center gap-3 rounded-xl p-1 hover:bg-surface">
+                        <GameCover game={game} className="w-9 shrink-0 !rounded-md" />
                         <span className="min-w-0 flex-1 truncate text-sm">{game.title}</span>
                         <span className="shrink-0 text-sm tabular-nums text-muted">
                           {formatMinutes(entry.minutes)}
@@ -168,7 +164,7 @@ export function PlayCalendar({
         <span className="flex items-center gap-1.5">
           0
           {[0, 1, 2, 3, 4].map((l) => (
-            <span key={l} className="h-3 w-3 rounded-[2px]" style={{ background: `var(--color-heat-${l})` }} />
+            <span key={l} className="h-3 w-3 rounded-[3.5px]" style={{ background: `var(--color-heat-${l})` }} />
           ))}
           2 Std. und mehr
         </span>

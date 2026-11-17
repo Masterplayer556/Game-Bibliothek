@@ -16,7 +16,7 @@ export function KeyGenerator() {
   }
 
   return (
-    <Card title="Schlüssel für die Verschlüsselung">
+    <Card title="Schlüssel für die Verschlüsselung" icon="key" tone="home">
       <Notice>
         Für das GitHub-Secret <code className="font-mono">CREDENTIALS_ENCRYPTION_KEY</code>. Der
         Schlüssel entsteht nur in deinem Browser und wird nirgends gespeichert. Bewahre ihn sicher

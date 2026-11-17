@@ -3,93 +3,120 @@
  * Change values here to restyle the whole app; no component hard-codes a colour.
  * Tailwind turns each token into utilities (bg-surface, text-muted, p-page, rounded-card …).
  *
- * The look: «Lesesaal trifft Spielhalle» (reading room meets arcade).
- *   - Ink and brass: indigo ink is the accent, brass is the highlight.
- *   - Words belong to the library (serif), numbers belong to the game (pixel font).
- *   - Covers stand like books on a shelf; cards are index cards.
+ * The look: «Liquid Arcade».
+ *   - Light («Tag»): a bright, colourful sky of soft colour clouds behind milky glass, with a
+ *     wallpaper of tiny game symbols.
+ *   - Dark («Arcade-Nacht»): deep night with neon glows, stars and a glowing grid on the horizon.
+ *   - Every section has its own two-colour gradient (tiles, highlights, the glow behind the page).
+ *   - Cards are tinted glass: see-through enough to let the colours shine through, without a
+ *     blur filter (cheap to scroll). Only the two bars use real frosted glass.
  *
- * Two themes, one design: the first block is the light theme (day in the reading room),
- * the block at the bottom is the dark theme (night in the arcade). Every colour has a
- * value in both blocks; nothing else differs between the themes.
+ * The first block is the light theme, the block at the bottom the dark theme. Every colour has a
+ * value in both blocks.
  */
 @theme static {
-  /* ---------- Light theme: paper, ink, brass ---------- */
+  /* ---------- Light theme: «Tag» ---------- */
 
   /* Surfaces */
-  --color-bg: #ebe8f8;
-  --color-surface: #ffffff;
-  --color-surface-raised: #f3f1fc;
+  --color-bg: #f3efff;
+  /* Cards: milky glass. Solid: menus and anything that must hide what lies behind. */
+  --color-surface: #ffffffc7;
+  --color-surface-solid: #ffffff;
+  --color-surface-raised: #f1edffcc;
   --color-field: #ffffff;
-  --color-border: #dcd8f0;
-  --color-border-strong: #b8b2da;
-  --color-texture: #d3cef0;
+  --color-border: #2a1f6614;
+  --color-border-strong: #2a1f662e;
 
   /* Text */
-  --color-text: #1a1930;
-  --color-muted: #5d5b78;
+  --color-text: #171332;
+  --color-muted: #5f5a80;
 
-  /* Accent (ink) and highlight (brass) */
-  --color-accent: #4433d6;
-  --color-accent-edge: #261e8a;
-  --color-accent-soft: #e3e1fa;
+  /* Accent (violet) and highlight (gold) */
+  --color-accent: #6a3df5;
+  --color-accent-2: #e8399b;
+  --color-accent-soft: #ece6ff;
   --color-on-accent: #ffffff;
-  --color-highlight: #a86f00;
-  --color-highlight-fill: #f2bd3a;
-  --color-on-highlight: #2a1c00;
-  --color-marker: #ffe37a;
-  --color-logo-cover: #3d33c4;
-  --color-logo-spine: #261e8a;
+  --color-highlight: #a35f00;
+  --color-highlight-fill: #ffb81f;
+  --color-highlight-fill-2: #ff8a1f;
+  --color-on-highlight: #2e1a00;
+  --color-marker: #ffe066a6;
 
-  /* One colour per section, like the coloured dividers of a card catalogue */
-  --color-section-home: #4433d6;
-  --color-section-library: #c42e57;
-  --color-section-stats: #0c8a83;
-  --color-section-pile: #c45f10;
-  --color-section-achievements: #b07400;
-  --color-section-review: #9233c9;
-  --color-section-add: #23883b;
-  --color-section-platforms: #1f6fd6;
+  /*
+   * One gradient per section: -a and -b are the two ends, -ink is the readable text colour on
+   * the cards (4.5:1 or better).
+   */
+  --color-section-home-a: #6d5cff;
+  --color-section-home-b: #a855f7;
+  --color-section-home-ink: #5233d6;
+  --color-section-library-a: #ff3d8b;
+  --color-section-library-b: #ff7a45;
+  --color-section-library-ink: #c2185b;
+  --color-section-stats-a: #00b8a9;
+  --color-section-stats-b: #12a3e8;
+  --color-section-stats-ink: #00766d;
+  --color-section-achievements-a: #ffb000;
+  --color-section-achievements-b: #ff6a1a;
+  --color-section-achievements-ink: #a14d00;
+  --color-section-chronicle-a: #2f7bff;
+  --color-section-chronicle-b: #22c3ee;
+  --color-section-chronicle-ink: #1554c9;
+  --color-section-review-a: #b44dff;
+  --color-section-review-b: #ff4fd8;
+  --color-section-review-ink: #8a22c9;
+  --color-section-add-a: #1fc46b;
+  --color-section-add-b: #a3d911;
+  --color-section-add-ink: #137a40;
+  --color-section-platforms-a: #ff6a3d;
+  --color-section-platforms-b: #ff3d5e;
+  --color-section-platforms-ink: #c73a12;
 
   /* Trophy tiers (PlayStation) */
-  --color-medal-bronze: #a8643a;
-  --color-medal-silver: #7d8597;
-  --color-medal-gold: #b88a00;
-  --color-medal-platinum: #5b7fd1;
+  --color-medal-bronze: #b8703f;
+  --color-medal-silver: #8a93a6;
+  --color-medal-gold: #e0a400;
+  --color-medal-platinum: #6c8cff;
 
-  /* Text and icons on a section colour */
+  /* Glyphs on a coloured tile */
   --color-on-section: #ffffff;
-  /* The bright rim along the top of glass panels */
-  --color-glass-edge: #ffffffd9;
-  /* Strength of the coloured glow behind the page (percent of the section colour) */
-  --glow-strength: 22%;
 
-  /* Light falling onto the page from above */
-  --color-glow: #ffffffd9;
+  /* Glass: the bright rim on top, and the tint of the frosted bars */
+  --color-glass-edge: #ffffffe6;
+  --color-glass: #ffffff8c;
+  --color-glass-strong: #ffffffbf;
+  --color-lens: #ffffffb3;
+
+  /* The backdrop: colour clouds and the wallpaper of game symbols */
+  --color-sky-1: #ffd3c4;
+  --color-sky-2: #ffc4e6;
+  --color-sky-3: #bfe0ff;
+  --color-sky-4: #c9f5e2;
+  --color-sky-5: #ddd0ff;
+  --color-doodle: #6a3df51a;
+  --glow-strength: 34%;
 
   /* Status: never used as decoration */
-  --color-success: #177a41;
-  --color-warning: #8f5b00;
-  --color-danger: #c22f2f;
+  --color-success: #15803d;
+  --color-warning: #a15c00;
+  --color-danger: #d42a4a;
 
-  /* Shelf and books */
-  --color-shelf: #c9b79a;
-  --color-shelf-edge: #e6d9c2;
-  --color-shelf-shadow: #6b5a4033;
-  --color-hinge-dark: #00000052;
-  --color-hinge-light: #ffffff59;
-  --color-cloth-1: #2d2a7a;
-  --color-cloth-2: #7a2a3b;
-  --color-cloth-3: #1f5a4a;
-  --color-cloth-4: #5a3d7a;
-  --color-cloth-5: #2a4f7a;
-  --color-cloth-ink: #f2cf7a;
+  /* Game covers without a picture: five bindings, each a gradient */
+  --color-cloth-1: #5b3df5;
+  --color-cloth-1b: #9b5cff;
+  --color-cloth-2: #e8396b;
+  --color-cloth-2b: #ff8a4c;
+  --color-cloth-3: #0f9e8e;
+  --color-cloth-3b: #3dd6a0;
+  --color-cloth-4: #2d6bff;
+  --color-cloth-4b: #3fd0ff;
+  --color-cloth-5: #c03fd9;
+  --color-cloth-5b: #ff6fb5;
+  --color-cloth-ink: #ffffff;
 
   /* Shadows */
-  --color-shadow: #1a19301f;
-  --shadow-card: 0 1px 0 var(--color-border), 0 6px 16px -8px var(--color-shadow);
-  --shadow-book: 0 1px 1px var(--color-shadow), 2px 4px 8px -2px var(--color-shadow);
-  --shadow-key: 0 3px 0 var(--color-border-strong);
-  --shadow-key-accent: 0 3px 0 var(--color-accent-edge);
+  --color-shadow: #2a1f6626;
+  --shadow-card: 0 1px 2px #2a1f6614, 0 10px 28px -14px #2a1f6640;
+  --shadow-cover: 0 2px 4px #1a12401f, 0 12px 24px -12px #1a124066;
 
   /* Charts: categorical colours, validated per theme (fixed order, never cycled) */
   --color-chart-1: #2a78d6;
@@ -100,15 +127,15 @@
   --color-chart-6: #008300;
   --color-chart-7: #6250d6;
   --color-chart-8: #e34948;
-  --color-chart-grid: #e1dfee;
-  /* One series (playtime over time): the accent */
-  --color-chart-bar: var(--color-accent);
+  --color-chart-grid: #2a1f6614;
+  /* One series (playtime over time): the section colour */
+  --color-chart-bar: var(--section, var(--color-accent));
   /* Play calendar: one hue, light to dark with the minutes played */
-  --color-heat-0: var(--color-surface-raised);
-  --color-heat-1: color-mix(in oklab, var(--color-accent) 28%, var(--color-surface-raised));
-  --color-heat-2: color-mix(in oklab, var(--color-accent) 52%, var(--color-surface-raised));
-  --color-heat-3: color-mix(in oklab, var(--color-accent) 76%, var(--color-surface-raised));
-  --color-heat-4: var(--color-accent);
+  --color-heat-0: #2a1f660f;
+  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 30%, white);
+  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 55%, white);
+  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 80%, white);
+  --color-heat-4: var(--section-ink, var(--color-accent));
 
   /* Colour per platform and console: follows the entity, never its rank */
   --color-platform-steam: var(--color-chart-1);
@@ -125,98 +152,121 @@
 
   /* ---------- Shared by both themes ---------- */
 
-  /* Fonts: display = library (serif), pixel = game (numbers), sans = everything else */
-  --font-display: "Fraunces Variable", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-pixel: "Jersey 15", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Fonts: display for titles and numbers, the system font for everything else */
+  --font-display: "Bricolage Grotesque Variable", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Spacing */
-  --spacing-page: 1.25rem;
-  --spacing-card: 1rem;
+  --spacing-page: 1.125rem;
+  --spacing-card: 1.125rem;
   --spacing-stack: 0.75rem;
 
   /* Radii */
-  --radius-card: 1.25rem;
-  --radius-control: 0.75rem;
-  --radius-book: 0.1875rem 0.375rem 0.375rem 0.1875rem;
+  --radius-card: 1.75rem;
+  --radius-tile: 1.375rem;
+  --radius-control: 0.875rem;
+  --radius-cover: 0.75rem;
 
   /* Layout */
-  --container-content: 56rem;
+  --container-content: 58rem;
 }
 
-/* ---------- Dark theme: night, glow, brass ---------- */
+/* ---------- Dark theme: «Arcade-Nacht» ---------- */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
   /* Surfaces */
-  --color-bg: #09081a;
-  --color-surface: #14132b;
-  --color-surface-raised: #1e1c3c;
-  --color-field: #0e0d22;
-  --color-border: #2c2a54;
-  --color-border-strong: #46427e;
-  --color-texture: #191838;
+  --color-bg: #08061a;
+  --color-surface: #1a1640b8;
+  --color-surface-solid: #1a1640;
+  --color-surface-raised: #2a2460a6;
+  --color-field: #120e30;
+  --color-border: #ffffff14;
+  --color-border-strong: #ffffff2b;
 
   /* Text */
-  --color-text: #ecebf8;
-  --color-muted: #a3a1c2;
+  --color-text: #f4f2ff;
+  --color-muted: #aca6d6;
 
-  /* Accent (glow) and highlight (brass) */
-  --color-accent: #a9acff;
-  --color-accent-edge: #6164c9;
-  --color-accent-soft: #262650;
-  --color-on-accent: #121130;
-  --color-highlight: #f0c04f;
-  --color-highlight-fill: #f0c04f;
-  --color-on-highlight: #2a1c00;
-  --color-marker: #f0c04f38;
-  --color-logo-cover: #5357d8;
-  --color-logo-spine: #383ba6;
+  /* Accent and highlight */
+  --color-accent: #9d85ff;
+  --color-accent-2: #ff5cc0;
+  --color-accent-soft: #2d2566;
+  --color-on-accent: #0e0b26;
+  --color-highlight: #ffc94d;
+  --color-highlight-fill: #ffc94d;
+  --color-highlight-fill-2: #ff9a3d;
+  --color-on-highlight: #2e1a00;
+  --color-marker: #ffc94d4d;
 
-  /* Sections */
-  --color-section-home: #a9acff;
-  --color-section-library: #ff8fa6;
-  --color-section-stats: #5fd4cc;
-  --color-section-pile: #ffa869;
-  --color-section-achievements: #f0c04f;
-  --color-section-review: #d59bff;
-  --color-section-add: #7fd68e;
-  --color-section-platforms: #7fb2ff;
+  /* Sections: neon */
+  --color-section-home-a: #8577ff;
+  --color-section-home-b: #c07bff;
+  --color-section-home-ink: #b3a8ff;
+  --color-section-library-a: #ff4f9a;
+  --color-section-library-b: #ff8d5c;
+  --color-section-library-ink: #ff8fbd;
+  --color-section-stats-a: #19d9c5;
+  --color-section-stats-b: #2bb8ff;
+  --color-section-stats-ink: #5ff0de;
+  --color-section-achievements-a: #ffc21f;
+  --color-section-achievements-b: #ff7a2e;
+  --color-section-achievements-ink: #ffd166;
+  --color-section-chronicle-a: #4b8dff;
+  --color-section-chronicle-b: #3fdcff;
+  --color-section-chronicle-ink: #8fbcff;
+  --color-section-review-a: #c46bff;
+  --color-section-review-b: #ff66e0;
+  --color-section-review-ink: #dda6ff;
+  --color-section-add-a: #34d97f;
+  --color-section-add-b: #b6ec2a;
+  --color-section-add-ink: #7debaa;
+  --color-section-platforms-a: #ff7a4d;
+  --color-section-platforms-b: #ff4d6d;
+  --color-section-platforms-ink: #ffa184;
 
   /* Trophy tiers */
-  --color-medal-bronze: #d08a5a;
-  --color-medal-silver: #b8c0d0;
-  --color-medal-gold: #f0c04f;
-  --color-medal-platinum: #9db8ff;
+  --color-medal-bronze: #e09a6a;
+  --color-medal-silver: #c3cad8;
+  --color-medal-gold: #ffc94d;
+  --color-medal-platinum: #a9bdff;
 
-  --color-on-section: #10102a;
-  --color-glass-edge: #ffffff1f;
-  --glow-strength: 30%;
+  --color-on-section: #ffffff;
 
-  /* Lamp light from above */
-  --color-glow: #3a3a9a59;
+  --color-glass-edge: #ffffff2e;
+  --color-glass: #1c1845a3;
+  --color-glass-strong: #241f58cc;
+  --color-lens: #ffffff29;
+
+  --color-sky-1: #ff2fb4;
+  --color-sky-2: #7b5cff;
+  --color-sky-3: #19e3ff;
+  --color-sky-4: #3b2bd6;
+  --color-sky-5: #ff7a45;
+  --color-doodle: #ffffff12;
+  --glow-strength: 42%;
 
   /* Status */
-  --color-success: #5cd28a;
-  --color-warning: #f3b644;
-  --color-danger: #ff7d7d;
+  --color-success: #4ee08f;
+  --color-warning: #ffc04d;
+  --color-danger: #ff6b86;
 
-  /* Shelf and books */
-  --color-shelf: #4b3c3a;
-  --color-shelf-edge: #8d7350;
-  --color-shelf-shadow: #00000080;
-  --color-hinge-dark: #00000066;
-  --color-hinge-light: #ffffff33;
-  --color-cloth-1: #34317f;
-  --color-cloth-2: #7a2f42;
-  --color-cloth-3: #235e4e;
-  --color-cloth-4: #5c4280;
-  --color-cloth-5: #2f5482;
-  --color-cloth-ink: #f0c04f;
+  --color-cloth-1: #4a2fd6;
+  --color-cloth-1b: #8a4dff;
+  --color-cloth-2: #c42a5c;
+  --color-cloth-2b: #ff7a45;
+  --color-cloth-3: #0b7f73;
+  --color-cloth-3b: #2fc590;
+  --color-cloth-4: #2253d6;
+  --color-cloth-4b: #2fb8ff;
+  --color-cloth-5: #9a2fb8;
+  --color-cloth-5b: #ff5ca8;
 
   /* Shadows */
-  --color-shadow: #00000073;
+  --color-shadow: #00000080;
+  --shadow-card: 0 1px 2px #00000040, 0 14px 32px -16px #000000b3;
+  --shadow-cover: 0 2px 4px #00000066, 0 14px 28px -12px #000000cc;
 
   /* Charts */
   --color-chart-1: #3987e5;
@@ -227,5 +277,10 @@
   --color-chart-6: #0ca30c;
   --color-chart-7: #9085e9;
   --color-chart-8: #e66767;
-  --color-chart-grid: #26264a;
+  --color-chart-grid: #ffffff14;
+  --color-heat-0: #ffffff0f;
+  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 28%, var(--color-bg));
+  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 52%, var(--color-bg));
+  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 76%, var(--color-bg));
+  --color-heat-4: var(--section-ink, var(--color-accent));
 }

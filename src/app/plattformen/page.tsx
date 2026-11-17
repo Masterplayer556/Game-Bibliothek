@@ -38,10 +38,16 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
   const status = row?.status ?? "not_connected";
   const details = (row?.details ?? {}) as { missingEnv?: string[]; warnings?: string[]; npssoSavedAt?: string };
   return (
-    <li className="flex flex-col gap-1 rounded-control border border-border bg-surface-raised p-3 text-sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-medium">{adapter.displayName}</span>
-        <span className={STATUS_TONE[status]}>{STATUS_LABEL[status]}</span>
+    <li className="flex flex-col gap-1.5 rounded-2xl border border-border bg-section-soft p-3.5 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex items-center gap-2 font-display text-base font-bold">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ background: `var(--color-platform-${adapter.platform})` }} />
+          {adapter.displayName}
+        </span>
+        <span className={`chip !font-bold ${STATUS_TONE[status]}`}>
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+          {STATUS_LABEL[status]}
+        </span>
       </div>
       {row && status !== "not_connected" ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-xs text-muted">
@@ -110,7 +116,7 @@ function DemoData({ demoEntries }: { demoEntries: number }) {
   }
 
   return (
-    <Card title="Demo-Daten">
+    <Card title="Demo-Daten" icon="review" tone="review">
       <Notice>
         Deine Spieleliste mit erfundenen Spielzeiten der letzten 14 Monate. Lässt sich jederzeit
         komplett entfernen; echte Daten bleiben unberührt. Aktuell {demoEntries} Demo-Einträge.
@@ -173,7 +179,7 @@ export default function PlatformsPage() {
             <NintendoImport userId={userId} onDone={() => void reload()} />
             <DemoData demoEntries={demoEntries} />
             <KeyGenerator />
-            <Card title="Konto">
+            <Card title="Konto" icon="user" tone="home">
               <Button onClick={() => getSupabase().auth.signOut()}>Abmelden</Button>
             </Card>
           </>

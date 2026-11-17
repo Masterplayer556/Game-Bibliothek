@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-// Both fonts are served from this site (no request to a font service).
-import "@fontsource-variable/fraunces/opsz.css";
-import "@fontsource/jersey-15/400.css";
+// The display font is served from this site (no request to a font service).
+import "@fontsource-variable/bricolage-grotesque/standard.css";
 import { AppShell } from "@/components/AppShell";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
@@ -46,8 +45,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   // Same values as --color-bg in src/styles/tokens.css; the theme switch updates them at runtime.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ebe8f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#09081a" },
+    { media: "(prefers-color-scheme: light)", color: "#f3efff" },
+    { media: "(prefers-color-scheme: dark)", color: "#08061a" },
   ],
   // Lets the page reach under the notch and home indicator; the bars keep clear with safe-area padding.
   viewportFit: "cover",

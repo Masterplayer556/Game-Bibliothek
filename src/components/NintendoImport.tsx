@@ -43,7 +43,7 @@ export function NintendoImport({ userId, onDone }: { userId: string; onDone: () 
   const minutes = parsed ? parsed.rows.reduce((sum, r) => sum + r.minutes, 0) : 0;
 
   return (
-    <Card title="Nintendo-Historie importieren">
+    <Card title="Nintendo-Historie importieren" icon="download" tone="add">
       <Notice>
         Für die Zeit vor der Jugendschutz-App: Übertrage die Tage aus der Nintendo-Store-App
         («Spielaktivitäten») in die{" "}
