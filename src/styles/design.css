@@ -489,9 +489,11 @@
   }
 }
 
-/* A new page rises in gently. */
+/* A new page rises in gently: only where the browser has no view transitions (they slide instead). */
 @utility anim-page-in {
-  animation: page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  @supports not (view-transition-name: none) {
+    animation: page-in 280ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
 }
 
 /* Menus open with a small pop. */
@@ -528,5 +530,111 @@
     animation-delay: 0ms !important;
     transition-duration: 1ms !important;
     transition-delay: 0ms !important;
+  }
+}
+
+/* ---------- Page transitions (React ViewTransition in AppShell) ---------- */
+
+/*
+ * Between tabs the old page slides out to one side while the new one pushes in from the other,
+ * as in a phone app. The bars at the top and bottom have their own names, so the pages pass
+ * beneath them; their contents just crossfade (the active tab changes).
+ */
+/* The old page glides out and fades; the new one follows from the other side and settles. */
+::view-transition-old(.nav-forward),
+::view-transition-old(.nav-back) {
+  animation:
+    170ms cubic-bezier(0.4, 0, 1, 1) both vt-fade reverse,
+    220ms cubic-bezier(0.4, 0, 1, 1) both vt-slide reverse;
+}
+
+::view-transition-new(.nav-forward),
+::view-transition-new(.nav-back) {
+  animation:
+    220ms ease-out 120ms both vt-fade,
+    420ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both vt-slide;
+}
+
+::view-transition-old(.nav-forward) {
+  --slide-offset: -22%;
+}
+
+::view-transition-new(.nav-forward) {
+  --slide-offset: 30%;
+}
+
+::view-transition-old(.nav-back) {
+  --slide-offset: 22%;
+}
+
+::view-transition-new(.nav-back) {
+  --slide-offset: -30%;
+}
+
+/* Every other change of page: the old one fades, the new one rises in. */
+::view-transition-old(.page-fade) {
+  animation: 140ms ease-in both vt-fade reverse;
+}
+
+::view-transition-new(.page-fade) {
+  animation:
+    240ms ease-out 100ms both vt-fade,
+    320ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both vt-rise;
+}
+
+/*
+ * The bars keep their frosted glass while the pages move beneath them (a picture of an element
+ * does not carry its backdrop blur, so the group gets it back).
+ */
+::view-transition-group(app-header),
+::view-transition-group(app-tabbar) {
+  z-index: 10;
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  animation-duration: 0s;
+}
+
+/* No crossfade for the bars: half-faded glass would let the pages show through. */
+::view-transition-old(app-header),
+::view-transition-old(app-tabbar) {
+  display: none;
+}
+
+::view-transition-new(app-header),
+::view-transition-new(app-tabbar) {
+  animation: none;
+}
+
+::view-transition-group(app-tabbar) {
+  border-radius: 1.6rem;
+  overflow: clip;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-slide {
+  from {
+    translate: var(--slide-offset) 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes vt-rise {
+  from {
+    translate: 0 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
