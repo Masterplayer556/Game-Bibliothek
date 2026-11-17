@@ -133,7 +133,7 @@ export default function DashboardPage() {
             {recent.length > 1 ? (
               <Card title="Davor gespielt" icon="play" tone="library">
                 {/* A row to swipe through, like a shelf in a game store. */}
-                <ul className="-mx-card -my-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-card py-1 sm:-mx-5 sm:px-5" style={{ scrollbarWidth: "none" }}>
+                <ul className="-mx-card -my-1 flex snap-x snap-mandatory scroll-px-card gap-3 overflow-x-auto px-card py-1 sm:-mx-5 sm:scroll-px-5 sm:px-5" style={{ scrollbarWidth: "none" }}>
                   {recent.slice(1).map((g) => (
                     <li key={g.id} className="w-[6.6rem] shrink-0 snap-start">
                       <Link href={gameHref(g.id)} className="group flex flex-col gap-1.5 rounded-control">
