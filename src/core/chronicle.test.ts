@@ -9,6 +9,10 @@ function raw(): RawData {
       { id: "g-b", title: "Beta", cover_url: null, genres: [], release_year: null, igdb_id: null },
       { id: "g-c", title: "Gamma", cover_url: null, genres: [], release_year: null, igdb_id: null },
       { id: "g-app", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-d", title: "Delta", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-e", title: "Epsilon", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-f", title: "Phi", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-g", title: "Gamma Two", cover_url: null, genres: [], release_year: null, igdb_id: null },
     ],
     platformGames: [
       // Alpha: Switch, per-day data from the start (no time before tracking)
@@ -17,6 +21,14 @@ function raw(): RawData {
       { id: "p-b", game_id: "g-b", platform: "psn", source: "psn", external_id: "b", title: "Beta", cover_url: null, device_kind: "ps5", owned: true, first_played_at: "2024-01-05T10:00:00Z", last_played_at: null, total_playtime_minutes: 700, achievements_unlocked: 2, achievements_total: 2 },
       // Gamma: Steam, all achievements, one of them rare
       { id: "p-c", game_id: "g-c", platform: "steam", source: "steam", external_id: "c", title: "Gamma", cover_url: null, device_kind: "pc", owned: true, first_played_at: null, last_played_at: null, total_playtime_minutes: 5000, achievements_unlocked: 2, achievements_total: 2 },
+      // Delta: owned on Steam with 0 minutes at the first sync, played later
+      { id: "p-d", game_id: "g-d", platform: "steam", source: "steam", external_id: "d", title: "Delta", cover_url: null, device_kind: "pc", owned: true, first_played_at: null, last_played_at: "2025-04-01T18:00:00Z", total_playtime_minutes: 120, achievements_unlocked: null, achievements_total: null },
+      // Gamma Two: already 27 hours on Steam at the first sync
+      { id: "p-g", game_id: "g-g", platform: "steam", source: "steam", external_id: "g", title: "Gamma Two", cover_url: null, device_kind: "pc", owned: true, first_played_at: null, last_played_at: "2025-04-02T18:00:00Z", total_playtime_minutes: 1680, achievements_unlocked: null, achievements_total: null },
+      // Epsilon: first seen on the Switch after tracking began
+      { id: "p-e", game_id: "g-e", platform: "nintendo", source: "nintendo-parental", external_id: "e", title: "Epsilon", cover_url: null, device_kind: null, owned: true, first_played_at: null, last_played_at: null, total_playtime_minutes: 60, achievements_unlocked: null, achievements_total: null },
+      // Phi: also new on the Switch, but its history was imported afterwards
+      { id: "p-f", game_id: "g-f", platform: "nintendo", source: "nintendo-parental", external_id: "f", title: "Phi", cover_url: null, device_kind: null, owned: true, first_played_at: null, last_played_at: null, total_playtime_minutes: 90, achievements_unlocked: null, achievements_total: null },
       { id: "p-app", game_id: "g-app", platform: "nintendo", source: "nintendo-parental", external_id: "yt", title: "YouTube", cover_url: null, device_kind: null, owned: true, first_played_at: null, last_played_at: null, total_playtime_minutes: 900, achievements_unlocked: null, achievements_total: null },
     ],
     devices: [
@@ -31,8 +43,16 @@ function raw(): RawData {
       { platform_game_id: "p-b", device_id: "d-ps5", play_date: "2025-03-01", minutes: 150, source: "x", estimated: false },
       { platform_game_id: "p-b", device_id: "d-ps5", play_date: "2025-03-02", minutes: 150, source: "x", estimated: false },
       { platform_game_id: "p-app", device_id: "d-s2", play_date: "2025-07-01", minutes: 900, source: "x", estimated: false },
+      { platform_game_id: "p-e", device_id: "d-s2", play_date: "2025-07-02", minutes: 60, source: "nintendo-parental", estimated: false },
+      { platform_game_id: "p-f", device_id: "d-s2", play_date: "2025-07-03", minutes: 30, source: "nintendo-parental", estimated: false },
+      { platform_game_id: "p-f", device_id: "d-s1", play_date: "2023-02-01", minutes: 60, source: "nintendo-import", estimated: false },
     ],
-    snapshots: [],
+    snapshots: [
+      { platform_game_id: "p-d", taken_at: "2025-01-01T06:00:00Z", total_minutes: 0, last_played_at: null },
+      { platform_game_id: "p-d", taken_at: "2025-04-01T20:00:00Z", total_minutes: 120, last_played_at: "2025-04-01T18:00:00Z" },
+      { platform_game_id: "p-g", taken_at: "2025-01-01T06:00:00Z", total_minutes: 1500, last_played_at: null },
+      { platform_game_id: "p-g", taken_at: "2025-04-02T20:00:00Z", total_minutes: 1680, last_played_at: "2025-04-02T18:00:00Z" },
+    ],
     achievements: [
       { platform_game_id: "p-b", external_id: "1", name: "Erster Schritt", description: null, icon_url: null, unlocked_at: "2025-03-01T20:00:00Z", rarity_percent: 50, tier: "bronze" },
       { platform_game_id: "p-b", external_id: "2", name: "Alles", description: null, icon_url: null, unlocked_at: "2025-03-02T20:00:00Z", rarity_percent: 2, tier: "platinum" },
@@ -47,15 +67,18 @@ function raw(): RawData {
 
 const data = raw();
 const library = buildLibrary(data);
-const events = buildChronicle(library, data.achievements, { isRare: (p) => p != null && p <= 10 });
+const events = buildChronicle(library, data, { isRare: (p) => p != null && p <= 10 });
 const ids = events.map((e) => e.id);
 
 describe("buildChronicle", () => {
-  it("starts games on their first date, or on the first day if nothing came before tracking", () => {
-    expect(events.find((e) => e.id === "start-g-a")?.date).toBe("2025-01-10");
-    expect(events.find((e) => e.id === "start-g-b")?.date).toBe("2024-01-05");
-    // Gamma has time before tracking and no first date: its start is unknown
-    expect(ids).not.toContain("start-g-c");
+  it("shows «first played» only for games that are new since tracking began", () => {
+    const starts = events.filter((e) => e.kind === "start").map((e) => [e.gameId, e.date]);
+    expect(starts).toEqual([
+      ["g-e", "2025-07-02"], // first seen on the Switch after tracking began
+      ["g-d", "2025-04-01"], // 0 minutes at the first sync
+    ]);
+    // Not: games played on the first synced day (Alpha, Beta), with time before (Gamma, Gamma Two),
+    // or with imported history (Phi, even though it first showed up as new)
   });
 
   it("puts milestones on the day the total passed the mark, counting time before tracking", () => {
@@ -82,7 +105,8 @@ describe("buildChronicle", () => {
     ]);
     expect(events.filter((e) => e.kind === "tracking").map((e) => [e.platform, e.date])).toEqual([
       ["psn", "2025-03-01"],
-      ["nintendo", "2025-01-10"],
+      ["steam", "2025-01-01"],
+      ["nintendo", "2023-02-01"],
     ]);
   });
 
@@ -96,7 +120,8 @@ describe("buildChronicle", () => {
 describe("chronicleYears", () => {
   it("sums each year's played days, newest first", () => {
     const years = chronicleYears(library);
-    expect(years.map((y) => y.year)).toEqual([2025]);
-    expect(years[0]).toMatchObject({ minutes: 1100, playDays: 5, topGameId: "g-a" });
+    expect(years.map((y) => y.year)).toEqual([2025, 2023]);
+    expect(years[0]).toMatchObject({ topGameId: "g-a" });
+    expect(years[1]).toMatchObject({ minutes: 60, playDays: 1, topGameId: "g-f" });
   });
 });

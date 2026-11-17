@@ -127,7 +127,7 @@ export default function ChroniclePage() {
     <LibraryGate>
       {({ library, raw }) => {
         const rareLimit = readRareLimit(raw.settings);
-        const all = buildChronicle(library, raw.achievements, { isRare: (p) => isRare(p, rareLimit) });
+        const all = buildChronicle(library, raw, { isRare: (p) => isRare(p, rareLimit) });
         const kinds = FILTER_KINDS[filter];
         const events = kinds ? all.filter((e) => kinds.includes(e.kind)) : all;
         const visible = events.slice(0, shown);

@@ -1,17 +1,19 @@
 // «Chronik»: the life as a player on a timeline. Pure functions on top of the library model.
 //
 // Events, newest first:
-//   start      – first played (the platform's first date, else the first day with a date, but
-//                only if nothing was played before tracking began)
+//   start      – first played, only for games that are new since tracking began (see
+//                `newSinceTracking`): never for a game that already had playtime at the first
+//                sync, nor for one with imported history (it was played before)
 //   milestone  – 10, 25, 50, 100 … hours in one game, on the day the total passed the mark
 //   complete   – every achievement of a game on one platform
 //   platinum   – a PlayStation platinum trophy
 //   rare       – an achievement only few players have (the limit is the app's «Selten» setting)
-//   device     – the first day on a console (only after tracking of its platform had begun,
-//                otherwise the date would only be the start of tracking)
+//   device     – the first day on a console, from day-by-day data (only after that platform's
+//                days had begun, otherwise the date would only be the start of tracking)
 //   tracking   – the day a platform's day-by-day data starts
 import { achievementKey } from "./achievements";
-import { undatedTime, type AchievementRow, type Library } from "./library";
+import { NINTENDO_IMPORT_ID } from "./nintendo/import";
+import { undatedTime, type AchievementRow, type Library, type RawData } from "./library";
 import { toLocalDate } from "./time";
 import type { DeviceKind, LocalDate, PlatformId } from "./types";
 
@@ -39,11 +41,71 @@ export const MILESTONE_HOURS = [10, 25, 50, 100, 250, 500, 1000, 2000] as const;
 /** Order of events on the same day: the big ones first. */
 const KIND_ORDER: ChronicleKind[] = ["platinum", "complete", "milestone", "rare", "start", "device", "tracking"];
 
+/**
+ * Games played for the first time since tracking began. A platform entry blocks the game if it
+ * had playtime when tracking began: its first snapshot shows minutes on the first sync day of its
+ * platform, it has imported history, or its time has no date at all (entered by hand). An entry
+ * is new if its first snapshot shows 0 minutes, or it first appears after its platform's first
+ * sync (bought or first played later). Entries never played count neither way.
+ */
+export function newSinceTracking(library: Library, raw: Pick<RawData, "daily" | "snapshots">): Set<string> {
+  const platformOf = new Map(library.games.flatMap((g) => g.entries.map((e) => [e.id, e.platform] as const)));
+  // First day each platform was synced (imports do not count: they reach back before it).
+  const syncStart = new Map<string, LocalDate>();
+  const firstSnapshot = new Map<string, { date: LocalDate; minutes: number; at: string }>();
+  const firstSyncedDay = new Map<string, LocalDate>();
+  const imported = new Set<string>();
+  const note = (platform: string | undefined, date: LocalDate) => {
+    if (!platform) return;
+    const known = syncStart.get(platform);
+    if (!known || date < known) syncStart.set(platform, date);
+  };
+  for (const s of raw.snapshots) {
+    const date = toLocalDate(s.taken_at);
+    note(platformOf.get(s.platform_game_id), date);
+    const known = firstSnapshot.get(s.platform_game_id);
+    if (!known || s.taken_at < known.at) firstSnapshot.set(s.platform_game_id, { date, minutes: s.total_minutes, at: s.taken_at });
+  }
+  for (const d of raw.daily) {
+    if (d.source === NINTENDO_IMPORT_ID) {
+      imported.add(d.platform_game_id);
+      continue;
+    }
+    note(platformOf.get(d.platform_game_id), d.play_date);
+    const known = firstSyncedDay.get(d.platform_game_id);
+    if (!known || d.play_date < known) firstSyncedDay.set(d.platform_game_id, d.play_date);
+  }
+
+  const out = new Set<string>();
+  for (const game of library.games) {
+    let isNew = false;
+    let blocked = false;
+    for (const e of game.entries) {
+      if (e.totalMinutes <= 0) continue;
+      const start = syncStart.get(e.platform);
+      const snapshot = firstSnapshot.get(e.id);
+      const day = firstSyncedDay.get(e.id);
+      if (imported.has(e.id)) blocked = true;
+      else if (snapshot) {
+        if (snapshot.minutes === 0 || (start && snapshot.date > start)) isNew = true;
+        else blocked = true;
+      } else if (day) {
+        if (start && day > start) isNew = true;
+        else blocked = true;
+      } else blocked = true;
+    }
+    if (isNew && !blocked) out.add(game.id);
+  }
+  return out;
+}
+
 export function buildChronicle(
   library: Library,
-  achievements: readonly AchievementRow[],
+  raw: Pick<RawData, "achievements" | "daily" | "snapshots">,
   options: { isRare: (percent: number | null) => boolean },
 ): ChronicleEvent[] {
+  const achievements = raw.achievements;
+  const fresh = newSinceTracking(library, raw);
   const events: ChronicleEvent[] = [];
   const visible = library.games.filter((g) => !g.hidden);
   const visibleIds = new Set(visible.map((g) => g.id));
@@ -64,9 +126,13 @@ export function buildChronicle(
     const gameDays = daysByGame.get(game.id) ?? [];
     const before = undatedByGame.get(game.id) ?? 0;
 
-    // Start
-    const start = game.firstPlayedAt ? toLocalDate(game.firstPlayedAt) : before === 0 ? gameDays[0]?.date : undefined;
-    if (start) events.push({ id: `start-${game.id}`, kind: "start", date: start, gameId: game.id });
+    // Start: the earliest known day, only for games that are new since tracking began
+    if (fresh.has(game.id)) {
+      const reported = game.firstPlayedAt ? toLocalDate(game.firstPlayedAt) : undefined;
+      const firstDay = gameDays[0]?.date;
+      const start = reported && firstDay ? (reported < firstDay ? reported : firstDay) : (reported ?? firstDay);
+      if (start) events.push({ id: `start-${game.id}`, kind: "start", date: start, gameId: game.id });
+    }
 
     // Milestones, counted on top of the time before tracking
     let total = before;
@@ -144,14 +210,18 @@ export function buildChronicle(
   }
   events.push(...rareByKey.values());
 
-  // First day on each console, if tracking of its platform had already begun
+  // First day on each console, from day-by-day data only (snapshots say nothing about the
+  // console's first day) and only if that platform's days had already begun (e.g. Switch 2).
   const firstOn = new Map<DeviceKind, (typeof days)[number]>();
+  const dailySince = new Map<PlatformId, LocalDate>();
   for (const d of days) {
+    if (d.origin !== "daily") continue;
+    if (!dailySince.has(d.platform)) dailySince.set(d.platform, d.date);
     const known = firstOn.get(d.deviceKind);
     if (!known || d.date < known.date || (d.date === known.date && d.minutes > known.minutes)) firstOn.set(d.deviceKind, d);
   }
   for (const [device, d] of firstOn) {
-    const since = library.dataSince[d.platform];
+    const since = dailySince.get(d.platform);
     if (device === "other" || !since || d.date <= since) continue;
     events.push({ id: `device-${device}`, kind: "device", date: d.date, device, platform: d.platform, gameId: d.gameId });
   }
