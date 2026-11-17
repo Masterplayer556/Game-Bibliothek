@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useState, ViewTransition, type CSSProperties, type ReactNode } from "react";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useSession } from "@/lib/use-session";
 import { LibraryProvider } from "./LibraryProvider";
@@ -82,11 +82,34 @@ function shortLabel(item: NavItem): string {
   return item.label === "Pile of Shame" ? "Pile" : item.label;
 }
 
+/**
+ * Which way the page slides: to a tab further right the new page comes in from the right, to one
+ * further left from the left (types for the ViewTransition in AppShell; CSS in design.css).
+ */
+function slideTypes(target: NavItem, current: NavItem): string[] {
+  const from = NAV.indexOf(current);
+  const to = NAV.indexOf(target);
+  if (to === from) return [];
+  return [to > from ? "nav-forward" : "nav-back"];
+}
+
 /** One page in the bar: icon over a short label; the current page sits on a pill of its colour. */
-function TabLink({ item, active, className = "", style }: { item: NavItem; active: boolean; className?: string; style?: CSSProperties }) {
+function TabLink({
+  item,
+  current,
+  className = "",
+  style,
+}: {
+  item: NavItem;
+  current: NavItem;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const active = item === current;
   return (
     <Link
       href={item.href}
+      transitionTypes={slideTypes(item, current)}
       aria-current={active ? "page" : undefined}
       style={{ ...sectionVar(item.section), ...style }}
       className={`tab-item ${active ? "bg-section-soft text-section" : "text-muted hover:text-text"} ${className}`}
@@ -111,14 +134,15 @@ function PhoneTabBar({ current }: { current: NavItem }) {
   const [open, setOpen] = useState(!current.primary);
 
   return (
-    <div className="glass pointer-events-auto rounded-[1.6rem] p-1.5 md:hidden">
+    // Its own name: the pages slide beneath the bar, not over it. Only one bar shows at a time.
+    <div className="glass pointer-events-auto rounded-[1.6rem] p-1.5 md:hidden" style={{ viewTransitionName: "app-tabbar" }}>
       <div className="tab-viewport overflow-hidden rounded-[1.1rem]">
         <div className="tab-track" data-open={open}>
           {PRIMARY.map((item, i) => (
             <TabLink
               key={item.href}
               item={item}
-              active={item === current}
+              current={current}
               className="tab-leaving"
               style={{ transitionDelay: open ? `${i * 25}ms` : `${(PRIMARY.length - i) * 35}ms` }}
             />
@@ -142,7 +166,7 @@ function PhoneTabBar({ current }: { current: NavItem }) {
             <TabLink
               key={item.href}
               item={item}
-              active={item === current}
+              current={current}
               className="tab-following"
               style={{ transitionDelay: open ? `${60 + i * 55}ms` : "0ms", "--follow": `${(i + 1) * 18}px` } as CSSProperties}
             />
@@ -164,9 +188,9 @@ function TabBar({ pathname }: { pathname: string }) {
     >
       {/* A new group of pages (main or «more») starts the phone bar in the matching position. */}
       <PhoneTabBar key={current.primary ? "main" : "more"} current={current} />
-      <div className="glass pointer-events-auto hidden gap-0.5 rounded-[1.6rem] p-1.5 md:flex">
+      <div className="glass pointer-events-auto hidden gap-0.5 rounded-[1.6rem] p-1.5 md:flex" style={{ viewTransitionName: "app-tabbar" }}>
         {NAV.map((item) => (
-          <TabLink key={item.href} item={item} active={item === current} />
+          <TabLink key={item.href} item={item} current={current} />
         ))}
       </div>
     </nav>
@@ -210,7 +234,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div aria-hidden className="app-backdrop" />
 
       {/* App bar: frosted glass, stays at the top. */}
-      <header className="glass pt-safe sticky top-0 z-30 rounded-none border-x-0 border-t-0">
+      <header className="glass pt-safe sticky top-0 z-30 rounded-none border-x-0 border-t-0" style={{ viewTransitionName: "app-header" }}>
         <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between gap-3 px-page">
           <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-control">
             <Logo className="h-9 w-9 shrink-0" />
@@ -224,8 +248,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className={`mx-auto flex w-full max-w-content flex-col gap-page px-page pt-5 ${session ? "pb-tabbar" : "pb-10"}`}>
-        {session ? <PageTitle pathname={pathname} /> : null}
-
         {!isSupabaseConfigured ? (
           <Card title="Noch nicht eingerichtet">
             <Notice tone="warning">
@@ -239,9 +261,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LoginForm />
         ) : (
           <LibraryProvider session={session}>
-            <main key={pathname} className="anim-page-in flex flex-col gap-page">
-              {children}
-            </main>
+            {/*
+              A new page (key) slides in: sideways when a tab says which way, a short fade for every
+              other change of page (game links, back). The data provider stays outside, so it is kept.
+            */}
+            <ViewTransition
+              key={pathname}
+              enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "page-fade" }}
+              exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "page-fade" }}
+              default="none"
+            >
+              <div className="anim-page-in flex flex-col gap-page">
+                <PageTitle pathname={pathname} />
+                <main className="flex flex-col gap-page">{children}</main>
+              </div>
+            </ViewTransition>
           </LibraryProvider>
         )}
         <Foot />

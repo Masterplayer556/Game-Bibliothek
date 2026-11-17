@@ -58,7 +58,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // The script sets data-theme before React starts, so the attribute differs from the server's HTML.
-    <html lang="de-CH" suppressHydrationWarning>
+    <html lang="de-CH" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
