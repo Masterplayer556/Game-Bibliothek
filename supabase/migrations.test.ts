@@ -259,13 +259,8 @@ describe("row level security", () => {
     }
   });
 
-  it("deletes demo data and leftover games through delete_demo_data()", async () => {
-    const left = await as("authenticated", owner, async () => {
-      await db.query("select game_bibliothek.delete_demo_data()");
-      const games = await db.query("select 1 from game_bibliothek.games");
-      const daily = await db.query("select 1 from game_bibliothek.daily_playtime");
-      return games.rows.length + daily.rows.length;
-    });
-    expect(left).toBe(0);
+  it("no longer has delete_demo_data() (dropped in 0004)", async () => {
+    const found = await db.query("select 1 from pg_proc where proname = 'delete_demo_data'");
+    expect(found.rows).toHaveLength(0);
   });
 });
