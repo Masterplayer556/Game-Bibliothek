@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildImportBatch, parseDate, parseDuration, parseImportCsv } from "./import";
+import { buildImportBatch, combineImports, parseDate, parseDuration, parseImportCsv } from "./import";
 
 const TODAY = "2026-11-10";
 
@@ -83,6 +83,28 @@ describe("parseImportCsv", () => {
     expect(problems.map((p) => p.line)).toEqual([2, 3, 4, 5, 6, 7]);
     expect(problems[2]!.message).toMatch(/Dauer nicht lesbar/);
     expect(problems[4]!.message).toMatch(/Zukunft/);
+  });
+});
+
+describe("combineImports", () => {
+  it("joins several files and counts a day listed in two files once, the longer one", () => {
+    const a = parseImportCsv("Spiel;Datum;Dauer\nMiitopia;01.05.2024;30 Min.\nPikmin 4;02.05.2024;1 Std. 0 Min.", TODAY);
+    const b = parseImportCsv("Miitopia;01.05.2024;45 Min.\nMiitopia;03.05.2024;20 Min.\nKaputt;gestern;5", TODAY);
+    const { rows, problems } = combineImports([
+      { name: "a.csv", result: a },
+      { name: "b.csv", result: b },
+    ]);
+    expect(rows.map((r) => [r.title, r.date, r.minutes]).sort()).toEqual([
+      ["Miitopia", "2024-05-01", 45],
+      ["Miitopia", "2024-05-03", 20],
+      ["Pikmin 4", "2024-05-02", 60],
+    ]);
+    expect(problems).toEqual([{ line: 3, message: "Datum nicht lesbar: «gestern».", file: "b.csv" }]);
+  });
+
+  it("changes nothing for a single file", () => {
+    const a = parseImportCsv("Miitopia;01.05.2024;30 Min.", TODAY);
+    expect(combineImports([{ name: "a.csv", result: a }]).rows).toEqual(a.rows);
   });
 });
 

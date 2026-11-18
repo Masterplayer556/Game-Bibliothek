@@ -26,6 +26,8 @@ export interface ImportRow {
 export interface ImportProblem {
   line: number;
   message: string;
+  /** The file it came from, when several files are imported together. */
+  file?: string;
 }
 
 export interface ImportParseResult {
@@ -151,13 +153,31 @@ export function parseImportCsv(text: string, today: LocalDate): ImportParseResul
       return void problems.push({ line, message: `Gerät unbekannt: «${deviceText}» (erlaubt: Switch 1, Switch 2 oder leer).` });
     }
 
-    const key = `${normalizeTitle(title)}|${date}|${device ?? ""}`;
-    const existing = byKey.get(key);
-    if (!existing || duration.minutes > existing.minutes) {
-      byKey.set(key, { title, date, minutes: duration.minutes, device, estimated: duration.estimated, line });
-    }
+    keepLonger(byKey, { title, date, minutes: duration.minutes, device, estimated: duration.estimated, line });
   });
 
+  return { rows: [...byKey.values()], problems };
+}
+
+/** The same game on the same day (and console) counts once: the longer duration wins. */
+function keepLonger(byKey: Map<string, ImportRow>, row: ImportRow): void {
+  const key = `${normalizeTitle(row.title)}|${row.date}|${row.device ?? ""}`;
+  const existing = byKey.get(key);
+  if (!existing || row.minutes > existing.minutes) byKey.set(key, row);
+}
+
+/**
+ * Several parsed files as one import. Days that appear in more than one file (overlapping
+ * screenshots, the same file chosen twice) count once, like duplicate lines in one file.
+ * Problems keep the name of their file.
+ */
+export function combineImports(files: readonly { name: string; result: ImportParseResult }[]): ImportParseResult {
+  const byKey = new Map<string, ImportRow>();
+  const problems: ImportProblem[] = [];
+  for (const { name, result } of files) {
+    for (const row of result.rows) keepLonger(byKey, row);
+    for (const problem of result.problems) problems.push({ ...problem, file: name });
+  }
   return { rows: [...byKey.values()], problems };
 }
 
