@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildImportBatch, combineImports, parseDate, parseDuration, parseImportCsv } from "./import";
+import { buildImportBatch, combineImports, importVariant, parseDate, parseDuration, parseImportCsv } from "./import";
 
 const TODAY = "2026-11-10";
 
@@ -50,9 +50,9 @@ describe("parseImportCsv", () => {
     const { rows, problems } = parseImportCsv(csv, TODAY);
     expect(problems).toEqual([]);
     expect(rows).toEqual([
-      { title: "Minecraft for Nintendo Switch", date: "2026-02-17", minutes: 75, device: null, estimated: false, line: 4 },
-      { title: "Minecraft for Nintendo Switch", date: "2026-01-04", minutes: 5, device: "switch2", estimated: true, line: 5 },
-      { title: "Mario; Luigi", date: "2021-12-09", minutes: 45, device: "switch1", estimated: false, line: 6 },
+      { title: "Minecraft for Nintendo Switch", listedAs: "Minecraft for Nintendo Switch", date: "2026-02-17", minutes: 75, device: null, estimated: false, line: 4 },
+      { title: "Minecraft for Nintendo Switch", listedAs: "Minecraft for Nintendo Switch", date: "2026-01-04", minutes: 5, device: "switch2", estimated: true, line: 5 },
+      { title: "Mario; Luigi", listedAs: "Mario; Luigi", date: "2021-12-09", minutes: 45, device: "switch1", estimated: false, line: 6 },
     ]);
   });
 
@@ -105,6 +105,38 @@ describe("combineImports", () => {
   it("changes nothing for a single file", () => {
     const a = parseImportCsv("Miitopia;01.05.2024;30 Min.", TODAY);
     expect(combineImports([{ name: "a.csv", result: a }]).rows).toEqual(a.rows);
+  });
+});
+
+describe("DELTARUNE versions", () => {
+  it("turns the demo and both versions into one game; the version is the console", () => {
+    expect(importVariant("DELTARUNE Chapter 1&2", null)).toEqual({ title: "DELTARUNE", device: "switch1" });
+    expect(importVariant("DELTARUNE Chapter 1 & 2", "switch2")).toEqual({ title: "DELTARUNE", device: "switch1" });
+    expect(importVariant("Deltarune Demo", null)).toEqual({ title: "DELTARUNE", device: "switch1" });
+    expect(importVariant("DELTARUNE Nintendo Switch 2 Edition", null)).toEqual({ title: "DELTARUNE", device: "switch2" });
+    expect(importVariant("DELTARUNE (Switch 2)", "switch1")).toEqual({ title: "DELTARUNE", device: "switch2" });
+    expect(importVariant("DELTARUNE", null)).toEqual({ title: "DELTARUNE", device: "switch1" });
+    expect(importVariant("DELTARUNE™", "switch2")).toEqual({ title: "DELTARUNE", device: "switch2" });
+    expect(importVariant("Undertale", null)).toEqual({ title: "Undertale", device: null });
+  });
+
+  it("adds up the demo and the full game on the same day, keeps the Switch 2 apart", () => {
+    const csv = [
+      "DELTARUNE Chapter 1&2;10.03.2025;30 Min.",
+      "DELTARUNE Chapter 1&2;10.03.2025;30 Min.", // the same line twice: once
+      "DELTARUNE;10.03.2025;45 Min.",
+      "DELTARUNE Nintendo Switch 2 Edition;20.06.2025;1 Std. 0 Min.",
+      "DELTARUNE;20.06.2025;20 Min.",
+    ].join("\n");
+    const { rows } = parseImportCsv(csv, TODAY);
+    expect(new Set(rows.map((r) => r.title))).toEqual(new Set(["DELTARUNE"]));
+    const batch = buildImportBatch(rows, { existingGames: [], existingDevices: [] });
+    expect(batch.games.map((g) => [g.externalId, g.title])).toEqual([["import:deltarune", "DELTARUNE"]]);
+    expect(batch.dailyPlaytime.map((d) => [d.date, d.deviceExternalId, d.minutes])).toEqual([
+      ["2025-03-10", "import:switch1", 75],
+      ["2025-06-20", "import:switch2", 60],
+      ["2025-06-20", "import:switch1", 20],
+    ]);
   });
 });
 

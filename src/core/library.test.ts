@@ -13,6 +13,7 @@ import {
   topGames,
   totalInRange,
   undatedTime,
+  countsAppsInTotal,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -116,6 +117,20 @@ describe("statistics", () => {
       "switch1",
     ]);
     expect(distribution(lib.days, march, "genre", lib.byId)).toEqual([{ key: "Sandbox", minutes: 250 }]);
+  });
+
+  it("counts the undated time of apps on its own, and reads the «count apps» setting", () => {
+    // YouTube: 500 min in total, all of them on a known day: nothing undated
+    expect(undatedTime(lib.games, lib.appDays, "apps")).toEqual([]);
+    const more = raw();
+    more.platformGames.find((p) => p.id === "e-yt")!.total_playtime_minutes = 800;
+    const withUndated = buildLibrary(more);
+    expect(undatedTime(withUndated.games, withUndated.appDays, "apps")).toEqual([
+      { gameId: "g-yt", platform: "nintendo", deviceKind: "switch2", minutes: 300 },
+    ]);
+    expect(countsAppsInTotal({})).toBe(false);
+    expect(countsAppsInTotal({ countAppsInTotal: true })).toBe(true);
+    expect(countsAppsInTotal({ countAppsInTotal: "yes" })).toBe(false);
   });
 
   it("counts time from before the first sync where no date is needed", () => {

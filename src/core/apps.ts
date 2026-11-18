@@ -21,6 +21,7 @@ const KNOWN_APPS = [
   "3DMark",
   "PlayStation Video",
   "Media Player",
+  "Pokémon HOME",
 ];
 
 const NORMALIZED = new Set(KNOWN_APPS.map((t) => normalizeTitle(t)));

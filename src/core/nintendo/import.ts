@@ -14,7 +14,10 @@ export const SHORT_PLAY_MINUTES = 5;
 export type ImportDevice = "switch1" | "switch2";
 
 export interface ImportRow {
+  /** The game: the title as listed, or the one game a variant belongs to (see VARIANTS). */
   title: string;
+  /** The title as it stands in the file (the demo, a console edition …). */
+  listedAs: string;
   date: LocalDate;
   minutes: number;
   /** null = not stated in the file */
@@ -86,6 +89,26 @@ function parseDevice(text: string): ImportDevice | null | "invalid" {
   return "invalid";
 }
 
+/**
+ * Titles that are versions of one game. They become that game, and the version tells the
+ * console: a demo or the Switch 1 version counts as Switch 1, the Switch 2 version as Switch 2.
+ * `device` wins over the file's column; `fallbackDevice` only fills an empty column.
+ */
+const VARIANTS: { pattern: RegExp; title: string; device?: ImportDevice; fallbackDevice?: ImportDevice }[] = [
+  // DELTARUNE: the free «Chapter 1&2» (demo), the Switch 1 and the Switch 2 version.
+  { pattern: /^deltarune\b.*(\bdemo\b|\b(chapter|kapitel)\s*1\s*(&|and|und|\+|,)\s*2\b)/i, title: "DELTARUNE", device: "switch1" },
+  { pattern: /^deltarune\b.*switch\s*2/i, title: "DELTARUNE", device: "switch2" },
+  { pattern: /^deltarune\b/i, title: "DELTARUNE", fallbackDevice: "switch1" },
+];
+
+/** The game and console a listed title stands for. */
+export function importVariant(title: string, device: ImportDevice | null): { title: string; device: ImportDevice | null } {
+  const name = title.replace(/[\u2122\u00ae\u00a9]/g, "").trim();
+  const variant = VARIANTS.find((v) => v.pattern.test(name));
+  if (!variant) return { title, device };
+  return { title: variant.title, device: variant.device ?? device ?? variant.fallbackDevice ?? null };
+}
+
 function detectDelimiter(line: string): string {
   const counts = [";", "\t", ","].map((d) => [d, line.split(d).length - 1] as const);
   counts.sort((a, b) => b[1] - a[1]);
@@ -153,15 +176,28 @@ export function parseImportCsv(text: string, today: LocalDate): ImportParseResul
       return void problems.push({ line, message: `Gerät unbekannt: «${deviceText}» (erlaubt: Switch 1, Switch 2 oder leer).` });
     }
 
-    keepLonger(byKey, { title, date, minutes: duration.minutes, device, estimated: duration.estimated, line });
+    const variant = importVariant(title, device);
+    keepLonger(byKey, {
+      title: variant.title,
+      listedAs: title,
+      date,
+      minutes: duration.minutes,
+      device: variant.device,
+      estimated: duration.estimated,
+      line,
+    });
   });
 
   return { rows: [...byKey.values()], problems };
 }
 
-/** The same game on the same day (and console) counts once: the longer duration wins. */
+/**
+ * A line listed twice (the same title, day and console) counts once: the longer duration wins.
+ * Different titles of one game (a demo and the full game on the same day) are not twins: their
+ * time is added up in buildImportBatch.
+ */
 function keepLonger(byKey: Map<string, ImportRow>, row: ImportRow): void {
-  const key = `${normalizeTitle(row.title)}|${row.date}|${row.device ?? ""}`;
+  const key = `${normalizeTitle(row.listedAs)}|${row.date}|${row.device ?? ""}`;
   const existing = byKey.get(key);
   if (!existing || row.minutes > existing.minutes) byKey.set(key, row);
 }
@@ -230,20 +266,25 @@ export function buildImportBatch(rows: readonly ImportRow[], context: ImportCont
     return IMPORT_DEVICES[wanted].externalId;
   };
 
+  // One value per game, console and day: versions of one game played on the same day add up.
+  const daily = new Map<string, SyncBatch["dailyPlaytime"][number]>();
   for (const row of rows) {
     const externalId =
       byExactTitle.get(row.title.trim().toLowerCase()) ??
       byNormalizedTitle.get(normalizeTitle(row.title)) ??
       `import:${slug(row.title)}`;
     if (!games.has(externalId)) games.set(externalId, row.title);
-    batch.dailyPlaytime.push({
-      gameExternalId: externalId,
-      deviceExternalId: deviceFor(row),
-      date: row.date,
-      minutes: row.minutes,
-      estimated: row.estimated,
-    });
+    const deviceExternalId = deviceFor(row);
+    const key = `${externalId}|${deviceExternalId}|${row.date}`;
+    const known = daily.get(key);
+    if (known) {
+      known.minutes = Math.min(1440, known.minutes + row.minutes);
+      known.estimated ||= row.estimated;
+    } else {
+      daily.set(key, { gameExternalId: externalId, deviceExternalId, date: row.date, minutes: row.minutes, estimated: row.estimated });
+    }
   }
+  batch.dailyPlaytime.push(...daily.values());
 
   for (const [externalId, title] of games) {
     batch.games.push({ externalId, title, owned: true, achievementsUnlocked: null, achievementsTotal: null });
