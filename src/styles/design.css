@@ -69,10 +69,51 @@
 
 /* ---------- Play calendar ---------- */
 
-/* The whitish steps (5 h and more) need a rim on a light card, where white would vanish. */
-:root:not([data-theme="dark"]) .heat-light {
-  /* The heat tokens resolve on :root, so they use the accent: the rim does too. */
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--color-accent) 60%, transparent);
+.heat-month {
+  color: var(--color-muted);
+}
+
+.heat-selected {
+  outline-color: var(--color-text);
+}
+
+/*
+ * Light theme: the grid and the legend sit on a dark «screen» with the colours of the dark
+ * theme, so the steps glow from purple to white exactly as at night.
+ */
+:root:not([data-theme="dark"]) .heat-screen {
+  --screen: #120c33;
+  --glow: #9d85ff;
+  --color-heat-0: #ffffff14;
+  --color-heat-1: color-mix(in oklab, var(--glow) 45%, var(--screen));
+  --color-heat-2: color-mix(in oklab, var(--glow) 60%, var(--screen));
+  --color-heat-3: color-mix(in oklab, var(--glow) 75%, var(--screen));
+  --color-heat-4: color-mix(in oklab, var(--glow) 90%, var(--screen));
+  --color-heat-5: var(--glow);
+  --color-heat-6: color-mix(in oklab, var(--glow) 70%, white);
+  --color-heat-7: color-mix(in oklab, var(--glow) 40%, white);
+  --color-heat-8: #ffffff;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgb(157 133 255 / 0.22), transparent 60%),
+    var(--screen);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 8px 20px -12px rgb(18 12 51 / 0.6);
+
+  & .heat-month {
+    color: #b9b1ea;
+  }
+
+  & .heat-selected {
+    outline-color: #ffffff;
+  }
+
+  &.heat-legend {
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
 }
 
 /* ---------- Foldable card ---------- */

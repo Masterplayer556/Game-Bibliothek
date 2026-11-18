@@ -19,8 +19,6 @@ const WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Fr
  * full colour at 4 h; past that it turns white (5 h a little, 7 h more, 10 h pure white).
  */
 const STEP_HOURS = [0, 1, 2, 3, 4, 5, 7, 10] as const;
-/** Steps from here on are light: they get a thin rim so they show on a light card. */
-const FIRST_LIGHT_STEP = 6;
 
 export function heatLevel(minutes: number): number {
   if (minutes <= 0) return 0;
@@ -107,16 +105,20 @@ export function PlayCalendar({
         </div>
         <IconButton icon="forward" label="Später" disabled={back === 0} onClick={() => move(-1)} />
       </div>
-      {/* Weeks that do not fit wrap onto a second line, which is cut off: no half columns on a phone. */}
-      <div
-        role="group"
-        aria-label={`Spieltage vom ${label(first)} bis ${label(last)}: an ${minutesOn.size} Tagen gespielt`}
-        className="flex h-[121px] flex-row-reverse flex-wrap content-start gap-x-[3px] gap-y-4 overflow-hidden"
-      >
+      {/*
+        Weeks that do not fit wrap onto a second line, which is cut off: no half columns on a phone.
+        In the light theme the grid sits on a dark «screen», so the white steps glow as at night.
+      */}
+      <div className="heat-screen">
+        <div
+          role="group"
+          aria-label={`Spieltage vom ${label(first)} bis ${label(last)}: an ${minutesOn.size} Tagen gespielt`}
+          className="flex h-[121px] flex-row-reverse flex-wrap content-start gap-x-[3px] gap-y-4 overflow-hidden"
+        >
         {columns.map((column) => (
           <div key={column.monday} className="flex flex-col gap-[3px]">
             <div className="relative h-4 w-3">
-              {column.month ? <span className="absolute left-0 top-0 whitespace-nowrap text-[10px] text-muted">{column.month}</span> : null}
+              {column.month ? <span className="heat-month absolute left-0 top-0 whitespace-nowrap text-[10px]">{column.month}</span> : null}
             </div>
             {column.dates.map((date) =>
               date > last ? (
@@ -127,7 +129,7 @@ export function PlayCalendar({
                   type="button"
                   aria-pressed={selected === date}
                   onClick={() => setSelected(selected === date ? null : date)}
-                  className={`h-3 w-3 rounded-[3.5px] ${heatLevel(minutesOn.get(date) ?? 0) >= FIRST_LIGHT_STEP ? "heat-light" : ""} ${selected === date ? "outline-2 outline-offset-1 outline-text" : ""}`}
+                  className={`h-3 w-3 rounded-[3.5px] ${selected === date ? "heat-selected outline-2 outline-offset-1" : ""}`}
                   style={heatStyle(heatLevel(minutesOn.get(date) ?? 0))}
                   title={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
                   aria-label={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
@@ -136,6 +138,7 @@ export function PlayCalendar({
             )}
           </div>
         ))}
+        </div>
       </div>
 
       <div aria-live="polite">
@@ -178,16 +181,13 @@ export function PlayCalendar({
         <span>
           An <span className="num text-sm text-text">{minutesOn.size}</span> Tagen gespielt · Tag antippen für Details
         </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           0
-          {Array.from({ length: STEP_HOURS.length + 1 }, (_, step) => (
-            <span
-              key={step}
-              className={`h-3 w-3 rounded-[3.5px] ${step >= FIRST_LIGHT_STEP ? "heat-light" : ""}`}
-              style={heatStyle(step)}
-              title={step === 0 ? "nicht gespielt" : stepLabel(step)}
-            />
-          ))}
+          <span className="heat-screen heat-legend flex items-center gap-1">
+            {Array.from({ length: STEP_HOURS.length + 1 }, (_, step) => (
+              <span key={step} className="h-3 w-3 rounded-[3.5px]" style={heatStyle(step)} title={step === 0 ? "nicht gespielt" : stepLabel(step)} />
+            ))}
+          </span>
           10 Std.+
         </span>
       </figcaption>
