@@ -130,12 +130,20 @@
   --color-chart-grid: #2a1f6614;
   /* One series (playtime over time): the section colour */
   --color-chart-bar: var(--section, var(--color-accent));
-  /* Play calendar: one hue, light to dark with the minutes played */
-  --color-heat-0: #2a1f660f;
-  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 30%, white);
-  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 55%, white);
-  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 80%, white);
-  --color-heat-4: var(--section-ink, var(--color-accent));
+  /*
+   * Play calendar, one step per hour: stronger section colour up to 4 h (5 = full), then it
+   * turns white: 5 h a little, 7 h more, 10 h and more pure white. Step 1 is clearly set off
+   * from «not played» (0).
+   */
+  --color-heat-0: #2a1f6612;
+  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 42%, white);
+  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 58%, white);
+  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 74%, white);
+  --color-heat-4: color-mix(in oklab, var(--section, var(--color-accent)) 90%, white);
+  --color-heat-5: var(--section-ink, var(--color-accent));
+  --color-heat-6: color-mix(in oklab, var(--section-ink, var(--color-accent)) 72%, white);
+  --color-heat-7: color-mix(in oklab, var(--section-ink, var(--color-accent)) 42%, white);
+  --color-heat-8: #ffffff;
 
   /* Colour per platform and console: follows the entity, never its rank */
   --color-platform-steam: var(--color-chart-1);
@@ -278,9 +286,13 @@
   --color-chart-7: #9085e9;
   --color-chart-8: #e66767;
   --color-chart-grid: #ffffff14;
-  --color-heat-0: #ffffff0f;
-  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 28%, var(--color-bg));
-  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 52%, var(--color-bg));
-  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 76%, var(--color-bg));
-  --color-heat-4: var(--section-ink, var(--color-accent));
+  --color-heat-0: #ffffff12;
+  --color-heat-1: color-mix(in oklab, var(--section, var(--color-accent)) 45%, var(--color-bg));
+  --color-heat-2: color-mix(in oklab, var(--section, var(--color-accent)) 60%, var(--color-bg));
+  --color-heat-3: color-mix(in oklab, var(--section, var(--color-accent)) 75%, var(--color-bg));
+  --color-heat-4: color-mix(in oklab, var(--section, var(--color-accent)) 90%, var(--color-bg));
+  --color-heat-5: var(--section-ink, var(--color-accent));
+  --color-heat-6: color-mix(in oklab, var(--section-ink, var(--color-accent)) 70%, white);
+  --color-heat-7: color-mix(in oklab, var(--section-ink, var(--color-accent)) 40%, white);
+  --color-heat-8: #ffffff;
 }
