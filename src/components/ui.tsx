@@ -50,6 +50,12 @@ export function Card({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  // A card that becomes urgent later (a login expired while the page was open) opens by itself.
+  const [wasDefaultOpen, setWasDefaultOpen] = useState(defaultOpen);
+  if (wasDefaultOpen !== defaultOpen) {
+    setWasDefaultOpen(defaultOpen);
+    if (defaultOpen) setOpen(true);
+  }
   const classes = `card p-card sm:p-5 ${glow ? "card-glow" : ""} ${className}`;
   const style = tone ? sectionStyle(tone) : undefined;
 
