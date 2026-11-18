@@ -3,11 +3,11 @@
 // The bar at the bottom, as liquid glass: a drop of glass sits under the chosen page. Tapping
 // another page sends the drop there with a spring; it swells and stretches while it moves.
 // Pressing and sliding along the bar lifts the drop and carries it under the finger; letting
-// go opens the page beneath it. Only transform-like properties move, so it stays smooth.
+// go opens the page beneath it. Only transform and opacity move, so it stays smooth.
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
-import { Icon } from "./Icon";
+import { PixelIcon } from "./PixelIcon";
 import { currentItem, NAV, PRIMARY, SECONDARY, type NavItem } from "./navigation";
 import { sectionStyle } from "./section";
 
@@ -21,89 +21,119 @@ function reducedMotion(): boolean {
 /**
  * The drop under the chosen slot (`index`), its swell when it jumps, and dragging it along the
  * slots from `range[0]` to `range[1]`. `onPick` gets the slot it was let go on.
+ *
+ * Smoothness: the drop only ever moves by `transform` (run by the compositor, so it keeps
+ * gliding while the new page renders). While dragging, the bar is measured once when the drag
+ * starts and the drop is moved at most once per frame, so no layout is forced on each move.
  */
 function useLiquidLens(index: number, range: [number, number], onPick: (slot: number) => void) {
   const track = useRef<HTMLDivElement>(null);
   const lens = useRef<HTMLSpanElement>(null);
+  const body = useRef<HTMLSpanElement>(null);
   const shine = useRef<HTMLSpanElement>(null);
   const previous = useRef(index);
-  const drag = useRef<{ id: number; x: number; active: boolean; under: number } | null>(null);
+  /** Set when a drag let go: the drop is already there, so it does not swell again. */
+  const dropped = useRef(false);
+  const drag = useRef<{
+    id: number;
+    x: number;
+    active: boolean;
+    under: number;
+    left: number;
+    pitch: number;
+    latest: number;
+    frame: number;
+  } | null>(null);
   const [under, setUnder] = useState<number | null>(null);
 
-  // The glide itself is a CSS transition on `translate`; here the drop swells and stretches
-  // toward where it goes (further = longer), then settles.
+  // The glide itself is a CSS transition on the drop; here it swells and stretches toward
+  // where it goes (further = longer), then settles.
   useEffect(() => {
     const from = previous.current;
     previous.current = index;
-    if (from === index || reducedMotion()) return;
+    const afterDrag = dropped.current;
+    dropped.current = false;
+    if (from === index || afterDrag || reducedMotion()) return;
     const stretch = Math.min(0.5, 0.14 + Math.abs(index - from) * 0.09);
-    lens.current?.animate([{ scale: "1 1" }, { scale: `${1 + stretch} 1.18`, offset: 0.3 }, { scale: "1 1" }], {
+    body.current?.animate([{ transform: "scale(1, 1)" }, { transform: `scale(${1 + stretch}, 1.18)`, offset: 0.3 }, { transform: "scale(1, 1)" }], {
       duration: 640,
       easing: "cubic-bezier(.25,.8,.25,1)",
     });
     shine.current?.animate([{ opacity: 0 }, { opacity: 1, offset: 0.22 }, { opacity: 0 }], { duration: 700, easing: "ease-out" });
   }, [index]);
 
-  function metrics() {
-    const el = track.current!;
-    const slot = el.querySelector<HTMLElement>("[data-slot]")!;
-    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
-    return { left: el.getBoundingClientRect().left, pitch: slot.offsetWidth + gap };
+  function place() {
+    const d = drag.current;
+    if (!d) return;
+    d.frame = 0;
+    const x = Math.min(range[1] * d.pitch, Math.max(range[0] * d.pitch, d.latest - d.left - d.pitch / 2));
+    if (lens.current) lens.current.style.transform = `translate3d(${x}px, 0, 0)`;
+    const slot = Math.round(x / d.pitch);
+    if (slot !== d.under) {
+      d.under = slot;
+      setUnder(slot);
+    }
   }
 
-  function lift(lifted: boolean) {
+  function release() {
+    const d = drag.current;
+    drag.current = null;
+    if (d?.frame) cancelAnimationFrame(d.frame);
     const el = lens.current;
-    if (!el) return;
-    if (lifted) el.setAttribute("data-lifted", "true");
-    else {
+    if (el) {
       el.removeAttribute("data-lifted");
-      el.style.translate = "";
+      el.style.transform = "";
     }
+    setUnder(null);
+    return d;
   }
 
   const handlers = {
     onPointerDown(event: PointerEvent<HTMLElement>) {
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      drag.current = { id: event.pointerId, x: event.clientX, active: false, under: index };
+      drag.current = { id: event.pointerId, x: event.clientX, active: false, under: index, left: 0, pitch: 0, latest: event.clientX, frame: 0 };
     },
     onPointerMove(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
+      d.latest = event.clientX;
       if (!d.active) {
         if (Math.abs(event.clientX - d.x) < DRAG_THRESHOLD_PX) return;
         d.active = true;
         // From now on the bar gets the pointer, so letting go does not also click a link.
         event.currentTarget.setPointerCapture(event.pointerId);
-        lift(true);
+        // Measured once per drag: the bar does not move while the finger is on it.
+        const el = track.current!;
+        const slot = el.querySelector<HTMLElement>("[data-slot]")!;
+        const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+        d.left = el.getBoundingClientRect().left;
+        d.pitch = slot.offsetWidth + gap;
+        lens.current?.setAttribute("data-lifted", "true");
+        place();
+        return;
       }
-      const { left, pitch } = metrics();
-      const x = Math.min(range[1] * pitch, Math.max(range[0] * pitch, event.clientX - left - pitch / 2));
-      if (lens.current) lens.current.style.translate = `${x}px 0`;
-      const slot = Math.round(x / pitch);
-      if (slot !== d.under) {
-        d.under = slot;
-        setUnder(slot);
-      }
+      if (!d.frame) d.frame = requestAnimationFrame(place);
     },
     onPointerUp(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      drag.current = null;
-      if (!d.active) return;
-      lift(false);
-      setUnder(null);
+      if (!d.active) {
+        drag.current = null;
+        return;
+      }
+      if (d.frame) place();
+      release();
+      if (d.under !== index) dropped.current = true;
       onPick(d.under);
     },
     onPointerCancel(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      drag.current = null;
-      lift(false);
-      setUnder(null);
+      release();
     },
   };
 
-  return { track, lens, shine, under, handlers };
+  return { track, lens, body, shine, under, handlers };
 }
 
 /** Remembers a tapped slot until the page has changed, so the drop moves at once. */
@@ -114,10 +144,14 @@ function useChosen(routeIndex: number) {
   return { chosen, choose: (index: number) => setTapped({ from: pathname, index }) };
 }
 
-function Lens({ index, item, lensRef, shineRef }: { index: number; item: NavItem; lensRef: React.Ref<HTMLSpanElement>; shineRef: React.Ref<HTMLSpanElement> }) {
+type SpanRef = React.Ref<HTMLSpanElement>;
+
+function Lens({ index, item, lensRef, bodyRef, shineRef }: { index: number; item: NavItem; lensRef: SpanRef; bodyRef: SpanRef; shineRef: SpanRef }) {
   return (
     <span ref={lensRef} aria-hidden className="tab-lens" style={{ "--i": index, ...sectionStyle(item.section) } as CSSProperties}>
-      <span ref={shineRef} className="tab-lens-shine" />
+      <span ref={bodyRef} className="tab-lens-body">
+        <span ref={shineRef} className="tab-lens-shine" />
+      </span>
     </span>
   );
 }
@@ -154,7 +188,7 @@ function TabLink({
       style={{ ...sectionStyle(item.section), ...style }}
       className={`tab-item ${className}`}
     >
-      <Icon name={item.icon} className="h-[23px] w-[23px]" />
+      <PixelIcon name={item.icon} className="h-[25px] w-[25px]" />
       <span className="whitespace-nowrap">{full ? item.label : item.short}</span>
     </Link>
   );
@@ -192,14 +226,14 @@ function PhoneTabBar({ current }: { current: NavItem }) {
     choose(slot);
     if (target !== current) router.push(target.href);
   };
-  const { track, lens, shine, under, handlers } = useLiquidLens(lensIndex, open ? [MORE, MORE + SECONDARY.length] : [0, MORE], pick);
+  const { track, lens, body, shine, under, handlers } = useLiquidLens(lensIndex, open ? [MORE, MORE + SECONDARY.length] : [0, MORE], pick);
 
   return (
     // Its own name: the page never covers the bar. Only one bar shows at a time.
     <div className="glass tabbar pointer-events-auto md:hidden" {...handlers}>
       <div className="tab-viewport" style={{ width: "calc(5 * var(--slot) + 4 * var(--gap))" }}>
         <div ref={track} className="tab-track" data-open={open}>
-          <Lens index={lensIndex} item={lensItem} lensRef={lens} shineRef={shine} />
+          <Lens index={lensIndex} item={lensItem} lensRef={lens} bodyRef={body} shineRef={shine} />
           {PRIMARY.map((item, i) => (
             <TabLink
               key={item.href}
@@ -224,9 +258,13 @@ function PhoneTabBar({ current }: { current: NavItem }) {
             className="tab-item"
           >
             {/* The four tiles turn into an arrow pointing back. */}
-            <span className="relative h-[23px] w-[23px]">
-              <Icon name="more" className={`tab-icon-swap absolute inset-0 h-[23px] w-[23px] ${open ? "scale-50 rotate-90 opacity-0" : ""}`} />
-              <Icon name="back" className={`tab-icon-swap absolute inset-0 h-[23px] w-[23px] ${open ? "" : "scale-50 -rotate-90 opacity-0"}`} />
+            <span className="relative h-[25px] w-[25px]">
+              <span className={`tab-icon-swap absolute inset-0 ${open ? "scale-50 rotate-90 opacity-0" : ""}`}>
+                <PixelIcon name="more" className="h-[25px] w-[25px]" />
+              </span>
+              <span className={`tab-icon-swap absolute inset-0 ${open ? "" : "scale-50 -rotate-90 opacity-0"}`}>
+                <PixelIcon name="less" className="h-[25px] w-[25px]" />
+              </span>
             </span>
             <span>Mehr</span>
           </button>
@@ -258,12 +296,12 @@ function WideTabBar({ current }: { current: NavItem }) {
     choose(slot);
     if (target !== current) router.push(target.href);
   };
-  const { track, lens, shine, under, handlers } = useLiquidLens(chosen, [0, NAV.length - 1], pick);
+  const { track, lens, body, shine, under, handlers } = useLiquidLens(chosen, [0, NAV.length - 1], pick);
   return (
     <div className="glass tabbar pointer-events-auto hidden md:block" {...handlers}>
       <div className="tab-viewport">
         <div ref={track} className="tab-track">
-          <Lens index={chosen} item={NAV[chosen] ?? current} lensRef={lens} shineRef={shine} />
+          <Lens index={chosen} item={NAV[chosen] ?? current} lensRef={lens} bodyRef={body} shineRef={shine} />
           {NAV.map((item, i) => (
             <TabLink key={item.href} item={item} current={current} on={chosen === i} under={under === i} onTap={() => choose(i)} full />
           ))}

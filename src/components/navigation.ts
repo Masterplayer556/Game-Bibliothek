@@ -1,5 +1,5 @@
 // The pages of the app, in the order of the tab bar.
-import type { IconName } from "./Icon";
+import type { PixelIconName } from "./PixelIcon";
 import type { Section } from "./section";
 
 export interface NavItem {
@@ -10,7 +10,7 @@ export interface NavItem {
   /** Short line under the page title. */
   tagline: string;
   section: Section;
-  icon: IconName;
+  icon: PixelIconName;
   /** In the bar on a phone; the others sit behind «Mehr». */
   primary: boolean;
 }

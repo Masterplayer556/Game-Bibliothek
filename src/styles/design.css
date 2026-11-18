@@ -586,8 +586,10 @@
     }
   }
 
+  /* Clips only sideways (the phone track slides), so the lifted drop can swell out of the bar. */
   .tab-viewport {
-    overflow: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
     border-radius: 1.55rem;
   }
 
@@ -595,10 +597,12 @@
     position: relative;
     display: flex;
     gap: var(--gap);
-    transition: translate 520ms var(--ease-spring);
+    transform: translate3d(0, 0, 0);
+    transition: transform 520ms var(--ease-spring);
+    will-change: transform;
 
     &[data-open="true"] {
-      translate: calc(-4 * (var(--slot) + var(--gap))) 0;
+      transform: translate3d(calc(-4 * (var(--slot) + var(--gap))), 0, 0);
     }
   }
 
@@ -611,7 +615,7 @@
     align-items: center;
     gap: 0.2rem;
     width: var(--slot);
-    padding: 0.55rem 0.2rem 0.45rem;
+    padding: 0.5rem 0.2rem 0.45rem;
     border-radius: 1.55rem;
     font-size: 10.5px;
     font-weight: 620;
@@ -623,23 +627,40 @@
       opacity 260ms ease;
 
     & svg {
-      transition: scale 380ms var(--ease-spring);
+      opacity: 0.78;
+      transition:
+        transform 380ms var(--ease-spring),
+        opacity 220ms ease;
     }
 
     &[data-on="true"] {
       color: var(--section-ink);
+
+      & svg {
+        opacity: 1;
+        transform: scale(1.06);
+      }
     }
 
     &[data-under="true"] svg {
-      scale: 1.22;
+      opacity: 1;
+      transform: scale(1.22);
     }
 
     &:active svg {
-      scale: 0.88;
+      transform: scale(0.88);
     }
   }
 
-  /* The drop of glass under the chosen tab. It glides with a spring and swells while it moves. */
+  /* 3D pixel icons keep their own colours; a soft shadow sets them on the glass. */
+  .page-pixel-icon {
+    filter: drop-shadow(0 6px 8px color-mix(in oklab, var(--section, var(--color-accent)) 35%, transparent));
+  }
+
+  /*
+   * The drop of glass under the chosen tab. The outer part glides (transform only, so the
+   * compositor runs it even while a page renders); the body inside swells and stretches.
+   */
   .tab-lens {
     position: absolute;
     top: 0;
@@ -647,8 +668,20 @@
     left: 0;
     z-index: 0;
     width: var(--slot);
+    transform: translate3d(calc(var(--i) * (var(--slot) + var(--gap))), 0, 0);
+    transition: transform 560ms var(--ease-spring);
+    will-change: transform;
+
+    /* Under the finger: follows it with no delay. */
+    &[data-lifted="true"] {
+      transition: none;
+    }
+  }
+
+  .tab-lens-body {
+    position: absolute;
+    inset: 0;
     border-radius: 1.55rem;
-    translate: calc(var(--i) * (var(--slot) + var(--gap))) 0;
     background-color: color-mix(in oklab, var(--section) 20%, var(--color-lens));
     box-shadow:
       inset 0 0 0 0.5px rgb(255 255 255 / 0.6),
@@ -656,20 +689,19 @@
       inset 0 -1px 2px color-mix(in oklab, var(--section) 25%, transparent),
       0 2px 8px -2px color-mix(in oklab, var(--section) 40%, transparent);
     transition:
-      translate 620ms var(--ease-spring),
-      scale 420ms var(--ease-spring),
+      transform 420ms var(--ease-spring),
       background-color 300ms ease;
-    will-change: translate, scale;
+    will-change: transform;
 
-    &[data-lifted="true"] {
-      scale: 1.14 1.24;
+    [data-lifted="true"] > & {
+      transform: scale(1.14, 1.24);
       transition:
-        scale 260ms var(--ease-out),
+        transform 220ms var(--ease-out),
         background-color 300ms ease;
     }
   }
 
-  :root[data-theme="dark"] .tab-lens {
+  :root[data-theme="dark"] .tab-lens-body {
     box-shadow:
       inset 0 0 0 0.5px rgb(255 255 255 / 0.28),
       inset 0 1px 1px rgb(255 255 255 / 0.3),
@@ -692,7 +724,7 @@
       0 10px 22px -8px rgb(0 0 0 / 0.35);
     transition: opacity 260ms ease;
 
-    [data-lifted="true"] > & {
+    [data-lifted="true"] & {
       opacity: 1;
     }
   }
@@ -721,7 +753,8 @@
 
   .tab-icon-swap {
     transition:
-      transform 360ms var(--ease-spring),
+      scale 360ms var(--ease-spring),
+      rotate 360ms var(--ease-spring),
       opacity 200ms ease;
   }
 
