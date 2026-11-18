@@ -44,6 +44,12 @@ Wünsche von Marcel: Das Wechseln über die Leiste ruckelte stark; mit «Animati
 - **Pile of Shame entfernt**: Seite, Logik (`pileOfShame`) und das Häkchen im Spiel-Detail. Die Spalte `hide_from_pile` und die Einstellung `pileThresholdMinutes` bleiben in der Datenbank (keine Migration), werden aber nicht mehr benutzt. Die Rückblick-Karte «Aus dem Pile of Shame geholt» heisst jetzt **«Wiederentdeckt»** (gleiche Regel mit fester Grenze 60 Minuten, `REDISCOVER_MINUTES` in `wrapped.ts`).
 - **Startbilder** neu gerendert (dunkler Hintergrund mit Gitter, neue Schrift); das App-Icon bleibt.
 
+**Nachtrag 18.11.2026** (Wünsche von Marcel):
+
+- **Leiste ruckelte noch**: Der Glastropfen und die rutschende Handy-Leiste bewegen sich nur noch über `transform` (äusseres `.tab-lens` gleitet, inneres `.tab-lens-body` schwillt an), das läuft auf der Grafikkarte weiter, während die neue Seite aufgebaut wird. Beim Ziehen wird die Leiste nur einmal beim Start vermessen und der Tropfen höchstens einmal pro Bild bewegt; nach dem Loslassen schwillt er nicht nochmals an. Der angehobene Tropfen wird oben und unten nicht mehr abgeschnitten (`.tab-viewport` schneidet nur seitlich ab).
+- **3D-Pixel-Icons** für die Seiten (`src/components/PixelIcon.tsx`): jeder Pixel ein Würfel mit heller Oberseite und dunkler rechter Seite (Vorbild: ein Voxel-Pokal von Marcel), feste Farben pro Icon, 12 × 12 Raster. In der Leiste und gross im Seitentitel; die kleinen Icons in Karten bleiben Vektor-Icons (`Icon.tsx`).
+- **Neues App-Icon** (`design/app-icon.svg`, ausdrücklich ohne Pixel): drei aufgefächerte Spiele-Cover in Bereichsfarben (○, ★, △) hinter einem Tropfen aus Liquid Glass (die Szene dahinter unscharf, heller Rand, Glanz), darauf ein weisser Controller; dahinter die Arcade-Nacht mit Neon-Wolken, Spiele-Symbolen und leuchtendem Gitter am Horizont. Icons, Favicon und Startbilder neu gerendert mit `node scripts/render-app-images.mjs`.
+
 ## Design «Lesesaal trifft Spielhalle» (16.11.2026)
 
 Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen passt (Game und Bibliothek gemischt).
@@ -86,7 +92,7 @@ Wunsch von Marcel: ein Design für hell und eines für dunkel, das zum Namen pas
 
 - **App-Rahmen** (`src/components/AppShell.tsx`): oben eine Glasleiste mit Logo und Hell/Dunkel, darunter ein grosser Seitentitel mit Icon und Untertitel; unten eine schwebende Glasleiste (Vorbild: die Leiste unten in Apps wie Google Drive) mit Übersicht, Bibliothek, Statistiken, Erfolge und «Mehr» (Pile of Shame, Rückblick, Hinzufügen, Plattformen). Ab Tablet-Breite stehen alle acht direkt in der Leiste. Das Spiel-Detail hat «Zurück» statt eines Titels.
 - **Als App auf dem Home-Bildschirm**: `src/app/manifest.webmanifest`, `appleWebApp` in `layout.tsx`, `viewportFit: cover` mit Abständen für Notch und Home-Leiste.
-- **App-Icon** (`design/app-icon.svg`, daraus `src/app/icon.svg`, `src/app/apple-icon.png`, `public/icon-96/192/512.png`): Buch mit goldenem Steuerkreuz und Lesezeichen auf einem Messing-Regal neben zwei Buchrücken, Pixel-Sterne, Hintergrund Tintenblau bis Violett. Das Logo oben ist dasselbe Bild.
+- **App-Icon** (`design/app-icon.svg`, daraus `src/app/icon.svg`, `src/app/apple-icon.png`, `public/icon-96/192/512.png`): Buch mit goldenem Steuerkreuz und Lesezeichen auf einem Messing-Regal neben zwei Buchrücken, Pixel-Sterne, Hintergrund Tintenblau bis Violett. Das Logo oben ist dasselbe Bild. (Seit 18.11.2026 ersetzt, siehe «Liquid Arcade».)
 - **Lebhaftere Themes**: kräftigere Bereichsfarben, ein farbiger Schein hinter der Seite in der Farbe des Bereichs (`app-backdrop`), Karten als weisse bzw. dunkle Blätter mit hellem Rand oben (`sheet`), Icons auf farbigen Kacheln (`icon-tile`), runde Schalter und grössere Rundungen.
 - **Pile of Shame**: Bücher über die ganze Breite, Titel mittig und bis zwei Zeilen; Spielzeit links, ⋯-Menü rechts («Spiel öffnen», «Vom Stapel nehmen») statt der grossen Knöpfe.
 - **Erfolge**: Karte «Deine seltensten Erfolge» (seltenster zuerst, mit %; gleiche Erfolge auf PC und PlayStation einmal), die Kachel «Seltene» springt dorthin. Kacheln auf dem Handy nicht mehr abgeschnitten.
