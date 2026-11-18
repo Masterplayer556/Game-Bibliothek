@@ -4,8 +4,9 @@ import { useState } from "react";
 import { generateKey } from "@/core/crypto";
 
 /**
- * Creates CREDENTIALS_ENCRYPTION_KEY in the browser. Nothing is sent or stored. Rarely needed
- * (only to set up or replace the GitHub secret), so it is one small line.
+ * Creates CREDENTIALS_ENCRYPTION_KEY in the browser. Nothing is sent or stored. Only needed to
+ * set up the GitHub secret the first time, so it asks before making one: a new key in the
+ * secret makes the stored logins unreadable.
  */
 export function KeyGenerator() {
   const [key, setKey] = useState<string | null>(null);
@@ -25,6 +26,12 @@ export function KeyGenerator() {
           type="button"
           className="link"
           onClick={() => {
+            const sure = window.confirm(
+              "Bist du sicher? Einen neuen Schlüssel brauchst du nur bei der ersten Einrichtung.\n\n" +
+                "Trägst du ihn als CREDENTIALS_ENCRYPTION_KEY ein, sind die gespeicherten Anmeldungen " +
+                "(PlayStation, Nintendo) nicht mehr lesbar und müssen neu verbunden werden.",
+            );
+            if (!sure) return;
             setKey(generateKey());
             setCopied(false);
           }}
@@ -49,7 +56,10 @@ export function KeyGenerator() {
             className="rounded-control border border-border-strong bg-field px-2.5 py-1.5 font-mono text-xs text-text"
             onFocus={(e) => e.currentTarget.select()}
           />
-          <p>Entsteht nur in deinem Browser. Sicher aufbewahren: Ohne ihn sind gespeicherte Tokens nicht mehr lesbar.</p>
+          <p>
+            Entsteht nur in deinem Browser. Nur für die erste Einrichtung: Ein neuer Schlüssel im
+            Secret macht die gespeicherten Anmeldungen unlesbar.
+          </p>
         </>
       ) : null}
     </div>

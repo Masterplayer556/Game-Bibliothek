@@ -4,6 +4,7 @@ import type { AdapterInfo } from "../src/core/adapter-catalog";
 import { decryptSecret, encryptSecret } from "../src/core/crypto";
 import { DB_SCHEMA, type SyncBatch } from "../src/core/types";
 import { fetchAll, persistBatch, type PersistSummary } from "../src/data/persist";
+import { AdapterError } from "./types";
 import type {
   AdapterRunResult,
   ConnectionPatch,
@@ -78,7 +79,18 @@ export class SupabaseSyncStore implements SyncStore {
       .eq("adapter_id", adapterId);
     if (error) throw new Error(`Could not read credentials: ${error.message}`);
     const out: Record<string, string> = {};
-    for (const row of data ?? []) out[row.kind] = await decryptSecret(row.ciphertext, this.key());
+    for (const row of data ?? []) {
+      try {
+        out[row.kind] = await decryptSecret(row.ciphertext, this.key());
+      } catch {
+        // Almost always a changed CREDENTIALS_ENCRYPTION_KEY: the stored login is lost for good
+        // with this key, so it counts as an expired login (the app then offers to reconnect).
+        throw new AdapterError(
+          "auth_expired",
+          "Gespeicherte Anmeldung nicht lesbar: CREDENTIALS_ENCRYPTION_KEY wurde geändert. Den alten Schlüssel wieder eintragen oder neu verbinden.",
+        );
+      }
+    }
     return out;
   }
 
