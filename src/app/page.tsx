@@ -9,7 +9,7 @@ import { PlayCalendar } from "@/components/PlayCalendar";
 import { SyncStatusBar } from "@/components/SyncStatusBar";
 import { Card, Figure, Notice, StatTile } from "@/components/ui";
 import { formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
-import { lifetimeByPlatform, rangeEndingToday, topGames, totalInRange } from "@/core/library";
+import { countsAppsInTotal, lifetimeByPlatform, rangeEndingToday, topGames, totalInRange } from "@/core/library";
 import { addDays, dateRange, monthKey, toLocalDate, weekStart } from "@/core/time";
 import type { PlatformId } from "@/core/types";
 
@@ -19,9 +19,13 @@ export default function DashboardPage() {
       {({ library, raw }) => {
         const now = new Date();
         const today = toLocalDate(now);
-        const week = totalInRange(library.days, { from: weekStart(today), to: today });
-        const month = totalInRange(library.days, { from: `${monthKey(today)}-01`, to: today });
+        // «App-Zeit mitzählen» (Statistiken): the time figures add the time in apps.
+        const withApps = countsAppsInTotal(raw.settings);
+        const timeDays = withApps ? [...library.days, ...library.appDays] : library.days;
+        const week = totalInRange(timeDays, { from: weekStart(today), to: today });
+        const month = totalInRange(timeDays, { from: `${monthKey(today)}-01`, to: today });
         const visible = library.games.filter((g) => !g.hidden);
+        const totalMinutes = library.games.filter((g) => withApps || !g.hidden).reduce((s, g) => s + g.totalMinutes, 0);
         const top = topGames(library.days, rangeEndingToday(today, 30), 5);
         const recent = visible
           .filter((g) => g.lastPlayedAt)
@@ -116,7 +120,13 @@ export default function DashboardPage() {
               <StatTile label="Spiele" value={String(visible.length)} icon="library" tone="library" />
               <StatTile label="Diese Woche" value={formatHours(week.minutes)} hint={week.estimated ? "teilweise geschätzt" : undefined} icon="calendar" tone="stats" />
               <StatTile label="Diesen Monat" value={formatHours(month.minutes)} hint={month.estimated ? "teilweise geschätzt" : undefined} icon="stats" tone="review" />
-              <StatTile icon="clock" label="Gesamt" value={formatHours(visible.reduce((s, g) => s + g.totalMinutes, 0))} hint="inkl. Zeit vor dem ersten Sync" tone="achievements" />
+              <StatTile
+                icon="clock"
+                label="Gesamt"
+                value={formatHours(totalMinutes)}
+                hint={withApps ? "inkl. Apps und Zeit vor dem ersten Sync" : "inkl. Zeit vor dem ersten Sync"}
+                tone="achievements"
+              />
             </section>
             {(() => {
               const apps = library.games.filter((g) => g.hidden && g.totalMinutes > 0);
@@ -124,8 +134,9 @@ export default function DashboardPage() {
               const minutes = apps.reduce((s, g) => s + g.totalMinutes, 0);
               return (
                 <Notice>
-                  Dazu {formatHours(minutes)} in Apps wie {apps.slice(0, 2).map((a) => a.title).join(" und ")} (zählen nicht als
-                  Spielzeit, Details unter <Link className="link" href="/statistiken/">Statistiken</Link>).
+                  {withApps ? "Darin" : "Dazu"} {formatHours(minutes)} in Apps wie {apps.slice(0, 2).map((a) => a.title).join(" und ")} (
+                  {withApps ? "zählen mit" : "zählen nicht als Spielzeit"}, umstellen unter{" "}
+                  <Link className="link" href="/statistiken/">Statistiken</Link>).
                 </Notice>
               );
             })()}

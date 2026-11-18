@@ -11,6 +11,7 @@ import { PlaytimeHistory } from "@/components/PlaytimeHistory";
 import { Card, fieldClass, Notice, StatTile } from "@/components/ui";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core/labels";
 import {
+  countsAppsInTotal,
   distribution,
   lifetimeDistribution,
   lifetimeTopGames,
@@ -21,6 +22,9 @@ import {
   type Range,
 } from "@/core/library";
 import { addDays, toLocalDate } from "@/core/time";
+import { errorMessage } from "@/lib/errors";
+import { saveSettings } from "@/lib/library-data";
+import { getSupabase } from "@/lib/supabase";
 import type { DeviceKind, LocalDate, PlatformId } from "@/core/types";
 
 type RangeKey = "30d" | "3m" | "6m" | "12m" | "year" | "all";
@@ -53,10 +57,12 @@ function rangeFor(key: RangeKey, today: LocalDate, firstDay: LocalDate | undefin
 
 export default function StatisticsPage() {
   const [rangeKey, setRangeKey] = useState<RangeKey>("all");
+  const [savingApps, setSavingApps] = useState(false);
+  const [appsError, setAppsError] = useState<string | null>(null);
 
   return (
     <LibraryGate>
-      {({ library }) => {
+      {({ library, raw, reload, userId }) => {
         const today = toLocalDate(new Date());
         const range = rangeFor(rangeKey, today, library.days[0]?.date);
         // «Alles» also counts what was played before the first sync: the platforms report it in
@@ -65,7 +71,25 @@ export default function StatisticsPage() {
         const undated = everything ? undatedTime(library.games, library.days) : [];
         const undatedMinutes = undated.reduce((sum, u) => sum + u.minutes, 0);
         const dated = totalInRange(library.days, range);
-        const total = { minutes: dated.minutes + undatedMinutes, estimated: dated.estimated };
+        // «App-Zeit mitzählen»: the total adds the time in apps; everything else stays games only.
+        const withApps = countsAppsInTotal(raw.settings);
+        const appDated = totalInRange(library.appDays, range);
+        const appUndated = everything ? undatedTime(library.games, library.appDays, "apps").reduce((sum, u) => sum + u.minutes, 0) : 0;
+        const appMinutes = appDated.minutes + appUndated;
+        const total = withApps
+          ? { minutes: dated.minutes + undatedMinutes + appMinutes, estimated: dated.estimated || appDated.estimated }
+          : { minutes: dated.minutes + undatedMinutes, estimated: dated.estimated };
+        const toggleApps = async (on: boolean) => {
+          setSavingApps(true);
+          setAppsError(null);
+          try {
+            await saveSettings(getSupabase(), userId, { ...raw.settings, countAppsInTotal: on });
+            await reload();
+          } catch (e) {
+            setAppsError(errorMessage(e));
+          }
+          setSavingApps(false);
+        };
         const ranked = everything ? lifetimeTopGames(library.days, undated, 10_000) : topGames(library.days, range, 10_000);
         const top = ranked.slice(0, 10);
         const shares = (by: Grouping) =>
@@ -117,7 +141,13 @@ export default function StatisticsPage() {
             </section>
 
             <section className="grid grid-cols-2 gap-stack sm:grid-cols-3">
-              <StatTile label="Spielzeit" value={formatHours(total.minutes)} hint={total.estimated ? "teilweise geschätzt" : undefined} icon="clock" tone="stats" />
+              <StatTile
+                label="Spielzeit"
+                value={formatHours(total.minutes)}
+                hint={[withApps && appMinutes > 0 ? "mit Apps" : "", total.estimated ? "teilweise geschätzt" : ""].filter(Boolean).join(", ") || undefined}
+                icon="clock"
+                tone="stats"
+              />
               <StatTile label="Spieltage" value={String(playedDays)} icon="calendar" hint={everything && undatedMinutes > 0 ? "nur Tage mit Datum" : undefined} tone="chronicle" />
               <div className="col-span-2 sm:col-span-1">
                 <StatTile label="Verschiedene Spiele" value={String(ranked.length)} icon="library" tone="library" />
@@ -175,13 +205,19 @@ export default function StatisticsPage() {
             </Card>
 
             <Card title="Apps (kein Spiel)" icon="play" tone="home">
+              <label className="flex items-center gap-2.5 text-sm">
+                <input type="checkbox" checked={withApps} disabled={savingApps} onChange={(e) => void toggleApps(e.target.checked)} />
+                App-Zeit in der Spielzeit mitzählen
+              </label>
+              {appsError ? <Notice tone="danger">{appsError}</Notice> : null}
               {(() => {
                 const apps = topGames(library.appDays, range, 50);
                 if (apps.length === 0) return <Notice>Keine App-Zeit im gewählten Zeitraum.</Notice>;
                 return (
                   <>
                     <Notice>
-                      Zählt nicht zur Spielzeit oben. Zusammen {formatHours(apps.reduce((s, a) => s + a.minutes, 0))}.
+                      {withApps ? "Zählt zur Spielzeit oben" : "Zählt nicht zur Spielzeit oben"} (Ranglisten und Diagramme
+                      bleiben nur Spiele). Zusammen {formatHours(apps.reduce((s, a) => s + a.minutes, 0))}.
                     </Notice>
                     <ul className="flex flex-col gap-1 text-sm">
                       {apps.map((a) => (

@@ -323,6 +323,14 @@ export function inRange(date: LocalDate, range: Range): boolean {
   return date >= range.from && date <= range.to;
 }
 
+/**
+ * Setting «App-Zeit mitzählen» (`countAppsInTotal`): the time in apps (YouTube, Pokémon HOME …)
+ * is added to the total playtime figures. Lists, charts and rankings stay games only.
+ */
+export function countsAppsInTotal(settings: Record<string, unknown>): boolean {
+  return settings.countAppsInTotal === true;
+}
+
 export function totalInRange(days: readonly GameDay[], range: Range): { minutes: number; estimated: boolean } {
   let minutes = 0;
   let estimated = false;
@@ -414,7 +422,12 @@ export interface UndatedTime {
   minutes: number;
 }
 
-export function undatedTime(games: readonly LibraryGame[], days: readonly GameDay[]): UndatedTime[] {
+export function undatedTime(
+  games: readonly LibraryGame[],
+  days: readonly GameDay[],
+  /** "apps": the time of entries marked «Kein Spiel» instead (with `library.appDays`). */
+  which: "games" | "apps" = "games",
+): UndatedTime[] {
   const dated = new Map<string, number>();
   const kinds = new Map<string, Map<DeviceKind, number>>();
   for (const d of days) {
@@ -425,7 +438,7 @@ export function undatedTime(games: readonly LibraryGame[], days: readonly GameDa
   }
   const out: UndatedTime[] = [];
   for (const game of games) {
-    if (game.hidden) continue;
+    if (game.hidden !== (which === "apps")) continue;
     for (const entry of game.entries) {
       const minutes = entry.totalMinutes - (dated.get(entry.id) ?? 0);
       if (minutes <= 0) continue;
