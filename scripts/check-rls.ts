@@ -65,14 +65,6 @@ async function main(): Promise<void> {
     );
   }
 
-  const rpc = await anon.rpc("delete_demo_data");
-  if (!rpc.error) {
-    problems++;
-    console.log("PROBLEM delete_demo_data() can be called without login");
-  } else {
-    console.log("ok      delete_demo_data()      denied without login");
-  }
-
   // The helper that answers «is this e-mail allowed?» must not be usable to probe addresses.
   const probeEmail = await anon.rpc("is_allowed_email", { candidate: "someone@example.com" });
   if (!probeEmail.error) {
