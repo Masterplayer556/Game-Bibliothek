@@ -67,6 +67,26 @@
   }
 }
 
+/* ---------- Foldable card ---------- */
+
+.card-fold-summary {
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.card-fold-chevron {
+  transition: rotate 260ms var(--ease-spring);
+
+  [open] > summary > & {
+    rotate: 90deg;
+  }
+}
+
 /* ---------- Small utilities ---------- */
 
 /* A text link in the colour of the section. */

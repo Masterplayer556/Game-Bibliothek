@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDemoBatches } from "./demo";
+import { buildSampleBatches } from "../testing/sample-library";
 import { buildLibrary, type GameDay, type RawData } from "./library";
 import { availableYears, bestDay, buildWrapped, longestStreak, yearRange } from "./wrapped";
 
@@ -56,7 +56,7 @@ function demoRaw(now: Date): RawData {
   // Turn the demo batches into rows, the way the database would return them.
   const raw: RawData = { games: [], platformGames: [], devices: [], daily: [], snapshots: [], achievements: [], userData: [], connections: [], settings: {} };
   const gameIds = new Map<string, string>();
-  for (const batch of buildDemoBatches(now)) {
+  for (const batch of buildSampleBatches(now)) {
     for (const d of batch.devices) raw.devices.push({ id: d.externalId, platform: batch.platform, kind: d.kind, label: d.label });
     for (const g of batch.games) {
       const key = g.title.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z]/g, "").replace(/(fornintendoswitch|javaedition)$/, "");

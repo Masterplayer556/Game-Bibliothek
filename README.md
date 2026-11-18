@@ -35,7 +35,6 @@ Eine Web-App, die Spiele von **Steam**, **PlayStation 5** und **Nintendo Switch 
 | `npm run lint` | ESLint und Typprüfung |
 | `npm test` | Tests (Vitest, inkl. Datenbank-Tests gegen Postgres im Speicher) |
 | `npm run sync` | Sync (`-- --adapter=steam`, `-- --mode=test`) |
-| `npm run seed:demo` / `npm run clear:demo` | Demo-Daten laden / löschen |
 | `npm run check:rls` | Prüft von aussen, dass ohne Login nichts lesbar, schreibbar oder aufrufbar ist |
 | `npm run setup:nintendo` | Nintendo-Login im Terminal (sonst in der App) |
 | `npm run igdb:check` | IGDB-Verbindung prüfen |

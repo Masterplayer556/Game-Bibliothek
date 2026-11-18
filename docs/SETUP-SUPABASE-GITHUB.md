@@ -82,13 +82,12 @@ Die Knöpfe unter Plattformen starten den Sync-Workflow auf GitHub. Dafür brauc
 6. Unter <https://github.com/Masterplayer556/Game-Bibliothek/settings/secrets/actions> als Secret `DISPATCH_TOKEN` eintragen.
 7. Workflow [Edge Functions deployen](https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/functions.yml) → «Run workflow». Er gibt den Token an die Edge Function `trigger-sync` weiter.
 
-Läuft der Token ab, meldet die App beim Knopf «GitHub lehnt den Token ab». Dann Schritte 1 bis 7 wiederholen. Der automatische Sync alle 6 Stunden braucht den Token nicht.
+Lehnt GitHub den Token ab, sagt die App beim Knopf, warum: «kennt den Token nicht» (abgelaufen oder falsch kopiert), «darf keine Workflows starten» (Schritt 4) oder «sieht das Repo nicht» (Schritt 3). Dann Schritte 1 bis 7 wiederholen. Wichtig ist Schritt 7: Erst der Workflow «Edge Functions deployen» gibt einen neuen Token an die App weiter. Der automatische Sync alle 6 Stunden braucht den Token nicht.
 
 ## 7. Prüfen
 
 1. App öffnen, anmelden. Die Karte «Datenbank» zeigt «Verbindung zur Datenbank funktioniert».
-2. «Demo-Daten laden» antippen. Die Zähler füllen sich.
-3. Sicherheit prüfen: <https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/tools.yml> → «Run workflow» → `check-rls`. Der Lauf muss grün sein und für jede Tabelle `ok` melden.
+2. Sicherheit prüfen: <https://github.com/Masterplayer556/Game-Bibliothek/actions/workflows/tools.yml> → «Run workflow» → `check-rls`. Der Lauf muss grün sein und für jede Tabelle `ok` melden.
 
 ---
 

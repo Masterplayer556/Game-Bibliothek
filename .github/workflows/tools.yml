@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "check-rls = Sicherheit prüfen, seed-demo = Demo-Daten laden, clear-demo = Demo-Daten löschen, igdb-check = IGDB-Verbindung prüfen"
+        description: "check-rls = Sicherheit prüfen, igdb-check = IGDB-Verbindung prüfen"
         type: choice
-        options: [check-rls, seed-demo, clear-demo, igdb-check]
+        options: [check-rls, igdb-check]
         default: check-rls
 
 permissions:
@@ -39,8 +39,6 @@ jobs:
         run: |
           case "$TASK" in
             check-rls) npm run check:rls ;;
-            seed-demo) npm run seed:demo ;;
-            clear-demo) npm run clear:demo ;;
             igdb-check) npm run igdb:check ;;
             *) echo "Unknown task"; exit 1 ;;
           esac

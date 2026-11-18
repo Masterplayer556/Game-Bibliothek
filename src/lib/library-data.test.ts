@@ -4,13 +4,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient, createTestDatabase } from "../../supabase/testing/database";
 import { buildLibrary } from "../core/library";
+import { persistBatch } from "../data/persist";
+import { buildSampleBatches } from "../testing/sample-library";
 import {
   addManualGame,
   deleteManualEntry,
-  loadDemoData,
   loadRawData,
   mergeGames,
-  removeDemoData,
   saveSettings,
   saveUserData,
   splitEntry,
@@ -27,11 +27,12 @@ beforeAll(async () => {
   pg = await createTestDatabase();
   await pg.query("insert into auth.users (id, email) values ($1, 'owner@example.com')", [USER]);
   db = createTestClient(pg);
-  await loadDemoData(db, USER);
+  const now = new Date();
+  for (const batch of buildSampleBatches(now)) await persistBatch(db, USER, batch, now);
 }, 60_000);
 
 describe("loadRawData", () => {
-  it("loads the demo library", async () => {
+  it("loads the sample library", async () => {
     const raw = await loadRawData(db);
     expect(raw.platformGames).toHaveLength(41);
     expect(raw.achievements.length).toBeGreaterThan(800);
@@ -103,12 +104,5 @@ describe("actions", () => {
     await deleteManualEntry(db, peggle.entries.find((e) => e.platform === "steam")!.id);
     expect((await find("Peggle Deluxe")).platforms).toEqual(["steam"]);
     await addManualGame(db, USER, { title: "Peggle Deluxe", deviceKind: "xbox360", minutes: 300, owned: false });
-  });
-
-  it("removes all demo data but keeps entries added by hand", async () => {
-    await removeDemoData(db);
-    const lib = await library();
-    expect(lib.games.map((g) => g.title)).toEqual(["Peggle Deluxe"]);
-    expect(lib.games[0]!.platforms).toEqual(["manual"]);
   });
 });

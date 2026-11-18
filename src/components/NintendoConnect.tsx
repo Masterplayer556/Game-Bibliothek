@@ -9,7 +9,15 @@ import { errorMessage } from "@/lib/errors";
 
 const KIND_LABEL: Record<string, string> = { switch1: "Switch", switch2: "Switch 2", other: "Konsole" };
 
-export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDone: () => void; title?: string }) {
+export function NintendoConnect({
+  onDone,
+  title = "Nintendo verbinden",
+  defaultOpen = false,
+}: {
+  onDone: () => void;
+  title?: string;
+  defaultOpen?: boolean;
+}) {
   const [login, setLogin] = useState<NintendoLoginRequest | null>(null);
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,7 +51,7 @@ export function NintendoConnect({ onDone, title = "Nintendo verbinden" }: { onDo
   }
 
   return (
-    <Card title={title} icon="switch" tone="library">
+    <Card title={title} icon="switch" tone="library" collapsible defaultOpen={defaultOpen}>
       <Notice>
         Holt die Spielzeit pro Tag aus der Jugendschutz-App. Voraussetzung: Die Konsole ist in der
         App «Nintendo Switch Parental Controls» verknüpft.

@@ -1,11 +1,30 @@
+"use client";
+
 // Small presentational building blocks. Styling only, no logic.
-import { useId, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
+import { useId, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
 import { sectionStyle, type Section } from "./section";
+
+function CardHeading({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: IconName }) {
+  return (
+    <>
+      {icon ? (
+        <span className="icon-tile h-10 w-10 rounded-[13px]">
+          <Icon name={icon} className="h-[22px] w-[22px]" />
+        </span>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display text-[1.3rem] font-bold leading-tight tracking-tight">{title}</h2>
+        {subtitle ? <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p> : null}
+      </div>
+    </>
+  );
+}
 
 /**
  * A card of tinted glass. `icon` sits on a glossy tile in the colour of the section; `tone`
  * gives the card the colour of another section; `action` sits at the right of the title.
+ * `collapsible` makes the title a button that folds the card away (closed unless `defaultOpen`).
  */
 export function Card({
   title,
@@ -14,6 +33,8 @@ export function Card({
   tone,
   action,
   glow = false,
+  collapsible = false,
+  defaultOpen = false,
   className = "",
   children,
 }: {
@@ -23,22 +44,32 @@ export function Card({
   tone?: Section;
   action?: ReactNode;
   glow?: boolean;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const classes = `card p-card sm:p-5 ${glow ? "card-glow" : ""} ${className}`;
+  const style = tone ? sectionStyle(tone) : undefined;
+
+  if (collapsible && title) {
+    return (
+      <details className={`card-fold ${classes}`} style={style} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+        <summary className="card-fold-summary flex items-center gap-3">
+          <CardHeading title={title} subtitle={subtitle} icon={icon} />
+          <Icon name="forward" className="card-fold-chevron h-5 w-5 text-muted" />
+        </summary>
+        <div className="mt-4 flex flex-col gap-stack">{children}</div>
+      </details>
+    );
+  }
+
   return (
-    <section className={`card p-card sm:p-5 ${glow ? "card-glow" : ""} ${className}`} style={tone ? sectionStyle(tone) : undefined}>
+    <section className={classes} style={style}>
       {title ? (
         <div className="mb-4 flex items-center gap-3">
-          {icon ? (
-            <span className="icon-tile h-10 w-10 rounded-[13px]">
-              <Icon name={icon} className="h-[22px] w-[22px]" />
-            </span>
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <h2 className="font-display text-[1.3rem] font-bold leading-tight tracking-tight">{title}</h2>
-            {subtitle ? <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p> : null}
-          </div>
+          <CardHeading title={title} subtitle={subtitle} icon={icon} />
           {action}
         </div>
       ) : null}
