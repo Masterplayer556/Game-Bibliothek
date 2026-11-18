@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { generateKey } from "@/core/crypto";
-import { Button, Card, Notice } from "./ui";
 
-/** Creates CREDENTIALS_ENCRYPTION_KEY in the browser. Nothing is sent or stored. */
+/**
+ * Creates CREDENTIALS_ENCRYPTION_KEY in the browser. Nothing is sent or stored. Rarely needed
+ * (only to set up or replace the GitHub secret), so it is one small line.
+ */
 export function KeyGenerator() {
   const [key, setKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -16,32 +18,40 @@ export function KeyGenerator() {
   }
 
   return (
-    <Card title="Schlüssel für die Verschlüsselung" icon="key" tone="home">
-      <Notice>
-        Für das GitHub-Secret <code className="font-mono">CREDENTIALS_ENCRYPTION_KEY</code>. Der
-        Schlüssel entsteht nur in deinem Browser und wird nirgends gespeichert. Bewahre ihn sicher
-        auf: Ohne ihn sind gespeicherte Plattform-Tokens nicht mehr lesbar.
-      </Notice>
-      <div className="flex flex-wrap gap-stack">
-        <Button
+    <div className="flex flex-col gap-1.5 text-xs text-muted">
+      <p>
+        Schlüssel für <code className="font-mono">CREDENTIALS_ENCRYPTION_KEY</code>:{" "}
+        <button
+          type="button"
+          className="link"
           onClick={() => {
             setKey(generateKey());
             setCopied(false);
           }}
         >
-          Schlüssel erzeugen
-        </Button>
-        {key ? <Button onClick={copy}>{copied ? "Kopiert" : "Kopieren"}</Button> : null}
-      </div>
+          {key ? "neu erzeugen" : "erzeugen"}
+        </button>
+        {key ? (
+          <>
+            {" · "}
+            <button type="button" className="link" onClick={copy}>
+              {copied ? "kopiert" : "kopieren"}
+            </button>
+          </>
+        ) : null}
+      </p>
       {key ? (
-        <input
-          readOnly
-          value={key}
-          aria-label="Erzeugter Schlüssel"
-          className="rounded-control border border-border-strong bg-field px-3 py-2 font-mono text-sm"
-          onFocus={(e) => e.currentTarget.select()}
-        />
+        <>
+          <input
+            readOnly
+            value={key}
+            aria-label="Erzeugter Schlüssel"
+            className="rounded-control border border-border-strong bg-field px-2.5 py-1.5 font-mono text-xs text-text"
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <p>Entsteht nur in deinem Browser. Sicher aufbewahren: Ohne ihn sind gespeicherte Tokens nicht mehr lesbar.</p>
+        </>
       ) : null}
-    </Card>
+    </div>
   );
 }

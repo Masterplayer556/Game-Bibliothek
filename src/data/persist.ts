@@ -1,5 +1,5 @@
 // Writes a SyncBatch to the database. Works with any Supabase client: the secret-key
-// client of the sync script and the logged-in browser client (demo data, imports).
+// client of the sync script and the logged-in browser client (imports).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findGameMatch, type KnownGame } from "../core/match-games";
 import { normalizeTitle } from "../core/normalize-title";
@@ -413,9 +413,4 @@ export async function recomputeDailyTotals(
     const { error } = await db.from("platform_games").update(patch).eq("id", id).eq("user_id", userId);
     fail("playtime totals", error);
   }
-}
-
-export async function deleteDemoData(db: SupabaseClient): Promise<void> {
-  const { error } = await db.rpc("delete_demo_data");
-  fail("demo data removal", error);
 }

@@ -7,7 +7,7 @@ import { getSupabase } from "@/lib/supabase";
 import { Button, Card, fieldClass, Notice } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
-export function PlayStationConnect({ title, onDone }: { title: string; onDone: () => void }) {
+export function PlayStationConnect({ title, onDone, defaultOpen = false }: { title: string; onDone: () => void; defaultOpen?: boolean }) {
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function PlayStationConnect({ title, onDone }: { title: string; onDone: (
   }
 
   return (
-    <Card title={title} icon="gamepad" tone="chronicle">
+    <Card title={title} icon="gamepad" tone="chronicle" collapsible defaultOpen={defaultOpen}>
       <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
         <li>
           Im Browser auf{" "}

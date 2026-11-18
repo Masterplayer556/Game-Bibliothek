@@ -94,7 +94,7 @@ sync/
   adapters/<id>/     adapter.ts, client.ts, fixtures/, *.test.ts
   metadata/          Schnittstelle + igdb.ts
   crypto.ts, db.ts
-scripts/             seed-demo.ts, setup-nintendo.ts, check-rls.ts
+scripts/             setup-nintendo.ts, check-rls.ts, igdb-check.ts
 supabase/
   migrations/        SQL-Dateien (führst du aus)
   functions/         save-credential/, trigger-sync/, _shared/
@@ -110,7 +110,7 @@ Die Schnittstelle aus dem Projektauftrag bleibt, mit drei Ergänzungen:
 
 ```ts
 interface PlatformAdapter {
-  id: string;                      // 'steam', 'psn', 'nintendo-parental', 'nintendo-import', 'demo'
+  id: string;                      // 'steam', 'psn', 'nintendo-parental', 'nintendo-import'
   platform: PlatformId;            // 'steam' | 'psn' | 'nintendo' | 'manual'
   displayName: string;
   capabilities: AdapterCapabilities;
@@ -229,12 +229,12 @@ Diese Punkte gelten vor dem Text weiter oben.
 - **Sicherheit** (14.11.2026): Prüfbericht, bewusst offene Punkte und Vorgehen bei einem bekannt gewordenen Schlüssel stehen in `SECURITY.md`. Workflows verwenden Aktionen mit festem Commit; der Sync-Job darf das Repo nur lesen, das Wiedereinschalten des Zeitplans macht der eigene Job `keep-alive`.
 - **Edge Functions** (zu Abschnitt 7): Es sind vier (`nintendo-login`, `save-credential`, `igdb-search`, `trigger-sync`); die Anmeldeprüfung liegt in `supabase/functions/_common/http.ts`. Die NPSSO wird nach dem Tausch nicht gelöscht, sondern bleibt verschlüsselt gespeichert, weil Sonys Refresh-Token nur etwa zehn Tage gilt.
 
-- **Kein Terminal nötig.** Der Nintendo-Login läuft in der App über eine Edge Function statt über `npm run setup:nintendo`. Demo-Daten lädt ein Knopf in der App. Sync, Sicherheitsprüfung und Demo-Daten gibt es zusätzlich als manuell startbare Workflows.
+- **Kein Terminal nötig.** Der Nintendo-Login läuft in der App über eine Edge Function statt über `npm run setup:nintendo`. Sync und Sicherheitsprüfung gibt es zusätzlich als manuell startbare Workflows. (Die Demo-Daten wurden am 18.11.2026 entfernt; der Beispiel-Datensatz lebt nur noch als Testdaten in `src/testing/sample-library.ts`.)
 - **Öffentliche Werte im Repo.** Adresse und öffentlicher Schlüssel des Supabase-Projekts stehen in `.env.production`. GitHub-Variablen mit demselben Namen haben Vorrang.
 - **Adapter-Katalog.** `src/core/adapter-catalog.ts` beschreibt alle Quellen einmal, für App und Sync. Die Registry (`sync/registry.ts`) enthält nur die fertigen Adapter.
 - **Snapshots speichern «zuletzt gespielt»** (`playtime_snapshots.last_played_at`). Nur so lässt sich Regel 3 der Spielzeit auch für ältere Abschnitte anwenden.
 - **Import ist geräteunabhängig.** Die Nintendo-Store-Historie kennt kein Gerät pro Tag. Hat eine andere Quelle für dasselbe Spiel und denselben Tag Daten, zählt der Import-Wert nicht, egal auf welchem Gerät. Ein Import übernimmt nie einen bestehenden Eintrag.
-- **Persistenz in `src/data/persist.ts`.** Dieselbe Funktion schreibt für das Sync-Skript, die Demo-Daten im Browser und später den Import.
+- **Persistenz in `src/data/persist.ts`.** Dieselbe Funktion schreibt für das Sync-Skript, und den Import im Browser.
 - **Tests gegen echtes Postgres.** Migration, Row Level Security und Persistenz laufen in den Tests gegen eine Postgres-Instanz im Speicher (PGlite).
 - **Geteiltes Supabase-Projekt.** Der Gratis-Plan erlaubt nur zwei aktive Projekte, und beide sind belegt. Game Bibliothek läuft darum im Projekt «Kalender / Game Bibliothek» (früher «Kalender (CC)») in den eigenen Schemas `game_bibliothek` und `game_bibliothek_private` statt in `public`. Der Schema-Name steht einmal im Code (`DB_SCHEMA` in `src/core/types.ts`). Ein Test stellt sicher, dass die Migration nichts in `public` anlegt und fremde Tabellen und Rechte nicht verändert. Überall, wo dieses Dokument `public.` oder `app_private` meint, gilt das neue Schema.
 - **Supabase-Änderungen.** Claude führt SQL selbst aus. Was eine Bestätigung braucht oder nur im Dashboard geht, bekommt Marcel mit Link und Text.

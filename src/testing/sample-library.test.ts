@@ -1,21 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { snapshotsToDays } from "../playtime";
-import { diffDays } from "../time";
-import { DEMO_SOURCE } from "../types";
-import { buildDemoBatches } from "./index";
+import { snapshotsToDays } from "../core/playtime";
+import { diffDays } from "../core/time";
+import { buildSampleBatches, SAMPLE_SOURCE } from "./sample-library";
 
 const NOW = new Date("2026-11-10T12:00:00Z");
-const batches = buildDemoBatches(NOW);
+const batches = buildSampleBatches(NOW);
 const byPlatform = Object.fromEntries(batches.map((b) => [b.platform, b]));
 
-describe("demo data", () => {
+describe("sample library", () => {
   it("is deterministic", () => {
-    expect(buildDemoBatches(NOW)).toEqual(batches);
+    expect(buildSampleBatches(NOW)).toEqual(batches);
   });
 
   it("tags everything as demo", () => {
     for (const batch of batches) {
-      expect(batch.source).toBe(DEMO_SOURCE);
+      expect(batch.source).toBe(SAMPLE_SOURCE);
       for (const game of batch.games) expect(game.externalId.startsWith("demo:")).toBe(true);
       for (const device of batch.devices) expect(device.externalId.startsWith("demo:")).toBe(true);
     }

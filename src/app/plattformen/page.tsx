@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { formatDateTime, formatDay, relativeAge } from "@/components/game-ui";
 import { KeyGenerator } from "@/components/KeyGenerator";
 import { LibraryGate } from "@/components/LibraryGate";
-import { useLibraryContext } from "@/components/LibraryProvider";
 import { NintendoConnect } from "@/components/NintendoConnect";
 import { NintendoImport } from "@/components/NintendoImport";
 import { PlayStationConnect } from "@/components/PlayStationConnect";
 import { SyncControls } from "@/components/SyncControls";
-import { Button, Card, Notice } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { ADAPTER_CATALOG, type AdapterInfo } from "@/core/adapter-catalog";
 import type { ConnectionRow } from "@/core/library";
-import { DEMO_SOURCE, type ConnectionStatus } from "@/core/types";
-import { loadDemoData, removeDemoData } from "@/lib/library-data";
+import type { ConnectionStatus } from "@/core/types";
 import { guideUrl } from "@/lib/links";
 import { getSupabase } from "@/lib/supabase";
-import { errorMessage } from "@/lib/errors";
 
 const STATUS_LABEL: Record<ConnectionStatus, string> = {
   not_connected: "Noch nicht verbunden",
@@ -98,54 +94,13 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
   );
 }
 
-function DemoData({ demoEntries }: { demoEntries: number }) {
-  const { session, reload } = useLibraryContext();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function run(label: string, action: () => Promise<void>) {
-    setBusy(label);
-    setError(null);
-    try {
-      await action();
-      await reload();
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-    setBusy(null);
-  }
-
-  return (
-    <Card title="Demo-Daten" icon="review" tone="review">
-      <Notice>
-        Deine Spieleliste mit erfundenen Spielzeiten der letzten 14 Monate. Lässt sich jederzeit
-        komplett entfernen; echte Daten bleiben unberührt. Aktuell {demoEntries} Demo-Einträge.
-      </Notice>
-      <div className="flex flex-wrap gap-stack">
-        <Button variant="primary" disabled={busy !== null} onClick={() => run("load", () => loadDemoData(getSupabase(), session.user.id))}>
-          {busy === "load" ? "Lade Demo-Daten …" : demoEntries > 0 ? "Demo-Daten neu laden" : "Demo-Daten laden"}
-        </Button>
-        <Button
-          disabled={busy !== null || demoEntries === 0}
-          onClick={() => {
-            if (window.confirm("Alle Demo-Daten löschen?")) void run("remove", () => removeDemoData(getSupabase()));
-          }}
-        >
-          {busy === "remove" ? "Lösche …" : "Demo-Daten löschen"}
-        </Button>
-      </div>
-      {error ? <Notice tone="danger">{error}</Notice> : null}
-    </Card>
-  );
-}
-
 export default function PlatformsPage() {
   return (
     <LibraryGate>
       {({ raw, reload, userId }) => {
         const now = new Date();
         const nintendo = raw.connections.find((c) => c.adapter_id === "nintendo-parental");
-        const demoEntries = raw.platformGames.filter((p) => p.source === DEMO_SOURCE).length;
+        const psn = raw.connections.find((c) => c.adapter_id === "psn");
         return (
           <>
             <Card title="Quellen" icon="gamepad">
@@ -171,16 +126,23 @@ export default function PlatformsPage() {
 
             <SyncControls onFinished={() => void reload()} />
 
+            {/* Open by themselves only when something needs doing (never connected or expired). */}
             <PlayStationConnect
-              title={raw.connections.find((c) => c.adapter_id === "psn")?.status === "ok" ? "PlayStation neu anmelden" : "PlayStation verbinden"}
+              title={psn?.status === "ok" ? "PlayStation neu anmelden" : "PlayStation verbinden"}
+              defaultOpen={psn?.status !== "ok"}
               onDone={() => void reload()}
             />
-            <NintendoConnect onDone={() => void reload()} title={nintendo?.status === "ok" ? "Nintendo neu anmelden" : "Nintendo verbinden"} />
+            <NintendoConnect
+              title={nintendo?.status === "ok" ? "Nintendo neu anmelden" : "Nintendo verbinden"}
+              defaultOpen={nintendo?.status !== "ok"}
+              onDone={() => void reload()}
+            />
             <NintendoImport userId={userId} onDone={() => void reload()} />
-            <DemoData demoEntries={demoEntries} />
-            <KeyGenerator />
             <Card title="Konto" icon="user" tone="home">
-              <Button onClick={() => getSupabase().auth.signOut()}>Abmelden</Button>
+              <div>
+                <Button onClick={() => getSupabase().auth.signOut()}>Abmelden</Button>
+              </div>
+              <KeyGenerator />
             </Card>
           </>
         );

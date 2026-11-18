@@ -73,10 +73,21 @@ Deno.serve(async (request: Request) => {
       },
       body: JSON.stringify({ ref: "main", inputs: { mode, adapter: adapter ?? "", run_id: runId } }),
     });
-    if (response.status === 401 || response.status === 403 || response.status === 404) {
-      problem = "GitHub lehnt den Token ab (abgelaufen oder ohne «Actions: Read and write» für dieses Repo).";
+    // Each refusal has its own cause and its own fix (guide SETUP-SUPABASE-GITHUB, step 6).
+    if (response.status === 401) {
+      problem = "GitHub kennt den Token nicht (abgelaufen, gelöscht oder falsch kopiert). Neuen Token erstellen.";
+    } else if (response.status === 403) {
+      problem = "Der Token darf keine Workflows starten: Ihm fehlt «Actions: Read and write».";
+    } else if (response.status === 404) {
+      problem = `Der Token sieht das Repo ${repo} nicht: Beim Token unter «Repository access» dieses Repo auswählen.`;
+    } else if (response.status === 422) {
+      problem = "GitHub findet den Workflow «Sync» auf main nicht oder lehnt die Eingaben ab.";
     } else if (response.status !== 204) {
       problem = `GitHub antwortet mit Status ${response.status}.`;
+    }
+    if (problem) {
+      // GitHub's own reason, for the run's log (not shown in the button's message).
+      console.error(`dispatch ${response.status}: ${(await response.text().catch(() => "")).slice(0, 300)}`);
     }
   } catch {
     problem = "GitHub ist gerade nicht erreichbar.";

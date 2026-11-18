@@ -44,7 +44,7 @@ export default function DashboardPage() {
               <SyncStatusBar connections={raw.connections} now={now} />
               <Card title="Noch keine Spiele" icon="gamepad">
                 <Notice>
-                  Verbinde eine Plattform oder lade Demo-Daten unter{" "}
+                  Verbinde eine Plattform unter{" "}
                   <Link className="link" href="/plattformen/">
                     Plattformen
                   </Link>

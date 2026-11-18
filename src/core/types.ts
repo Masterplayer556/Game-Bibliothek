@@ -30,8 +30,6 @@ export type GameStatus = (typeof GAME_STATUSES)[number];
 /** Postgres schema that holds every table of this app (the project may be shared). */
 export const DB_SCHEMA = "game_bibliothek";
 
-/** Source id used for demo rows, so they can be deleted in one go. */
-export const DEMO_SOURCE = "demo";
 
 /** Calendar date in Europe/Zurich, formatted YYYY-MM-DD. */
 export type LocalDate = string;
@@ -98,7 +96,7 @@ export interface AchievementInput {
 
 export interface SyncBatch {
   platform: PlatformId;
-  /** Adapter id, or DEMO_SOURCE. Stored in the `source` columns. */
+  /** Adapter id. Stored in the `source` columns. */
   source: string;
   devices: DeviceInput[];
   games: PlatformGameInput[];

@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RawData } from "@/core/library";
 import { normalizeTitle } from "@/core/normalize-title";
 import type { DeviceKind, GameStatus } from "@/core/types";
-import { deleteDemoData, fetchAll, persistBatch } from "@/data/persist";
+import { fetchAll, persistBatch } from "@/data/persist";
 
 export async function loadRawData(db: SupabaseClient): Promise<RawData> {
   // Column lists are dynamic strings, so the client cannot infer row types: cast once here.
@@ -175,16 +175,4 @@ export async function deleteManualEntry(db: SupabaseClient, entryId: string): Pr
     const game = await db.from("games").delete().eq("id", gameId);
     check(game.error);
   }
-}
-
-/** Replaces the demo data (the 14-month window ends yesterday). */
-export async function loadDemoData(db: SupabaseClient, userId: string): Promise<void> {
-  const { buildDemoBatches } = await import("@/core/demo");
-  await deleteDemoData(db);
-  const now = new Date();
-  for (const batch of buildDemoBatches(now)) await persistBatch(db, userId, batch, now);
-}
-
-export async function removeDemoData(db: SupabaseClient): Promise<void> {
-  await deleteDemoData(db);
 }

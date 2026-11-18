@@ -1,16 +1,18 @@
-// Demo data: the real game list with invented playtime over the last 14 months, so every
-// page has something to show before a platform is connected. Deterministic for a given day.
-// Everything is tagged with DEMO_SOURCE and external ids start with "demo:".
-import { addDays, dateRange, toLocalDate } from "../time";
+// Test data only: the real game list with invented playtime over the last 14 months, so the
+// statistics and the database layer are tested against a realistic library. Deterministic for
+// a given day. Everything is tagged with SAMPLE_SOURCE and external ids start with "demo:".
+import { addDays, dateRange, toLocalDate } from "../core/time";
 import {
-  DEMO_SOURCE,
   emptyBatch,
   type AchievementInput,
   type DeviceKind,
   type LocalDate,
   type PlatformId,
   type SyncBatch,
-} from "../types";
+} from "../core/types";
+
+/** Source id of the sample rows. */
+export const SAMPLE_SOURCE = "demo";
 
 export const DEMO_MONTHS = 14;
 const WINDOW_DAYS = 425;
@@ -122,7 +124,7 @@ function lifetimeBatch(
   days: readonly LocalDate[],
   random: () => number,
 ): SyncBatch {
-  const batch = emptyBatch(platform, DEMO_SOURCE);
+  const batch = emptyBatch(platform, SAMPLE_SOURCE);
   batch.snapshots = [];
   const windowStart = days[0]!;
 
@@ -201,7 +203,7 @@ function demoAchievements(
 }
 
 function nintendoBatch(days: readonly LocalDate[], random: () => number): SyncBatch {
-  const batch = emptyBatch("nintendo", DEMO_SOURCE);
+  const batch = emptyBatch("nintendo", SAMPLE_SOURCE);
   batch.devices.push(
     { externalId: "demo:switch1", kind: "switch1", label: "Switch (Demo)" },
     { externalId: "demo:switch2", kind: "switch2", label: "Switch 2 (Demo)" },
@@ -231,7 +233,7 @@ function nintendoBatch(days: readonly LocalDate[], random: () => number): SyncBa
 }
 
 function manualBatch(days: readonly LocalDate[], random: () => number): SyncBatch {
-  const batch = emptyBatch("manual", DEMO_SOURCE);
+  const batch = emptyBatch("manual", SAMPLE_SOURCE);
   // Minecraft: Java Edition is not sold on Steam, so a Steam sync will never report it.
   const java = lifetimeBatch(
     "manual",
@@ -256,7 +258,7 @@ function manualBatch(days: readonly LocalDate[], random: () => number): SyncBatc
 }
 
 /** One batch per platform. `now` decides where the 14-month window ends. */
-export function buildDemoBatches(now: Date = new Date()): SyncBatch[] {
+export function buildSampleBatches(now: Date = new Date()): SyncBatch[] {
   const today = toLocalDate(now);
   // Stop yesterday: today's values would still be moving.
   const end = addDays(today, -1);

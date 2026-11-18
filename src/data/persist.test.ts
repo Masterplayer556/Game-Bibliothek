@@ -3,18 +3,18 @@ import type { PGlite } from "@electric-sql/pglite";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createTestClient, createTestDatabase } from "../../supabase/testing/database";
-import { buildDemoBatches } from "../core/demo";
 import { normalizeTitle } from "../core/normalize-title";
 import { buildPlayedDays } from "../core/playtime";
 import { emptyBatch, type SyncBatch } from "../core/types";
-import { deleteDemoData, persistBatch } from "./persist";
+import { buildSampleBatches } from "../testing/sample-library";
+import { persistBatch } from "./persist";
 
 const USER = "11111111-1111-1111-1111-111111111111";
 const NOW = new Date("2026-11-10T12:00:00Z");
 
 let pg: PGlite;
 let db: SupabaseClient;
-const demo = buildDemoBatches(NOW);
+const demo = buildSampleBatches(NOW);
 
 async function rows<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   return (await pg.query<T>(sql, params)).rows;
@@ -264,23 +264,5 @@ describe("import and console data for the same game", () => {
     await persistBatch(db, USER, batch, NOW);
     expect(await total("import:testspiel-alpha")).toBe(45);
     expect(await total("0100TEST00000001")).toBe(78);
-  });
-});
-
-describe("deleteDemoData", () => {
-  it("removes demo rows and keeps real ones", async () => {
-    await deleteDemoData(db);
-    const left = await rows<{ source: string; n: number }>(
-      "select source, count(*)::int as n from game_bibliothek.platform_games group by 1",
-    );
-    expect(left.sort((a, b) => a.source.localeCompare(b.source))).toEqual([
-      { source: "nintendo-import", n: 1 },
-      { source: "nintendo-parental", n: 1 },
-      { source: "steam", n: 1 },
-    ]);
-    expect(await rows("select 1 from game_bibliothek.daily_playtime where source = 'demo'")).toHaveLength(0);
-    expect(await rows("select 1 from game_bibliothek.devices where source = 'demo'")).toHaveLength(0);
-    // games that still have a real entry survive, leftovers are gone
-    expect(await rows("select 1 from game_bibliothek.games")).toHaveLength(2);
   });
 });

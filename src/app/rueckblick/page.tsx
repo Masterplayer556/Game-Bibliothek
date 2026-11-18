@@ -23,7 +23,7 @@ function WrappedContent() {
             <Card title="Jahresrückblick" icon="review">
               <Notice>
                 {library.days.length === 0
-                  ? "Noch keine Spielzeit erfasst. Lade Demo-Daten oder verbinde eine Plattform."
+                  ? "Noch keine Spielzeit erfasst. Verbinde eine Plattform."
                   : `Der Rückblick auf ${currentYear} erscheint im Dezember.`}
               </Notice>
             </Card>
