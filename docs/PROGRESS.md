@@ -23,10 +23,9 @@ Eine neue Session braucht nur den Projektauftrag (Prompt) und diese Datei. Detai
 
 Alle Phasen sind gebaut. Offen:
 
-1. **Marcel:** Sync-Knöpfe in der App einmal ausprobieren («Verbindung testen»). `DISPATCH_TOKEN` ist angelegt, die Functions sind seit 16.11.2026 neu deployt.
-2. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
-3. **Marcel:** Weitere Switch-Spiele als Video aufnehmen und im Claude-Projekt mit dem Prompt aus `PROMPT-NINTENDO-VIDEO-IMPORT.md` in CSV-Dateien umwandeln; dann in der App importieren.
-4. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`).
+1. **Marcel:** Nicht gefundene Spiele bei Bedarf im Spiel-Detail über «Anderes Spiel wählen» zuordnen.
+2. **Marcel:** Weitere Switch-Spiele als Video aufnehmen und im Claude-Projekt mit dem Prompt aus `PROMPT-NINTENDO-VIDEO-IMPORT.md` in CSV-Dateien umwandeln; dann in der App importieren.
+3. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`).
 
 ## Redesign «Liquid Arcade» (17.11.2026)
 
@@ -47,13 +46,13 @@ Wünsche von Marcel: Das Wechseln über die Leiste ruckelte stark; mit «Animati
 **Nachtrag 18.11.2026** (Wünsche von Marcel):
 
 - **Leiste ruckelte noch**: Der Glastropfen und die rutschende Handy-Leiste bewegen sich nur noch über `transform` (äusseres `.tab-lens` gleitet, inneres `.tab-lens-body` schwillt an), das läuft auf der Grafikkarte weiter, während die neue Seite aufgebaut wird. Beim Ziehen wird die Leiste nur einmal beim Start vermessen und der Tropfen höchstens einmal pro Bild bewegt; nach dem Loslassen schwillt er nicht nochmals an. Der angehobene Tropfen wird oben und unten nicht mehr abgeschnitten (`.tab-viewport` schneidet nur seitlich ab).
-- **Demo-Daten entfernt** (Karte, Laden/Löschen, Skript `seed-demo`, Tools-Aufgaben); der Beispiel-Datensatz lebt nur noch als Testdaten (`src/testing/sample-library.ts`). Migration `0004_drop_delete_demo_data.sql` entfernt die Funktion `delete_demo_data()`; `check-rls` prüft sie nicht mehr. Karten «PlayStation/Nintendo verbinden» und «Nintendo-Historie importieren» lassen sich einklappen (`Card collapsible`), der Schlüssel-Erzeuger ist eine kleine Zeile in «Konto».
+- **Demo-Daten entfernt** (Karte, Laden/Löschen, Skript `seed-demo`, Tools-Aufgaben); der Beispiel-Datensatz lebt nur noch als Testdaten (`src/testing/sample-library.ts`). Migration `0004_drop_delete_demo_data.sql` entfernt die Funktion `delete_demo_data()` (von Marcel im SQL-Editor ausgeführt am 18.11.2026, geprüft); `check-rls` prüft sie nicht mehr. Karten «PlayStation/Nintendo verbinden» und «Nintendo-Historie importieren» lassen sich einklappen (`Card collapsible`), der Schlüssel-Erzeuger ist eine kleine Zeile in «Konto».
 - **Nintendo-Import mit mehreren Dateien**: Im Dateifeld lassen sich mehrere CSV-Dateien auf einmal wählen. Jede wird einzeln gelesen (Übersicht pro Datei), dann zu einem Import vereint (`combineImports` in `src/core/nintendo/import.ts`, getestet): Derselbe Tag in mehreren Dateien zählt einmal, die längere Dauer gilt; unlesbare Zeilen nennen ihre Datei.
 - **DELTARUNE im Nintendo-Import** (`VARIANTS` / `importVariant` in `src/core/nintendo/import.ts`): Demo («Chapter 1&2»), Switch-1- und Switch-2-Version werden ein Spiel «DELTARUNE»; die Version bestimmt die Konsole (Demo und Switch-1-Version = Switch 1, «Switch 2 Edition» = Switch 2; reines «DELTARUNE» nimmt die Gerät-Spalte, sonst Switch 1). Demo und Vollversion am selben Tag werden addiert (nicht als Doppelzeile verworfen: Zeilen merken sich ihren Originaltitel `listedAs`). Weitere Spiele mit Versionen lassen sich in `VARIANTS` ergänzen.
 - **Pokémon HOME** ist eine App wie YouTube (`src/core/apps.ts`; der Sync markiert es einmal als «Kein Spiel»).
 - **App-Zeit mitzählen** (Einstellung `countAppsInTotal`, Checkbox in Statistiken → «Apps (kein Spiel)»): zählt App-Zeit zur Spielzeit (Statistiken «Spielzeit», Übersicht «Diese Woche», «Diesen Monat», «Gesamt»). Ranglisten, Diagramme und Rückblick bleiben nur Spiele.
 - **Spieltage-Kalender** (`PlayCalendar.tsx`, `--color-heat-0…8`): eine Farbstufe pro Stunde (unter 1, 1, 2, 3 Std.), volles Lila ab 4 Std., danach Richtung Weiss: ab 5 Std. etwas, ab 7 Std. mehr, ab 10 Std. `#FFFFFF`. Stufe 1 ist deutlich stärker als «nicht gespielt». Im hellen Modus liegt das Raster (und die Legende) auf einem dunklen «Bildschirm» (`.heat-screen`) mit den Farben des dunklen Modus, damit Lila bis Weiss gleich leuchtet wie nachts (Wunsch Marcel). Nur DELTARUNE wird im Import zusammengelegt; andere Demos bleiben eigene Spiele.
-- **Sync-Knopf**: hat nie funktioniert, GitHub lehnt `DISPATCH_TOKEN` ab (die «manuellen» Läufe kamen alle aus dem Actions-Tab). `trigger-sync` nennt jetzt den Grund (401/403/404/422). Marcel: neuen Token erstellen und «Edge Functions deployen» starten.
+- **Sync-Knopf**: hat nie funktioniert, GitHub lehnt `DISPATCH_TOKEN` ab (die «manuellen» Läufe kamen alle aus dem Actions-Tab). `trigger-sync` nennt jetzt den Grund (401/403/404/422). Marcel hat am 18.11.2026 einen neuen Token erstellt und die Functions neu deployt; der erste Sync per Knopf lief gleich danach erfolgreich.
 - **3D-Pixel-Icons** für die Seiten (`src/components/PixelIcon.tsx`): jeder Pixel ein Würfel mit heller Oberseite und dunkler rechter Seite (Vorbild: ein Voxel-Pokal von Marcel), feste Farben pro Icon, 12 × 12 Raster. In der Leiste und gross im Seitentitel; die kleinen Icons in Karten bleiben Vektor-Icons (`Icon.tsx`).
 - **Neues App-Icon** (`design/app-icon.svg`, ausdrücklich ohne Pixel): drei aufgefächerte Spiele-Cover in Bereichsfarben (○, ★, △) hinter einem Tropfen aus Liquid Glass (die Szene dahinter unscharf, heller Rand, Glanz), darauf ein weisser Controller; dahinter die Arcade-Nacht mit Neon-Wolken, Spiele-Symbolen und leuchtendem Gitter am Horizont. Icons, Favicon und Startbilder neu gerendert mit `node scripts/render-app-images.mjs`.
 
