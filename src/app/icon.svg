@@ -1,90 +1,155 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- App icon: a bound book with a gold D-pad on its cover, standing on a brass shelf beside two
-       spines, under pixel stars. Full bleed: the phone rounds the corners itself. -->
+  <!-- App icon, «Liquid Arcade»: three game covers fanned out behind a drop of liquid glass with a
+       controller on it, over the arcade night (neon clouds, glowing grid on the horizon).
+       Full bleed: the phone rounds the corners itself. -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5b4bf0"/>
-      <stop offset="0.55" stop-color="#3a2bc0"/>
-      <stop offset="1" stop-color="#1c1466"/>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22127a"/>
+      <stop offset="0.55" stop-color="#120a45"/>
+      <stop offset="1" stop-color="#08061a"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.28" cy="0.18" r="0.75">
-      <stop offset="0" stop-color="#b9b3ff" stop-opacity="0.55"/>
-      <stop offset="0.6" stop-color="#b9b3ff" stop-opacity="0"/>
+    <radialGradient id="cloudViolet" cx="0.12" cy="0.08" r="0.62">
+      <stop offset="0" stop-color="#8577ff" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#8577ff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="floor" cx="0.5" cy="1" r="0.6">
-      <stop offset="0" stop-color="#f2bd3a" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#f2bd3a" stop-opacity="0"/>
+    <radialGradient id="cloudPink" cx="0.98" cy="0.3" r="0.55">
+      <stop offset="0" stop-color="#ff4fd8" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#ff4fd8" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fffaf0"/>
-      <stop offset="1" stop-color="#efe4cc"/>
+    <radialGradient id="cloudCyan" cx="0.02" cy="0.78" r="0.5">
+      <stop offset="0" stop-color="#19d9c5" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#19d9c5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="horizon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5cc0" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ff5cc0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7b5cff" stop-opacity="0.15"/>
     </linearGradient>
-    <linearGradient id="spineA" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#d4405f"/>
-      <stop offset="1" stop-color="#a32a46"/>
+    <linearGradient id="gridFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
     </linearGradient>
-    <linearGradient id="spineB" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#22a58a"/>
-      <stop offset="1" stop-color="#17786a"/>
+    <mask id="gridMask"><rect y="680" width="1024" height="344" fill="url(#gridFade)"/></mask>
+
+    <linearGradient id="coverPink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4f9a"/>
+      <stop offset="1" stop-color="#ff8d5c"/>
     </linearGradient>
-    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd76a"/>
-      <stop offset="1" stop-color="#c98a12"/>
+    <linearGradient id="coverGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc21f"/>
+      <stop offset="1" stop-color="#ff7a2e"/>
     </linearGradient>
-    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
-      <rect x="15" y="15" width="3" height="3" fill="#ffffff" fill-opacity="0.07"/>
-    </pattern>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0b0730" flood-opacity="0.55"/>
+    <linearGradient id="coverTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#19d9c5"/>
+      <stop offset="1" stop-color="#2b8cff"/>
+    </linearGradient>
+    <radialGradient id="coverShine" cx="0.25" cy="0.05" r="0.8">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="glassFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#c9b8ff" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="glassRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="0.8" stop-color="#ffd0f4" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.85"/>
+    </linearGradient>
+    <radialGradient id="glassSpecular" cx="0.3" cy="0.12" r="0.45">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glassFoot" cx="0.62" cy="1.05" r="0.6">
+      <stop offset="0" stop-color="#ff7ae0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff7ae0" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="glassClip"><rect x="200" y="420" width="624" height="430" rx="140"/></clipPath>
+    <filter id="frost" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="26"/>
+      <feColorMatrix type="saturate" values="1.7"/>
+    </filter>
+
+    <linearGradient id="pad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e4dcff"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#05031a" flood-opacity="0.6"/>
+    </filter>
+    <filter id="padShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#2a0f6b" flood-opacity="0.45"/>
+    </filter>
+    <filter id="neon" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" fill="url(#bg)"/>
-  <rect width="1024" height="1024" fill="url(#grid)"/>
-  <rect width="1024" height="1024" fill="url(#glow)"/>
-  <rect width="1024" height="1024" fill="url(#floor)"/>
+  <g id="scene">
+    <rect width="1024" height="1024" fill="url(#night)"/>
+    <rect width="1024" height="1024" fill="url(#cloudViolet)"/>
+    <rect width="1024" height="1024" fill="url(#cloudPink)"/>
+    <rect width="1024" height="1024" fill="url(#cloudCyan)"/>
 
-  <!-- pixel stars -->
-  <g fill="#ffe28a">
-    <path d="M176 196h24v24h24v24h-24v24h-24v-24h-24v-24h24z"/>
-    <path d="M836 268h16v16h16v16h-16v16h-16v-16h-16v-16h16z" fill-opacity="0.8"/>
-    <path d="M800 120h12v12h12v12h-12v12h-12v-12h-12v-12h12z" fill-opacity="0.6"/>
+    <!-- neon grid on the horizon -->
+    <rect y="560" width="1024" height="260" fill="url(#horizon)"/>
+    <path d="M0 696.2H1024M0 710.9H1024M0 732.4H1024M0 760.1H1024M0 793.7H1024M0 832.6H1024M0 876.8H1024M0 925.9H1024M0 979.9H1024M36.0 690L-2708.0 1024M70.0 690L-2478.0 1024M104.0 690L-2248.0 1024M138.0 690L-2018.0 1024M172.0 690L-1788.0 1024M206.0 690L-1558.0 1024M240.0 690L-1328.0 1024M274.0 690L-1098.0 1024M308.0 690L-868.0 1024M342.0 690L-638.0 1024M376.0 690L-408.0 1024M410.0 690L-178.0 1024M444.0 690L52.0 1024M478.0 690L282.0 1024M512.0 690L512.0 1024M546.0 690L742.0 1024M580.0 690L972.0 1024M614.0 690L1202.0 1024M648.0 690L1432.0 1024M682.0 690L1662.0 1024M716.0 690L1892.0 1024M750.0 690L2122.0 1024M784.0 690L2352.0 1024M818.0 690L2582.0 1024M852.0 690L2812.0 1024M886.0 690L3042.0 1024M920.0 690L3272.0 1024M954.0 690L3502.0 1024M988.0 690L3732.0 1024" stroke="#ff6fd0" stroke-width="3.5" fill="none" mask="url(#gridMask)" opacity="0.75"/>
+    <rect y="686" width="1024" height="6" fill="#ffb3ec" opacity="0.8"/>
+
+    <!-- arcade symbols, softly glowing -->
+    <g fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#neon)">
+      <path d="M150 150l44 76h-88z" stroke="#3fdcff"/>
+      <circle cx="878" cy="170" r="38" stroke="#ff66e0"/>
+      <path d="M840 400l52 52M892 400l-52 52" stroke="#ffc21f"/>
+      <rect x="112" y="380" width="64" height="64" rx="8" stroke="#34d97f" transform="rotate(-12 144 412)"/>
+    </g>
+
+    <!-- three covers fanned out -->
+    <g filter="url(#shadow)">
+      <g transform="rotate(-17 512 900)">
+        <rect x="362" y="160" width="300" height="420" rx="44" fill="url(#coverPink)"/>
+        <rect x="362" y="160" width="300" height="420" rx="44" fill="url(#coverShine)"/>
+        <circle cx="512" cy="300" r="56" fill="none" stroke="#fff" stroke-opacity="0.9" stroke-width="20"/>
+      </g>
+      <g transform="rotate(17 512 900)">
+        <rect x="362" y="160" width="300" height="420" rx="44" fill="url(#coverTeal)"/>
+        <rect x="362" y="160" width="300" height="420" rx="44" fill="url(#coverShine)"/>
+        <path d="M512 236l64 108H448z" fill="none" stroke="#fff" stroke-opacity="0.9" stroke-width="20" stroke-linejoin="round"/>
+      </g>
+      <g>
+        <rect x="362" y="130" width="300" height="420" rx="44" fill="url(#coverGold)"/>
+        <rect x="362" y="130" width="300" height="420" rx="44" fill="url(#coverShine)"/>
+        <path d="M512 196l20.6 41.8 46.1 6.7-33.4 32.5 7.9 45.9L512 301.2l-41.2 21.7 7.9-45.9-33.4-32.5 46.1-6.7z" fill="#fff" fill-opacity="0.95" stroke="#fff" stroke-width="10" stroke-linejoin="round"/>
+      </g>
+    </g>
   </g>
 
+  <!-- the drop of liquid glass: the scene behind it, frosted -->
   <g filter="url(#shadow)">
-    <!-- two spines behind, on the right -->
-    <rect x="642" y="292" width="92" height="508" rx="14" fill="url(#spineA)"/>
-    <rect x="654" y="352" width="68" height="10" fill="#ffd76a" fill-opacity="0.85"/>
-    <rect x="654" y="730" width="68" height="10" fill="#ffd76a" fill-opacity="0.85"/>
-    <g transform="rotate(9 790 800)">
-      <rect x="748" y="356" width="84" height="444" rx="14" fill="url(#spineB)"/>
-      <rect x="760" y="410" width="60" height="9" fill="#ffd76a" fill-opacity="0.85"/>
-      <rect x="760" y="736" width="60" height="9" fill="#ffd76a" fill-opacity="0.85"/>
-    </g>
-
-    <!-- the book: pages, cover, spine -->
-    <rect x="232" y="236" width="420" height="566" rx="30" fill="#e6dcc6"/>
-    <rect x="210" y="216" width="420" height="566" rx="30" fill="url(#cover)"/>
-    <path d="M240 216h46v566h-46a30 30 0 0 1-30-30V246a30 30 0 0 1 30-30z" fill="#3a2bc0"/>
-    <rect x="286" y="216" width="10" height="566" fill="#2a1e96"/>
-    <!-- embossed frame -->
-    <rect x="332" y="268" width="250" height="462" rx="10" fill="none" stroke="#c98a12" stroke-opacity="0.45" stroke-width="6"/>
-    <!-- gold D-pad, pixel edged -->
-    <g transform="translate(457 470)">
-      <path d="M-40 -120h80v80h80v80h-80v80h-80v-80h-80v-80h80z" fill="#a8700a" transform="translate(0 10)"/>
-      <path d="M-40 -120h80v80h80v80h-80v80h-80v-80h-80v-80h80z" fill="url(#brass)"/>
-      <path d="M-40 -120h80v16h-80zM-120 -40h80v16h-80zM40 -40h80v16h-80z" fill="#fff3c4" fill-opacity="0.75"/>
-      <rect x="-16" y="-16" width="32" height="32" fill="#3a2bc0"/>
-      <!-- engraved arrows on the four arms: a bright edge below, the cut above -->
-      <path d="M-24 -64h48l-24-32z M-24 64h48l-24 32z M-64 -24v48l-32-24z M64 -24v48l32-24z" fill="#fff3c4" fill-opacity="0.85" transform="translate(0 5)"/>
-      <path d="M-24 -64h48l-24-32z M-24 64h48l-24 32z M-64 -24v48l-32-24z M64 -24v48l32-24z" fill="#6b4300"/>
-    </g>
+    <rect x="200" y="420" width="624" height="430" rx="140" fill="#1a0f55" fill-opacity="0.35"/>
   </g>
+  <g clip-path="url(#glassClip)">
+    <use href="#scene" filter="url(#frost)"/>
+    <rect x="200" y="420" width="624" height="430" fill="url(#glassFill)"/>
+    <rect x="200" y="420" width="624" height="430" fill="url(#glassFoot)"/>
+    <rect x="200" y="420" width="624" height="430" fill="url(#glassSpecular)"/>
+  </g>
+  <rect x="203" y="423" width="618" height="424" rx="137" fill="none" stroke="url(#glassRim)" stroke-width="6"/>
+  <path d="M290 446h444" stroke="#fff" stroke-opacity="0.7" stroke-width="5" stroke-linecap="round"/>
 
-  <!-- brass shelf -->
-  <rect x="120" y="800" width="784" height="34" rx="8" fill="url(#brass)"/>
-  <rect x="120" y="800" width="784" height="8" rx="4" fill="#fff0b8" fill-opacity="0.7"/>
-  <!-- ribbon bookmark hanging over the shelf -->
-  <path d="M520 776h52v134l-26-24-26 24z" fill="#ff5d6c"/>
-  <path d="M520 776h52v14h-52z" fill="#c23a4a"/>
+  <!-- controller on the glass -->
+  <g transform="translate(512 640)" filter="url(#padShadow)">
+    <path d="M-118 -98H118C172 -98 204 -64 214 -14L236 88C246 140 204 170 164 142L108 102H-108L-164 142C-204 170-246 140-236 88L-214 -14C-204 -64-172 -98-118 -98Z" fill="url(#pad)"/>
+    <path d="M-143 -60h36v36h36v36h-36v36h-36v-36h-36v-36h36z" fill="#2a1f6b" stroke="#2a1f6b" stroke-width="8" stroke-linejoin="round"/>
+    <circle cx="126" cy="-48" r="19" fill="#ffc21f"/>
+    <circle cx="164" cy="-10" r="19" fill="#ff4fa0"/>
+    <circle cx="126" cy="28" r="19" fill="#19c9b8"/>
+    <circle cx="88" cy="-10" r="19" fill="#8577ff"/>
+    <rect x="-42" y="-52" width="34" height="14" rx="7" fill="#2a1f6b" fill-opacity="0.45"/>
+    <rect x="8" y="-52" width="34" height="14" rx="7" fill="#2a1f6b" fill-opacity="0.45"/>
+  </g>
 </svg>
