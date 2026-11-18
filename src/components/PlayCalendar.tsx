@@ -181,7 +181,7 @@ export function PlayCalendar({
         <span>
           An <span className="num text-sm text-text">{minutesOn.size}</span> Tagen gespielt · Tag antippen für Details
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-1">
           0
           <span className="heat-screen heat-legend flex items-center gap-1">
             {Array.from({ length: STEP_HOURS.length + 1 }, (_, step) => (
