@@ -8,6 +8,7 @@ import { useSession } from "@/lib/use-session";
 import { Icon } from "./Icon";
 import { LibraryProvider } from "./LibraryProvider";
 import { LoginForm } from "./LoginForm";
+import { PixelIcon } from "./PixelIcon";
 import { Logo } from "./Logo";
 import { currentItem, NAV } from "./navigation";
 import { sectionStyle } from "./section";
@@ -33,9 +34,7 @@ function PageTitle({ pathname }: { pathname: string }) {
   const item = currentItem(pathname);
   return (
     <div className="flex items-center gap-4">
-      <span className="icon-tile h-[3.6rem] w-[3.6rem] rounded-[18px]">
-        <Icon name={item.icon} className="h-8 w-8" />
-      </span>
+      <PixelIcon name={item.icon} className="page-pixel-icon h-[3.6rem] w-[3.6rem]" />
       <div className="min-w-0">
         <h1 className="font-display text-[2.15rem] font-extrabold leading-none tracking-tight sm:text-5xl">{item.label}</h1>
         <p className="mt-1.5 text-sm font-medium text-muted">{item.tagline}</p>
