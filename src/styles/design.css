@@ -67,6 +67,14 @@
   }
 }
 
+/* ---------- Play calendar ---------- */
+
+/* The whitish steps (5 h and more) need a rim on a light card, where white would vanish. */
+:root:not([data-theme="dark"]) .heat-light {
+  /* The heat tokens resolve on :root, so they use the accent: the rim does too. */
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--color-accent) 60%, transparent);
+}
+
 /* ---------- Foldable card ---------- */
 
 .card-fold-summary {

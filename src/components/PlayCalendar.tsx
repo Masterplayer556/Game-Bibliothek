@@ -1,6 +1,6 @@
 "use client";
 
-// A year of play days as a grid of pixels: one square per day, darker with more time played.
+// A year of play days as a grid of pixels: one square per day, one colour step per hour played.
 // Tapping a square shows what was played that day.
 import Link from "next/link";
 import { useState } from "react";
@@ -14,13 +14,30 @@ import { IconButton } from "./ui";
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const WEEKDAYS = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
 
-/** Upper limits in minutes of the first three coloured steps; the fourth is everything above. */
-const STEPS = [30, 60, 120] as const;
+/**
+ * Where each colour step starts, in hours: under 1 h is step 1, then one step per hour up to the
+ * full colour at 4 h; past that it turns white (5 h a little, 7 h more, 10 h pure white).
+ */
+const STEP_HOURS = [0, 1, 2, 3, 4, 5, 7, 10] as const;
+/** Steps from here on are light: they get a thin rim so they show on a light card. */
+const FIRST_LIGHT_STEP = 6;
 
-function level(minutes: number): number {
+export function heatLevel(minutes: number): number {
   if (minutes <= 0) return 0;
-  const step = STEPS.findIndex((limit) => minutes < limit);
-  return step === -1 ? STEPS.length + 1 : step + 1;
+  let step = 0;
+  while (step < STEP_HOURS.length && minutes >= STEP_HOURS[step]! * 60) step++;
+  return step;
+}
+
+function stepLabel(step: number): string {
+  const from = STEP_HOURS[step - 1]!;
+  const to = STEP_HOURS[step];
+  if (to === undefined) return `${from} Std. und mehr`;
+  return from === 0 ? `unter ${to} Std.` : `${from} bis unter ${to} Std.`;
+}
+
+function heatStyle(step: number) {
+  return { background: `var(--color-heat-${step})` };
 }
 
 function label(date: LocalDate): string {
@@ -110,8 +127,8 @@ export function PlayCalendar({
                   type="button"
                   aria-pressed={selected === date}
                   onClick={() => setSelected(selected === date ? null : date)}
-                  className={`h-3 w-3 rounded-[3.5px] ${selected === date ? "outline-2 outline-offset-1 outline-text" : ""}`}
-                  style={{ background: `var(--color-heat-${level(minutesOn.get(date) ?? 0)})` }}
+                  className={`h-3 w-3 rounded-[3.5px] ${heatLevel(minutesOn.get(date) ?? 0) >= FIRST_LIGHT_STEP ? "heat-light" : ""} ${selected === date ? "outline-2 outline-offset-1 outline-text" : ""}`}
+                  style={heatStyle(heatLevel(minutesOn.get(date) ?? 0))}
                   title={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
                   aria-label={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
                 />
@@ -161,12 +178,17 @@ export function PlayCalendar({
         <span>
           An <span className="num text-sm text-text">{minutesOn.size}</span> Tagen gespielt · Tag antippen für Details
         </span>
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-1">
           0
-          {[0, 1, 2, 3, 4].map((l) => (
-            <span key={l} className="h-3 w-3 rounded-[3.5px]" style={{ background: `var(--color-heat-${l})` }} />
+          {Array.from({ length: STEP_HOURS.length + 1 }, (_, step) => (
+            <span
+              key={step}
+              className={`h-3 w-3 rounded-[3.5px] ${step >= FIRST_LIGHT_STEP ? "heat-light" : ""}`}
+              style={heatStyle(step)}
+              title={step === 0 ? "nicht gespielt" : stepLabel(step)}
+            />
           ))}
-          2 Std. und mehr
+          10 Std.+
         </span>
       </figcaption>
     </figure>
