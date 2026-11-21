@@ -1,9 +1,9 @@
 "use client";
 
 // The bar at the bottom, as liquid glass: a drop of glass sits under the chosen page. Tapping
-// another page sends the drop there with a spring; it swells and stretches while it moves.
-// Pressing and sliding along the bar lifts the drop and carries it under the finger; letting
-// go opens the page beneath it. Only transform and opacity move, so it stays smooth.
+// another page sends the drop there on a spring; it stretches with its speed and settles.
+// Pressing and sliding along the bar lifts the drop and carries it after the finger; letting
+// go sends it, with the speed it had, to the page beneath it. Only transform and opacity move.
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
@@ -14,122 +14,232 @@ import { sectionStyle } from "./section";
 /** A finger has to move this far along the bar before it carries the drop. */
 const DRAG_THRESHOLD_PX = 10;
 
+/** Springs as stiffness and damping ratio (1 = no overshoot). */
+const GLIDE = { k: 340, zeta: 0.76 };
+const FOLLOW = { k: 900, zeta: 0.86 };
+const LIFT = { k: 420, zeta: 0.78 };
+/** How far the drop stretches at most, and the speed (px/s) at which it gets there by ~63 %. */
+const STRETCH_MAX = 0.36;
+const STRETCH_SPEED = 1100;
+/** The lifted drop is this much bigger. */
+const LIFT_SCALE = { x: 0.14, y: 0.24 };
+
 function reducedMotion(): boolean {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** One step of a damped spring toward `target` (semi-implicit Euler, stable at small steps). */
+function springStep(x: number, v: number, target: number, spring: { k: number; zeta: number }, dt: number): [number, number] {
+  const c = 2 * Math.sqrt(spring.k) * spring.zeta;
+  const a = spring.k * (target - x) - c * v;
+  const nv = v + a * dt;
+  return [x + nv * dt, nv];
+}
+
+type Motion = {
+  /** Where the drop is and how fast it goes (px, px/s), along the track. */
+  x: number;
+  v: number;
+  target: number;
+  /** 0 = resting, 1 = lifted under a finger. */
+  lift: number;
+  liftV: number;
+  liftTarget: number;
+  /** Smoothed stretch from the speed, so a shaky finger does not make the drop wobble. */
+  stretch: number;
+  following: boolean;
+  frame: number;
+  last: number;
+};
+
 /**
- * The drop under the chosen slot (`index`), its swell when it jumps, and dragging it along the
- * slots from `range[0]` to `range[1]`. `onPick` gets the slot it was let go on.
+ * The drop under the chosen slot (`index`) and dragging it along the slots from `range[0]` to
+ * `range[1]`. `onPick` gets the slot it was let go on.
  *
- * Smoothness: the drop only ever moves by `transform` (run by the compositor, so it keeps
- * gliding while the new page renders). While dragging, the bar is measured once when the drag
- * starts and the drop is moved at most once per frame, so no layout is forced on each move.
+ * Smoothness: one spring drives the drop, whatever it does. A new target (a tap, the finger, a
+ * release) only changes where the spring pulls, so the drop keeps its speed and never jumps.
+ * At rest the inline styles are removed and CSS (`--i`) holds the place, so nothing runs.
+ * The bar is measured only when a motion starts, never per frame.
  */
 function useLiquidLens(index: number, range: [number, number], onPick: (slot: number) => void) {
   const track = useRef<HTMLDivElement>(null);
   const lens = useRef<HTMLSpanElement>(null);
   const body = useRef<HTMLSpanElement>(null);
   const shine = useRef<HTMLSpanElement>(null);
-  const previous = useRef(index);
-  /** Set when a drag let go: the drop is already there, so it does not swell again. */
-  const dropped = useRef(false);
-  const drag = useRef<{
-    id: number;
-    x: number;
-    active: boolean;
-    under: number;
-    left: number;
-    pitch: number;
-    latest: number;
-    frame: number;
-  } | null>(null);
+  /** The slot the drop rests on when nothing moves. */
+  const resting = useRef(index);
+  const motion = useRef<Motion | null>(null);
+  const pitch = useRef(0);
+  const drag = useRef<{ id: number; x: number; active: boolean; under: number; left: number } | null>(null);
   const [under, setUnder] = useState<number | null>(null);
 
-  // The glide itself is a CSS transition on the drop; here it swells and stretches toward
-  // where it goes (further = longer), then settles.
-  useEffect(() => {
-    const from = previous.current;
-    previous.current = index;
-    const afterDrag = dropped.current;
-    dropped.current = false;
-    if (from === index || afterDrag || reducedMotion()) return;
-    const stretch = Math.min(0.5, 0.14 + Math.abs(index - from) * 0.09);
-    body.current?.animate([{ transform: "scale(1, 1)" }, { transform: `scale(${1 + stretch}, 1.18)`, offset: 0.3 }, { transform: "scale(1, 1)" }], {
-      duration: 640,
-      easing: "cubic-bezier(.25,.8,.25,1)",
-    });
-    shine.current?.animate([{ opacity: 0 }, { opacity: 1, offset: 0.22 }, { opacity: 0 }], { duration: 700, easing: "ease-out" });
-  }, [index]);
-
-  function place() {
-    const d = drag.current;
-    if (!d) return;
-    d.frame = 0;
-    const x = Math.min(range[1] * d.pitch, Math.max(range[0] * d.pitch, d.latest - d.left - d.pitch / 2));
-    if (lens.current) lens.current.style.transform = `translate3d(${x}px, 0, 0)`;
-    const slot = Math.round(x / d.pitch);
-    if (slot !== d.under) {
-      d.under = slot;
-      setUnder(slot);
-    }
+  function measure(): number {
+    const el = track.current;
+    const slot = el?.querySelector<HTMLElement>("[data-slot]");
+    if (!el || !slot) return pitch.current;
+    pitch.current = slot.offsetWidth + (parseFloat(getComputedStyle(el).columnGap) || 0);
+    return pitch.current;
   }
 
-  function release() {
+  function paint(m: Motion) {
+    const sx = (1 + LIFT_SCALE.x * m.lift) * (1 + m.stretch);
+    const sy = (1 + LIFT_SCALE.y * m.lift) * (1 + m.stretch * 0.45);
+    if (lens.current) lens.current.style.transform = `translate3d(${m.x.toFixed(2)}px, 0, 0)`;
+    if (body.current) body.current.style.transform = `scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+    if (shine.current) shine.current.style.opacity = Math.min(1, Math.max(m.lift, m.stretch * 3)).toFixed(3);
+  }
+
+  function rest() {
+    motion.current = null;
+    for (const el of [lens.current, body.current, shine.current]) {
+      el?.style.removeProperty("transform");
+      el?.style.removeProperty("opacity");
+    }
+    lens.current?.removeAttribute("data-lifted");
+  }
+
+  function tick(now: number) {
+    const m = motion.current;
+    if (!m) return;
+    // A frame can come late (a page rendering); the spring is stepped in small pieces anyway.
+    let dt = Math.min(0.05, (now - m.last) / 1000);
+    m.last = now;
+    const spring = m.following ? FOLLOW : GLIDE;
+    while (dt > 0) {
+      const h = Math.min(dt, 1 / 240);
+      [m.x, m.v] = springStep(m.x, m.v, m.target, spring, h);
+      [m.lift, m.liftV] = springStep(m.lift, m.liftV, m.liftTarget, LIFT, h);
+      const goal = STRETCH_MAX * (1 - Math.exp(-Math.abs(m.v) / STRETCH_SPEED));
+      m.stretch += (goal - m.stretch) * Math.min(1, h / 0.06);
+      dt -= h;
+    }
+    const still =
+      !m.following &&
+      Math.abs(m.x - m.target) < 0.25 &&
+      Math.abs(m.v) < 4 &&
+      Math.abs(m.lift - m.liftTarget) < 0.002 &&
+      Math.abs(m.liftV) < 0.02 &&
+      m.stretch < 0.002;
+    if (still && m.liftTarget === 0) {
+      rest();
+      return;
+    }
+    paint(m);
+    m.frame = requestAnimationFrame(tick);
+  }
+
+  /** Starts (or keeps) the spring going, from slot `from` if it was resting, and returns it. */
+  function moving(from = resting.current): Motion {
+    let m = motion.current;
+    if (!m) {
+      const x = from * pitch.current;
+      m = { x, v: 0, target: x, lift: 0, liftV: 0, liftTarget: 0, stretch: 0, following: false, frame: 0, last: performance.now() };
+      motion.current = m;
+    }
+    if (!m.frame) {
+      m.last = performance.now();
+      m.frame = requestAnimationFrame(tick);
+    }
+    return m;
+  }
+
+  // A new chosen slot: the spring now pulls there, keeping whatever speed the drop has.
+  useEffect(() => {
+    const from = resting.current;
+    resting.current = index;
+    if (drag.current?.active || (from === index && !motion.current)) return;
+    // Hidden bar (the other screen size) or less motion wanted: CSS just puts it there.
+    if (reducedMotion() || measure() === 0) {
+      if (motion.current) cancelAnimationFrame(motion.current.frame);
+      rest();
+      return;
+    }
+    moving(from).target = index * pitch.current;
+    // Only a new slot starts a motion; the helpers read refs, so they need not be dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  useEffect(
+    () => () => {
+      if (motion.current) cancelAnimationFrame(motion.current.frame);
+    },
+    [],
+  );
+
+  function fingerX(clientX: number, left: number): number {
+    const p = pitch.current;
+    return Math.min(range[1] * p, Math.max(range[0] * p, clientX - left - p / 2));
+  }
+
+  function slotAt(x: number): number {
+    return Math.round(x / (pitch.current || 1));
+  }
+
+  function release(): number | null {
     const d = drag.current;
     drag.current = null;
-    if (d?.frame) cancelAnimationFrame(d.frame);
-    const el = lens.current;
-    if (el) {
-      el.removeAttribute("data-lifted");
-      el.style.transform = "";
-    }
     setUnder(null);
-    return d;
+    if (!d?.active) return null;
+    const m = motion.current;
+    if (m) {
+      m.following = false;
+      m.liftTarget = 0;
+      m.target = d.under * pitch.current;
+    }
+    lens.current?.removeAttribute("data-lifted");
+    return d.under;
   }
 
   const handlers = {
     onPointerDown(event: PointerEvent<HTMLElement>) {
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      drag.current = { id: event.pointerId, x: event.clientX, active: false, under: index, left: 0, pitch: 0, latest: event.clientX, frame: 0 };
+      drag.current = { id: event.pointerId, x: event.clientX, active: false, under: index, left: 0 };
     },
     onPointerMove(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      d.latest = event.clientX;
       if (!d.active) {
         if (Math.abs(event.clientX - d.x) < DRAG_THRESHOLD_PX) return;
         d.active = true;
         // From now on the bar gets the pointer, so letting go does not also click a link.
         event.currentTarget.setPointerCapture(event.pointerId);
         // Measured once per drag: the bar does not move while the finger is on it.
-        const el = track.current!;
-        const slot = el.querySelector<HTMLElement>("[data-slot]")!;
-        const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
-        d.left = el.getBoundingClientRect().left;
-        d.pitch = slot.offsetWidth + gap;
+        measure();
+        d.left = track.current!.getBoundingClientRect().left;
         lens.current?.setAttribute("data-lifted", "true");
-        place();
-        return;
+        if (reducedMotion()) {
+          if (motion.current) cancelAnimationFrame(motion.current.frame);
+          motion.current = null;
+        }
       }
-      if (!d.frame) d.frame = requestAnimationFrame(place);
+      const x = fingerX(event.clientX, d.left);
+      if (reducedMotion()) {
+        if (lens.current) lens.current.style.transform = `translate3d(${x}px, 0, 0)`;
+      } else {
+        const m = moving();
+        m.following = true;
+        m.liftTarget = 1;
+        m.target = x;
+      }
+      const slot = slotAt(x);
+      if (slot !== d.under) {
+        d.under = slot;
+        setUnder(slot);
+      }
     },
     onPointerUp(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      if (!d.active) {
-        drag.current = null;
-        return;
-      }
-      if (d.frame) place();
-      release();
-      if (d.under !== index) dropped.current = true;
-      onPick(d.under);
+      const slot = release();
+      if (slot === null) return;
+      if (reducedMotion()) rest();
+      onPick(slot);
     },
     onPointerCancel(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      release();
+      if (release() !== null && motion.current) motion.current.target = resting.current * pitch.current;
+      if (reducedMotion()) rest();
     },
   };
 

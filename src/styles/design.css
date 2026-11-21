@@ -737,14 +737,9 @@
     left: 0;
     z-index: 0;
     width: var(--slot);
+    /* At rest CSS holds the place; while it moves, a spring in TabBar.tsx sets the transform. */
     transform: translate3d(calc(var(--i) * (var(--slot) + var(--gap))), 0, 0);
-    transition: transform 560ms var(--ease-spring);
     will-change: transform;
-
-    /* Under the finger: follows it with no delay. */
-    &[data-lifted="true"] {
-      transition: none;
-    }
   }
 
   .tab-lens-body {
@@ -757,16 +752,13 @@
       inset 0 1px 1px rgb(255 255 255 / 0.7),
       inset 0 -1px 2px color-mix(in oklab, var(--section) 25%, transparent),
       0 2px 8px -2px color-mix(in oklab, var(--section) 40%, transparent);
-    transition:
-      transform 420ms var(--ease-spring),
-      background-color 300ms ease;
+    /* No transition on transform: the spring sets it each frame (stretch with speed, lift). */
+    transition: background-color 300ms ease;
     will-change: transform;
 
+    /* Lifted with less motion wanted (no spring): bigger at once. */
     [data-lifted="true"] > & {
       transform: scale(1.14, 1.24);
-      transition:
-        transform 220ms var(--ease-out),
-        background-color 300ms ease;
     }
   }
 
@@ -777,7 +769,8 @@
       0 2px 10px -2px color-mix(in oklab, var(--section) 55%, transparent);
   }
 
-  /* The lifted drop: clearer, with bright rims as on thick glass. Shown while it moves. */
+  /* The lifted drop: clearer, with bright rims as on thick glass. The spring fades it in with
+     the lift and the speed; the rule below is for less motion. */
   .tab-lens-shine {
     position: absolute;
     inset: 0;
@@ -791,7 +784,6 @@
       inset 2px 3px 4px -1px rgb(255 255 255 / 0.7),
       inset -2px -3px 5px -1px color-mix(in oklab, var(--section) 45%, transparent),
       0 10px 22px -8px rgb(0 0 0 / 0.35);
-    transition: opacity 260ms ease;
 
     [data-lifted="true"] & {
       opacity: 1;
