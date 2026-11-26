@@ -7,7 +7,7 @@ import { buildLibrary } from "../core/library";
 import { parseImportCsv } from "../core/nintendo/import";
 import { emptyBatch } from "../core/types";
 import { persistBatch } from "../data/persist";
-import { loadRawData } from "./library-data";
+import { loadRawData, mergeGames, splitEntry } from "./library-data";
 import { importHistory } from "./nintendo";
 
 const USER = "11111111-1111-1111-1111-111111111111";
@@ -45,5 +45,31 @@ describe("importHistory", () => {
     expect(await miitopia()).toEqual({ total: 90, days: [["2024-05-01", 60], ["2024-05-02", 30]] });
     const rows = await pg.query<{ n: number }>("select count(*)::int as n from game_bibliothek.daily_playtime");
     expect(rows.rows[0]!.n).toBe(2);
+  });
+});
+
+describe("merging an imported game with its synced twin", () => {
+  it("counts a day both sources report once, and both again after splitting", async () => {
+    // The app reports the same game under another title: a separate game at first.
+    const batch = emptyBatch("nintendo", "nintendo-parental");
+    batch.devices.push({ externalId: "console-1", kind: "switch1", label: "Switch" });
+    batch.games.push({ externalId: "app-miitopia", title: "Miitopia Deluxe" });
+    batch.dailyPlaytime.push({ gameExternalId: "app-miitopia", deviceExternalId: "console-1", date: "2024-05-01", minutes: 60 });
+    await persistBatch(db, USER, batch);
+
+    const games = async () => buildLibrary(await loadRawData(db)).games;
+    const total = async (id: string) => (await games()).find((g) => g.id === id)!.totalMinutes;
+    const imported = (await games()).find((g) => g.title === "Miitopia")!;
+    const synced = (await games()).find((g) => g.title === "Miitopia Deluxe")!;
+    expect([imported.totalMinutes, synced.totalMinutes]).toEqual([90, 60]);
+
+    await mergeGames(db, imported.id, synced.id);
+    // 1 May from the app (60), 2 May from the import (30): not 90 + 60.
+    expect(await total(imported.id)).toBe(90);
+
+    const merged = (await games()).find((g) => g.id === imported.id)!;
+    const splitId = await splitEntry(db, USER, merged.entries.find((e) => e.title === "Miitopia Deluxe")!);
+    expect(await total(imported.id)).toBe(90);
+    expect(await total(splitId)).toBe(60);
   });
 });
