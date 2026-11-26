@@ -12,6 +12,7 @@ import {
   exchangeCodeForSessionToken,
   fetchApiTokens,
   parseRedirectLink,
+  checkLoginState,
   readTokenExpiry,
 } from "../src/core/nintendo/auth";
 import { NINTENDO_PARENTAL_ID, SESSION_TOKEN_KIND } from "../sync/adapters/nintendo-parental/adapter";
@@ -33,9 +34,7 @@ async function main(): Promise<void> {
   rl.close();
 
   const parsed = parseRedirectLink(link);
-  if (parsed.state && parsed.state !== login.state) {
-    throw new Error("Der Link gehört zu einem anderen Login-Versuch. Bitte neu starten.");
-  }
+  checkLoginState(parsed.state, login.state);
   const sessionToken = await exchangeCodeForSessionToken(fetch, parsed.code, login.verifier);
   const tokens = await fetchApiTokens(fetch, sessionToken);
   const devices = await fetchDevices({ fetch, tokens });

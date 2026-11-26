@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkLoginState,
   createLoginRequest,
   exchangeCodeForSessionToken,
   fetchApiTokens,
@@ -62,6 +63,16 @@ describe("parseRedirectLink", () => {
   it("reports a rejection by Nintendo", () => {
     const rejected = `npf${NINTENDO_CLIENT_ID}://auth#error=access_denied&state=x`;
     expect(() => parseRedirectLink(rejected)).toThrow(/abgelehnt/);
+  });
+});
+
+describe("checkLoginState", () => {
+  it("accepts only a link with the state of this login", () => {
+    expect(() => checkLoginState("my-state", "my-state")).not.toThrow();
+    expect(() => checkLoginState("other-state", "my-state")).toThrow(/Login-Versuch/);
+    // a missing state on either side is not a pass
+    expect(() => checkLoginState(null, "my-state")).toThrow(/Login-Versuch/);
+    expect(() => checkLoginState("my-state", "")).toThrow(/Login-Versuch/);
   });
 });
 
