@@ -39,6 +39,9 @@ export const metadata: Metadata = {
       media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`,
     })),
   },
+  // Next writes `capable` only as «mobile-web-app-capable». Safari on iPhone shows the start
+  // screens and the translucent status bar only with its own name for it.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
