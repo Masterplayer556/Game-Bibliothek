@@ -6,11 +6,16 @@ export const THEME_STORAGE_KEY = "gb-theme";
 const CHANGE_EVENT = "gb-theme-change";
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
+/** The page background per theme (--color-bg in src/styles/tokens.css): the browser bar's colour. */
+export const THEME_BACKGROUND: Record<Theme, string> = { light: "#f3efff", dark: "#08061a" };
+
 /**
- * Runs in <head> before the first paint, so the page never flashes in the wrong theme.
+ * Runs in <head> before the first paint, so the page never flashes in the wrong theme. It also
+ * colours the browser bar for a theme picked by hand (the theme-color tags only know the
+ * device's setting), now and once the rest of <head> is there.
  * Kept as a string because it must not wait for the app's JavaScript.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var c=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var d=c==="dark"||(c!=="light"&&matchMedia(${JSON.stringify(DARK_QUERY)}).matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}})()`;
+export const THEME_INIT_SCRIPT = `(function(){try{var c=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var d=c==="dark"||(c!=="light"&&matchMedia(${JSON.stringify(DARK_QUERY)}).matches);var t=d?"dark":"light";document.documentElement.dataset.theme=t;if(c!=="dark"&&c!=="light")return;var b=${JSON.stringify(THEME_BACKGROUND)}[t];var p=function(){var m=document.querySelectorAll('meta[name="theme-color"]');for(var i=0;i<m.length;i++)m[i].setAttribute("content",b)};p();document.addEventListener("DOMContentLoaded",p)}catch(e){}})()`;
 
 export function readThemeChoice(): ThemeChoice {
   try {
@@ -30,8 +35,7 @@ export function resolveTheme(choice: ThemeChoice, systemDark: boolean): Theme {
 export function applyTheme(): void {
   const theme = resolveTheme(readThemeChoice(), matchMedia(DARK_QUERY).matches);
   document.documentElement.dataset.theme = theme;
-  const background = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim();
-  if (!background) return;
+  const background = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim() || THEME_BACKGROUND[theme];
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute("content", background);
 }
 
@@ -55,10 +59,14 @@ export function subscribeTheme(onChange: () => void): () => void {
   };
   window.addEventListener(CHANGE_EVENT, onChange);
   window.addEventListener("storage", handle);
-  media.addEventListener("change", handle);
+  // Safari before 14 only knows addListener: without it the device's switch went unnoticed
+  // (and the subscription threw).
+  if (typeof media.addEventListener === "function") media.addEventListener("change", handle);
+  else media.addListener(handle);
   return () => {
     window.removeEventListener(CHANGE_EVENT, onChange);
     window.removeEventListener("storage", handle);
-    media.removeEventListener("change", handle);
+    if (typeof media.removeEventListener === "function") media.removeEventListener("change", handle);
+    else media.removeListener(handle);
   };
 }
