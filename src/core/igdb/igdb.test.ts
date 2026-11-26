@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { coverUrl, germanGenre, login, parseGame, searchMany, type IgdbGame } from "./client";
-import { pickBestMatch, searchTitle, titleSimilarity } from "./match";
+import { pickBestMatch, searchTitle, titleNumbers, titleSimilarity } from "./match";
 
 const game = (over: Partial<IgdbGame>): IgdbGame => ({
   igdbId: 1,
@@ -51,6 +51,30 @@ describe("pickBestMatch", () => {
     const remake = game({ igdbId: 2, title: "Doom", platformIds: [48, 167] });
     expect(pickBestMatch("DOOM", [old, remake], ["ps5"])?.igdbId).toBe(2);
     expect(pickBestMatch("DOOM", [remake, old], ["pc"])?.igdbId).toBe(1);
+  });
+
+  it("never takes a sequel with another number for the game", () => {
+    const bo2 = game({ igdbId: 2, title: "Call of Duty: Black Ops II" });
+    const bo3 = game({ igdbId: 3, title: "Call of Duty: Black Ops III" });
+    // 5 of 7 words in common would pass the similarity on its own
+    expect(pickBestMatch("Call of Duty: Black Ops 2", [bo3])).toBeNull();
+    expect(pickBestMatch("Call of Duty: Black Ops 2", [bo3, bo2])?.igdbId).toBe(2);
+    const gw = game({ igdbId: 10, title: "Plants vs. Zombies: Garden Warfare" });
+    const gw2 = game({ igdbId: 11, title: "Plants vs. Zombies: Garden Warfare 2" });
+    expect(pickBestMatch("Plants vs. Zombies: Garden Warfare 2", [gw])).toBeNull();
+    expect(pickBestMatch("Plants vs. Zombies Garden Warfare", [gw2])).toBeNull();
+    expect(pickBestMatch("Plants vs. Zombies Garden Warfare", [gw2, gw])?.igdbId).toBe(10);
+    // same number, other spelling: still the same game
+    expect(pickBestMatch("Dark Souls 3 Deluxe", [game({ igdbId: 4, title: "Dark Souls III: Deluxe" })])?.igdbId).toBe(4);
+  });
+
+  it("reads the numbers of a title, Roman ones too", () => {
+    expect(titleNumbers("Dark Souls III")).toBe("3");
+    expect(titleNumbers("Grand Theft Auto V")).toBe("5");
+    expect(titleNumbers("Mario Kart 8 Deluxe")).toBe("8");
+    expect(titleNumbers("Tony Hawk's Pro Skater 1 + 2")).toBe("1 2");
+    expect(titleNumbers("I Am Bread")).toBe("");
+    expect(titleNumbers("Hollow Knight")).toBe("");
   });
 
   it("measures similarity on normalised words", () => {
