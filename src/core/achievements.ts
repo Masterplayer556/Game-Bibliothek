@@ -4,7 +4,7 @@
 // Steam achievement. For «Zusammen» the two lists of one game are joined by name (both are
 // read in German): an achievement counts as unlocked if it is unlocked on either platform.
 // Achievements without a twin (e.g. the platinum trophy) stay on their own.
-import type { AchievementRow as RawAchievement, LibraryGame, PlatformEntry } from "./library";
+import type { AchievementRow as RawAchievement, LibraryGame, PlatformEntry, RawData } from "./library";
 import type { PlatformId } from "./types";
 
 /** «all» = PC and PlayStation joined. */
@@ -169,5 +169,67 @@ export function achievementSummary(
     unlocked: rows.reduce((s, r) => s + r.unlocked, 0),
     total: rows.reduce((s, r) => s + r.total, 0),
     games: new Set(rows.map((r) => r.game.id)).size,
+  };
+}
+
+/** The trophy list of a PlayStation trophy («NPWR12345_00:7» → «NPWR12345_00»). */
+function trophyList(externalId: string): string | null {
+  const cut = externalId.lastIndexOf(":");
+  return cut > 0 ? externalId.slice(0, cut) : null;
+}
+
+/**
+ * PS4 and PS5 versions of a game can share one trophy list (one list, one progress). Each
+ * version is its own entry and stores the list, so it would count twice. Of the entries
+ * sharing a list, the one with the most unlocked trophies keeps it; the others lose its rows
+ * and its counts (null if nothing else is left). Separate lists of two versions stay as they are.
+ */
+export function dedupeSharedTrophyLists(raw: RawData): RawData {
+  const psn = new Set(raw.platformGames.filter((e) => e.platform === "psn").map((e) => e.id));
+  const byList = new Map<string, Map<string, RawAchievement[]>>();
+  for (const a of raw.achievements) {
+    if (!psn.has(a.platform_game_id)) continue;
+    const list = trophyList(a.external_id);
+    if (!list) continue;
+    const entries = byList.get(list) ?? new Map<string, RawAchievement[]>();
+    const rows = entries.get(a.platform_game_id) ?? [];
+    rows.push(a);
+    entries.set(a.platform_game_id, rows);
+    byList.set(list, entries);
+  }
+
+  const dropped = new Map<string, Set<string>>(); // entry → lists it loses
+  const lost = new Map<string, { unlocked: number; total: number }>();
+  for (const [list, entries] of byList) {
+    if (entries.size < 2) continue;
+    const ranked = [...entries.entries()].sort(
+      (a, b) => b[1].filter((r) => r.unlocked_at).length - a[1].filter((r) => r.unlocked_at).length || a[0].localeCompare(b[0]),
+    );
+    for (const [entryId, rows] of ranked.slice(1)) {
+      const lists = dropped.get(entryId) ?? new Set<string>();
+      lists.add(list);
+      dropped.set(entryId, lists);
+      const sum = lost.get(entryId) ?? { unlocked: 0, total: 0 };
+      sum.unlocked += rows.filter((r) => r.unlocked_at).length;
+      sum.total += rows.length;
+      lost.set(entryId, sum);
+    }
+  }
+  if (dropped.size === 0) return raw;
+
+  return {
+    ...raw,
+    achievements: raw.achievements.filter((a) => {
+      const list = trophyList(a.external_id);
+      return !(list && dropped.get(a.platform_game_id)?.has(list));
+    }),
+    platformGames: raw.platformGames.map((e) => {
+      const minus = lost.get(e.id);
+      if (!minus || e.achievements_total == null) return e;
+      const total = e.achievements_total - minus.total;
+      return total > 0
+        ? { ...e, achievements_total: total, achievements_unlocked: Math.max(0, (e.achievements_unlocked ?? 0) - minus.unlocked) }
+        : { ...e, achievements_total: null, achievements_unlocked: null };
+    }),
   };
 }

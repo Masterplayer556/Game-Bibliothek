@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { achievementKey, achievementPlatforms, achievementSummary, mergeAchievements } from "./achievements";
+import { achievementKey, achievementPlatforms, achievementSummary, dedupeSharedTrophyLists, mergeAchievements } from "./achievements";
 import { buildLibrary, type AchievementRow, type RawData } from "./library";
 
 type Entry = RawData["platformGames"][number];
@@ -103,5 +103,36 @@ describe("mergeAchievements", () => {
   it("never joins two achievements of the same platform", () => {
     const twins = [ach("hk-psn", 1, "Grimm", null), ach("hk-psn", 2, "Grimm", null), ach("hk-steam", 1, "Grimm", null)];
     expect(mergeAchievements(twins, platformOf).map((m) => m.platforms)).toEqual([["psn", "steam"], ["psn"]]);
+  });
+});
+
+describe("dedupeSharedTrophyLists", () => {
+  const entry = (id: string, unlocked: number, total: number) => ({
+    id, game_id: "g", platform: "psn" as const, source: "psn", external_id: id, title: "Game", cover_url: null, device_kind: "ps5" as const,
+    owned: true, first_played_at: null, last_played_at: null, total_playtime_minutes: 60, achievements_unlocked: unlocked, achievements_total: total,
+  });
+  const trophy = (entryId: string, list: string, n: number, unlocked: boolean): AchievementRow => ({
+    platform_game_id: entryId, external_id: `${list}:${n}`, name: `T${n}`, description: null, icon_url: null,
+    unlocked_at: unlocked ? "2026-05-01T10:00:00Z" : null, rarity_percent: 10, tier: "bronze",
+  });
+  const raw = (achievements: AchievementRow[], entries = [entry("ps4", 2, 3), entry("ps5", 2, 3)]): RawData => ({
+    games: [{ id: "g", title: "Game", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+    platformGames: entries, devices: [], daily: [], snapshots: [], achievements, userData: [], connections: [], settings: {},
+  });
+
+  it("counts a list shared by the PS4 and PS5 version once", () => {
+    const shared = [0, 1, 2].flatMap((n) => [trophy("ps4", "NPWR1_00", n, n < 2), trophy("ps5", "NPWR1_00", n, n < 2)]);
+    const out = dedupeSharedTrophyLists(raw(shared));
+    expect(out.achievements).toHaveLength(3);
+    const game = buildLibrary(out).games[0]!;
+    expect(game.achievements).toEqual({ unlocked: 2, total: 3 });
+    expect(achievementSummary([game], "all", out.achievements)).toMatchObject({ unlocked: 2, total: 3 });
+    expect(achievementSummary([game], "psn", out.achievements).rows).toHaveLength(1);
+  });
+
+  it("leaves separate lists of two versions alone", () => {
+    const separate = [0, 1, 2].flatMap((n) => [trophy("ps4", "NPWR1_00", n, n < 2), trophy("ps5", "NPWR2_00", n, n < 2)]);
+    const input = raw(separate);
+    expect(dedupeSharedTrophyLists(input)).toBe(input);
   });
 });

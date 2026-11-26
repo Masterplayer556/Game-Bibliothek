@@ -1,6 +1,7 @@
 // Reads everything the app shows in one go and writes my own changes.
 // The data of one person fits comfortably in the browser; all statistics are computed there.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { dedupeSharedTrophyLists } from "@/core/achievements";
 import type { RawData } from "@/core/library";
 import { normalizeTitle } from "@/core/normalize-title";
 import type { DeviceKind, GameStatus } from "@/core/types";
@@ -40,7 +41,7 @@ export async function loadRawData(db: SupabaseClient): Promise<RawData> {
       all<{ settings: Record<string, unknown> }>("app_settings", "settings", "user_id"),
     ]);
 
-  return {
+  return dedupeSharedTrophyLists({
     games,
     platformGames,
     devices,
@@ -50,7 +51,7 @@ export async function loadRawData(db: SupabaseClient): Promise<RawData> {
     userData,
     connections,
     settings: settings[0]?.settings ?? {},
-  };
+  });
 }
 
 function check(error: { message: string } | null): void {

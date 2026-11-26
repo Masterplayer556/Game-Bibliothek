@@ -165,7 +165,9 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
         } catch {
           warnings.push("Trophäen nicht lesbar");
         }
-        const seen = new Set<string>();
+        // PS4 and PS5 versions can share one trophy list: it is read once and stored with
+        // each version, so every entry has its list (the app counts a shared list once).
+        const lists = new Map<string, Promise<Awaited<ReturnType<PsnClient["trophies"]>>>>();
         let failed = 0;
         for (const game of now) {
           const set = sets.get(game.titleId);
@@ -175,14 +177,9 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
             continue;
           }
           progress.set(game.titleId, { unlocked: sum(set.earned), total: sum(set.defined) });
-          // PS4 and PS5 versions can share one trophy list: read it once.
-          if (seen.has(set.npCommunicationId)) {
-            doneNow.add(game.titleId);
-            continue;
-          }
-          seen.add(set.npCommunicationId);
           try {
-            const trophies = await client.trophies(token, set, TROPHY_LANGUAGE);
+            if (!lists.has(set.npCommunicationId)) lists.set(set.npCommunicationId, client.trophies(token, set, TROPHY_LANGUAGE));
+            const trophies = await lists.get(set.npCommunicationId)!;
             doneNow.add(game.titleId);
             for (const t of trophies) {
               batch.achievements.push({

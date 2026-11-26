@@ -185,6 +185,20 @@ describe("psnAdapter.sync", () => {
     expect([demo.achievementsUnlocked, demo.achievementsTotal]).toEqual([null, null]);
   });
 
+  it("reads a trophy list shared by the PS4 and PS5 version once and stores it with both", async () => {
+    const client = fakeClient({
+      async trophySets(_token, titleIds) {
+        client.calls.push(`sets:${titleIds.join(",")}`);
+        return new Map(["CUSA05678_00", "PPSA01234_00"].filter((id) => titleIds.includes(id)).map((id) => [id, HK_SET] as const));
+      },
+    });
+    const { batch } = await createPsnAdapter(client).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" }));
+    expect(client.calls.filter((c) => c.startsWith("trophies:"))).toHaveLength(1);
+    const byGame = (id: string) => batch.achievements.filter((a) => a.gameExternalId === id).map((a) => a.externalId);
+    expect(byGame("PPSA01234_00")).toEqual(byGame("CUSA05678_00"));
+    expect(byGame("PPSA01234_00")).toHaveLength(3);
+  });
+
   it("only reads trophies of games whose playtime changed", async () => {
     const client = fakeClient();
     const previousGames = new Map<string, PreviousGameState>([
