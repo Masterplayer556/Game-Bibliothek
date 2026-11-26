@@ -62,13 +62,22 @@ export async function runAdapters(options: RunOptions): Promise<AdapterRunResult
         fetch: options.fetch ?? fetch,
       };
 
+      // The details also hold what an adapter keeps between runs (PlayStation trophy lists
+      // done, Steam achievements still due): a test or a missing setting only adds to them.
+      // A sync replaces them: the adapter got them as previousDetails and returns its state.
+      const keepDetails = async (extra: Record<string, unknown>) => {
+        const stored = { ...(mode === "sync" ? ctx.previousDetails : await store.getConnectionDetails(adapter.id)) };
+        delete stored.missingEnv;
+        return { ...stored, ...extra };
+      };
+
       if (!(await adapter.isConfigured(ctx))) {
         const missingEnv = adapter.requiredEnv.filter((name) => !env[name]);
         await store.setConnection(adapter, {
           status: "not_connected",
           configured: false,
           lastError: null,
-          details: { missingEnv },
+          details: await keepDetails({ missingEnv }),
         });
         log.info(`${adapter.id}: not configured, skipped`);
         results.push({ adapterId: adapter.id, outcome: "skipped_not_configured" });
@@ -85,7 +94,7 @@ export async function runAdapters(options: RunOptions): Promise<AdapterRunResult
           configured: true,
           lastError: test.ok ? null : redact(test.message, secrets),
           tokenExpiresAt: test.tokenExpiresAt,
-          details: { lastTestAt: nowIso, lastTestMessage: redact(test.message, secrets) },
+          details: await keepDetails({ lastTestAt: nowIso, lastTestMessage: redact(test.message, secrets) }),
         });
         log.info(`${adapter.id}: connection test ${test.ok ? "ok" : "failed"}`);
         results.push({

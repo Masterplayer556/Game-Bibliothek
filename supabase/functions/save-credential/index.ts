@@ -60,6 +60,15 @@ Deno.serve(async (request: Request) => {
       .eq("user_id", caller.userId)
       .eq("adapter_id", "psn")
       .eq("kind", "refresh_token");
+    // Keep the stored details: they hold what the sync keeps between runs (trophy lists done).
+    const current = await caller.admin
+      .from("platform_connections")
+      .select("details")
+      .eq("user_id", caller.userId)
+      .eq("adapter_id", "psn")
+      .maybeSingle();
+    const stored = current.data?.details;
+    const details = stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
     await caller.admin.from("platform_connections").upsert(
       {
         user_id: caller.userId,
@@ -68,7 +77,7 @@ Deno.serve(async (request: Request) => {
         status: "not_connected",
         configured: true,
         last_error: null,
-        details: { npssoSavedAt: new Date().toISOString() },
+        details: { ...details, npssoSavedAt: new Date().toISOString() },
       },
       { onConflict: "user_id,adapter_id" },
     );

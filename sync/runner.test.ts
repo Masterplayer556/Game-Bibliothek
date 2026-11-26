@@ -36,6 +36,7 @@ class FakeStore implements SyncStore {
   disabled = new Set<string>();
   order: string[] = [];
   failOnSave = false;
+  details: Record<string, Record<string, unknown>> = {};
 
   async isEnabled(adapterId: string) {
     return !this.disabled.has(adapterId);
@@ -50,8 +51,8 @@ class FakeStore implements SyncStore {
   async getPreviousGames() {
     return new Map();
   }
-  async getConnectionDetails() {
-    return {};
+  async getConnectionDetails(adapterId: string) {
+    return this.details[adapterId] ?? {};
   }
   async saveBatch(batch: SyncBatch) {
     this.order.push("batch");
@@ -68,6 +69,22 @@ const run = (store: FakeStore, adapters: PlatformAdapter[], over: Partial<Parame
   runAdapters({ adapters, store, mode: "sync", env: {}, log: silent, now: new Date("2026-11-10T12:00:00Z"), ...over });
 
 describe("runAdapters", () => {
+  it("keeps the stored details on a connection test and when a setting is missing", async () => {
+    const store = new FakeStore();
+    store.details.psn = { trophyLanguageDone: ["CUSA1"], played: 3, missingEnv: ["OLD"] };
+    await run(store, [fakeAdapter("psn")], { mode: "test" });
+    expect(store.connections.get("psn")!.details).toEqual({
+      trophyLanguageDone: ["CUSA1"],
+      played: 3,
+      lastTestAt: "2026-11-10T12:00:00.000Z",
+      lastTestMessage: "Verbindung ok",
+    });
+
+    store.details.steam = { achievementsPending: ["10"] };
+    await run(store, [fakeAdapter("steam", { requiredEnv: ["STEAM_API_KEY"], isConfigured: async () => false })]);
+    expect(store.connections.get("steam")!.details).toEqual({ achievementsPending: ["10"], missingEnv: ["STEAM_API_KEY"] });
+  });
+
   it("keeps going when one adapter fails", async () => {
     const store = new FakeStore();
     const results = await run(store, [
