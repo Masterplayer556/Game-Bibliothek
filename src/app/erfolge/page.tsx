@@ -75,7 +75,7 @@ export default function AchievementsPage() {
           setError(null);
           try {
             await saveSettings(getSupabase(), userId, { ...raw.settings, rareLimit: next });
-            await reload();
+            await reload(["settings"]);
           } catch (e) {
             setError(errorMessage(e));
           }

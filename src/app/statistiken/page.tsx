@@ -84,7 +84,7 @@ export default function StatisticsPage() {
           setAppsError(null);
           try {
             await saveSettings(getSupabase(), userId, { ...raw.settings, countAppsInTotal: on });
-            await reload();
+            await reload(["settings"]);
           } catch (e) {
             setAppsError(errorMessage(e));
           }

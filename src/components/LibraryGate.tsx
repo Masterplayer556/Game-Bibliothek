@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import type { Library, RawData } from "@/core/library";
+import type { RawPart } from "@/lib/library-data";
 import { useLibraryContext } from "./LibraryProvider";
 import { Button, Card, Notice } from "./ui";
 
@@ -30,7 +31,7 @@ function RetryButton({ reload }: { reload: () => Promise<void> }) {
 export function LibraryGate({
   children,
 }: {
-  children: (ctx: { library: Library; raw: RawData; reload: () => Promise<void>; userId: string }) => ReactNode;
+  children: (ctx: { library: Library; raw: RawData; reload: (parts?: readonly RawPart[]) => Promise<void>; userId: string }) => ReactNode;
 }) {
   const { library, raw, error, reload, session } = useLibraryContext();
   if (error && !library) {
@@ -38,7 +39,7 @@ export function LibraryGate({
       <Card title="Daten nicht verfügbar" icon="warning">
         <Notice tone="danger">Die Datenbank antwortet mit einem Fehler: {error}</Notice>
         <div>
-          <RetryButton reload={reload} />
+          <RetryButton reload={() => reload()} />
         </div>
       </Card>
     );
@@ -49,7 +50,7 @@ export function LibraryGate({
       {error ? (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface-raised p-3">
           <Notice tone="warning">Neu laden fehlgeschlagen ({error}). Angezeigt wird der letzte Stand.</Notice>
-          <RetryButton reload={reload} />
+          <RetryButton reload={() => reload()} />
         </div>
       ) : null}
       {children({ library, raw, reload, userId: session.user.id })}

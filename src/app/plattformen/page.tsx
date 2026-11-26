@@ -130,14 +130,14 @@ export default function PlatformsPage() {
             <PlayStationConnect
               title={psn?.status === "ok" ? "PlayStation neu anmelden" : "PlayStation verbinden"}
               defaultOpen={psn?.status !== "ok"}
-              onDone={() => void reload()}
+              onDone={() => void reload(["connections"])}
             />
             <NintendoConnect
               title={nintendo?.status === "ok" ? "Nintendo neu anmelden" : "Nintendo verbinden"}
               defaultOpen={nintendo?.status !== "ok"}
-              onDone={() => void reload()}
+              onDone={() => void reload(["connections"])}
             />
-            <NintendoImport userId={userId} onDone={() => void reload()} />
+            <NintendoImport userId={userId} onDone={() => void reload(["games", "platformGames", "devices", "daily"])} />
             <Card title="Konto" icon="user" tone="home">
               <div>
                 <Button onClick={() => getSupabase().auth.signOut()}>Abmelden</Button>

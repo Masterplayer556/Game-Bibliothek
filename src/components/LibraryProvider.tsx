@@ -2,8 +2,9 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { dedupeSharedTrophyLists } from "@/core/achievements";
 import { buildLibrary, type Library, type RawData } from "@/core/library";
-import { loadRawData } from "@/lib/library-data";
+import { loadRawData, loadRawParts, type RawPart } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/errors";
 import { useSyncRun, type SyncRunState } from "./sync-run";
@@ -16,8 +17,11 @@ interface LibraryContextValue {
   raw: RawData | null;
   library: Library | null;
   error: string | null;
-  /** Reload after a change. Resolves when the new data is shown. */
-  reload: () => Promise<void>;
+  /**
+   * Reload after a change: only the tables given (what the change touched), or everything.
+   * Resolves when the new data is shown.
+   */
+  reload: (parts?: readonly RawPart[]) => Promise<void>;
   /** The sync run started (or seen) under «Synchronisieren»; kept while browsing other pages. */
   sync: SyncRunState;
 }
@@ -30,10 +34,15 @@ export function LibraryProvider({ session, children }: { session: Session; child
 
   const loadedAt = useRef(0);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (parts?: readonly RawPart[]) => {
     try {
-      setRaw(await loadRawData(getSupabase()));
-      loadedAt.current = Date.now();
+      if (parts) {
+        const fresh = await loadRawParts(getSupabase(), parts);
+        setRaw((current) => (current ? { ...current, ...fresh } : current));
+      } else {
+        setRaw(await loadRawData(getSupabase()));
+        loadedAt.current = Date.now();
+      }
       setError(null);
     } catch (e) {
       setError(errorMessage(e));
@@ -65,8 +74,14 @@ export function LibraryProvider({ session, children }: { session: Session; child
 
   const sync = useSyncRun(useCallback(() => void reload(), [reload]));
 
-  const library = useMemo(() => (raw ? buildLibrary(raw) : null), [raw]);
-  const value = useMemo(() => ({ session, raw, library, error, reload, sync }), [session, raw, library, error, reload, sync]);
+  // A trophy list shared by two versions counts once. Done here, on the whole data, so a
+  // partial reload never joins a list twice.
+  const shown = useMemo(() => (raw ? dedupeSharedTrophyLists(raw) : null), [raw]);
+  const library = useMemo(() => (shown ? buildLibrary(shown) : null), [shown]);
+  const value = useMemo(
+    () => ({ session, raw: shown, library, error, reload, sync }),
+    [session, shown, library, error, reload, sync],
+  );
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }
 

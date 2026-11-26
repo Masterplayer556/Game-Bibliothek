@@ -41,7 +41,7 @@ export default function AddGamePage() {
     try {
       const id = await addManualGame(getSupabase(), session.user.id, { title, deviceKind, minutes: total, owned });
       if (igdb && igdb.title === title) await applyIgdb(getSupabase(), id, igdb);
-      await reload();
+      await reload(["games", "platformGames", "snapshots", "userData"]);
       router.push(gameHref(id));
     } catch (e) {
       setError(errorMessage(e));
