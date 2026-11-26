@@ -1,5 +1,6 @@
 // «Game Bibliothek Wrapped»: the numbers of one calendar year (Europe/Zurich).
 // Pure functions on top of the library model; the page only displays the result.
+import { firstPlayedDay, newSinceTracking } from "./chronicle";
 import {
   distribution,
   topGames,
@@ -9,6 +10,7 @@ import {
   type Library,
   type Range,
   type RankedGame,
+  type RawData,
   type Share,
   UNKNOWN_GENRE,
 } from "./library";
@@ -54,6 +56,7 @@ export interface WrappedYear {
   favoriteGenre: Share | null;
   bestDay: BestDay | null;
   longestStreak: StreakResult | null;
+  /** Games first played this year, among those new since tracking began (oldest first). */
   newGames: string[];
   achievements: { unlocked: number; rarest: (AchievementRow & { gameId: string }) | null };
   /** Games barely touched before the year that got real playtime in it. */
@@ -134,7 +137,7 @@ export function bestDay(days: readonly GameDay[], range: Range): BestDay | null 
 
 export function buildWrapped(
   library: Library,
-  achievements: readonly AchievementRow[],
+  raw: Pick<RawData, "achievements" | "daily" | "snapshots">,
   year: number,
   options: { today: LocalDate; rediscoverMinutes?: number },
 ): WrappedYear {
@@ -155,17 +158,22 @@ export function buildWrapped(
 
   const genres = distribution(days, range, "genre", byId).filter((s) => s.key !== UNKNOWN_GENRE);
 
-  // Games first played this year (on any platform)
+  // Games first played this year, like «Erstmals gespielt» in the Chronik: only games that are
+  // new since tracking began. A game that already had playtime at the first sync is not new,
+  // even if the platform dates its first day (or the first synced day) into this year.
+  const fresh = newSinceTracking(library, raw);
   const newGames = library.games
-    .filter((g) => !g.hidden && g.firstPlayedAt && toLocalDate(g.firstPlayedAt) >= range.from && toLocalDate(g.firstPlayedAt) <= range.to)
-    .sort((a, b) => (a.firstPlayedAt ?? "").localeCompare(b.firstPlayedAt ?? ""))
+    .filter((g) => !g.hidden && fresh.has(g.id))
+    .map((g) => ({ id: g.id, start: firstPlayedDay(g, days) }))
+    .filter((g): g is { id: string; start: LocalDate } => !!g.start && g.start >= range.from && g.start <= range.to)
+    .sort((a, b) => a.start.localeCompare(b.start) || a.id.localeCompare(b.id))
     .map((g) => g.id);
 
   // Achievements unlocked this year and the rarest of them
   const entryToGame = new Map(library.games.filter((g) => !g.hidden).flatMap((g) => g.entries.map((e) => [e.id, g.id] as const)));
   let unlocked = 0;
   let rarest: (AchievementRow & { gameId: string }) | null = null;
-  for (const a of achievements) {
+  for (const a of raw.achievements) {
     if (!a.unlocked_at) continue;
     const gameId = entryToGame.get(a.platform_game_id);
     const date = toLocalDate(a.unlocked_at);

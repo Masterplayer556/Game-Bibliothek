@@ -30,7 +30,7 @@ function WrappedContent() {
           );
         }
         const year = years.includes(requested) ? requested : years[0]!;
-        const wrapped = buildWrapped(library, raw.achievements, year, { today });
+        const wrapped = buildWrapped(library, raw, year, { today });
         return (
           <>
             <div className="flex items-center justify-between gap-2">

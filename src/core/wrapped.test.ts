@@ -92,7 +92,7 @@ describe("buildWrapped with demo data", () => {
   const now = new Date("2026-11-11T12:00:00Z");
   const raw = demoRaw(now);
   const library = buildLibrary(raw);
-  const wrapped = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11" });
+  const wrapped = buildWrapped(library, raw, 2026, { today: "2026-11-11" });
 
   it("sums the year and compares it with a partly tracked previous year", () => {
     expect(wrapped.range).toEqual({ from: "2026-01-01", to: "2026-11-11" });
@@ -125,14 +125,14 @@ describe("buildWrapped with demo data", () => {
     // the demo window starts in September 2025, so 2026 is fully covered …
     expect(wrapped.coverageGaps).toEqual([]);
     // … but 2025 is not
-    const previous = buildWrapped(library, raw.achievements, 2025, { today: "2026-11-11" });
+    const previous = buildWrapped(library, raw, 2025, { today: "2026-11-11" });
     expect(previous.coverageGaps.length).toBeGreaterThan(0);
     expect(previous.previousYear).toBeNull();
   });
 
   it("finds rediscovered games, but not new purchases", () => {
     for (const threshold of [30, 60, 600]) {
-      const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", rediscoverMinutes: threshold });
+      const w = buildWrapped(library, raw, 2026, { today: "2026-11-11", rediscoverMinutes: threshold });
       for (const exit of w.rediscovered) {
         expect(exit.minutesBefore).toBeGreaterThan(0);
         expect(exit.minutesBefore).toBeLessThan(threshold);
@@ -141,7 +141,58 @@ describe("buildWrapped with demo data", () => {
       }
     }
     // With a high threshold, older games that were barely touched before 2026 qualify
-    const w = buildWrapped(library, raw.achievements, 2026, { today: "2026-11-11", rediscoverMinutes: 600 });
+    const w = buildWrapped(library, raw, 2026, { today: "2026-11-11", rediscoverMinutes: 600 });
     expect(w.rediscovered.length).toBeGreaterThan(0);
+  });
+});
+
+describe("buildWrapped: new games", () => {
+  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null });
+  const entry = (id: string, platform: "steam" | "psn" | "nintendo", total: number, firstPlayedAt: string | null = null) => ({
+    id: `p-${id}`, game_id: id, platform, source: platform === "nintendo" ? "nintendo-parental" : platform, external_id: id, title: id,
+    cover_url: null, device_kind: null, owned: true, first_played_at: firstPlayedAt, last_played_at: null,
+    total_playtime_minutes: total, achievements_unlocked: null, achievements_total: null,
+  });
+  const snapshot = (id: string, at: string, total: number) => ({ platform_game_id: `p-${id}`, taken_at: at, total_minutes: total, last_played_at: null });
+  const raw: RawData = {
+    games: ["old-psn", "bought", "fresh-steam", "switch-first-day", "switch-later"].map(game),
+    platformGames: [
+      // PlayStation dates its first play into 2026, but it had 600 minutes at the first sync
+      entry("old-psn", "psn", 700, "2026-03-01T10:00:00Z"),
+      // Steam: owned with 0 minutes at the first sync, played in June
+      entry("bought", "steam", 90),
+      // Steam: first seen in a later sync, already played (no first-played date from Steam)
+      entry("fresh-steam", "steam", 45),
+      // Switch: played on the first synced day (could be an old game)
+      entry("switch-first-day", "nintendo", 30),
+      // Switch: first seen after tracking began
+      entry("switch-later", "nintendo", 20),
+    ],
+    devices: [{ id: "d-s2", platform: "nintendo", kind: "switch2", label: "Switch 2" }],
+    daily: [
+      { platform_game_id: "p-switch-first-day", device_id: "d-s2", play_date: "2026-01-10", minutes: 30, source: "nintendo-parental", estimated: false },
+      { platform_game_id: "p-switch-later", device_id: "d-s2", play_date: "2026-04-02", minutes: 20, source: "nintendo-parental", estimated: false },
+    ],
+    snapshots: [
+      snapshot("old-psn", "2026-01-05T06:00:00Z", 600),
+      snapshot("old-psn", "2026-05-05T06:00:00Z", 700),
+      snapshot("bought", "2026-01-05T06:00:00Z", 0),
+      snapshot("bought", "2026-06-20T06:00:00Z", 90),
+      snapshot("fresh-steam", "2026-08-01T06:00:00Z", 45),
+    ],
+    achievements: [],
+    userData: [],
+    connections: [],
+    settings: {},
+  };
+
+  it("lists only games that are new since tracking began, by their first day", () => {
+    const w = buildWrapped(buildLibrary(raw), raw, 2026, { today: "2026-12-05" });
+    expect(w.newGames).toEqual(["switch-later", "bought"]);
+  });
+
+  it("puts a new game into the year it was first played", () => {
+    const w = buildWrapped(buildLibrary(raw), raw, 2027, { today: "2027-12-05" });
+    expect(w.newGames).toEqual([]);
   });
 });
