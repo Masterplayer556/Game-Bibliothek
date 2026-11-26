@@ -196,6 +196,15 @@
   padding-top: env(safe-area-inset-top);
 }
 
+/*
+ * Page margin left and right that also keeps clear of the notch and the rounded corners when
+ * a phone is held sideways (viewport-fit=cover lets the page reach under them).
+ */
+@utility px-page-safe {
+  padding-left: max(var(--spacing-page), env(safe-area-inset-left));
+  padding-right: max(var(--spacing-page), env(safe-area-inset-right));
+}
+
 /* Small caps label above a number. */
 @utility eyebrow {
   font-size: 11px;

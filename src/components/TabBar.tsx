@@ -456,8 +456,13 @@ export function TabBar() {
   return (
     <nav
       aria-label="Hauptnavigation"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3"
-      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center"
+      style={{
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+        // Sideways the notch is on the left or right.
+        paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+        paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+      }}
     >
       <PhoneTabBar current={current} />
       <WideTabBar current={current} />
