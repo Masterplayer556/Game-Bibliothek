@@ -5,6 +5,7 @@ import {
   resolveDailyRows,
   shouldWriteSnapshot,
   snapshotsToDays,
+  spreadOverGap,
   sumByPeriod,
   type DailyRow,
   type SnapshotRow,
@@ -256,5 +257,37 @@ describe("addStartingBaselines", () => {
     const byId = (id: string) => (id === "s" ? "steam" : "psn");
     // «p» is the first PlayStation snapshot: the start of its tracking, not a new game
     expect(addStartingBaselines(snapshots, byId)).toEqual(snapshots);
+  });
+});
+
+describe("spreadOverGap (sync gap of several days)", () => {
+  it("leaves time on its day when it fits", () => {
+    // 10 hours, the last session ending on the 12th, three days without a sync
+    const { days } = snapshotsToDays([
+      snap("2026-03-09T20:00:00Z", 100),
+      snap("2026-03-12T21:00:00Z", 700, "2026-03-12T20:00:00Z"),
+    ]);
+    expect(days.map((d) => [d.date, d.minutes, d.estimated])).toEqual([["2026-03-12", 600, false]]);
+  });
+
+  it("shares time that cannot fit into one day among the fewest days before it", () => {
+    // 30 hours between the 9th 21:00 and the 12th 10:00 (Zurich): the 12th only has 10 of them
+    const { days } = snapshotsToDays([
+      snap("2026-03-09T20:00:00Z", 0),
+      snap("2026-03-12T09:00:00Z", 1800, "2026-03-12T08:30:00Z"),
+    ]);
+    expect(days.map((d) => [d.date, d.minutes, d.estimated])).toEqual([
+      ["2026-03-11", 1200, true],
+      ["2026-03-12", 600, true],
+    ]);
+    expect(days.reduce((s, d) => s + d.minutes, 0)).toBe(1800);
+  });
+
+  it("never puts more on a day than it has between the snapshots", () => {
+    const parts = spreadOverGap(1800, "2026-03-12", Date.parse("2026-03-10T22:00:00Z"), Date.parse("2026-03-12T05:00:00Z"));
+    expect(parts.reduce((s, p) => s + p.minutes, 0)).toBe(1800);
+    expect(parts.every((p) => p.minutes <= 1440 && p.spread)).toBe(true);
+    // the 12th has six hours (00:00–06:00 Zurich), the 11th all day: two days are enough
+    expect(parts.map((p) => [p.date, p.minutes])).toEqual([["2026-03-11", 1440], ["2026-03-12", 360]]);
   });
 });

@@ -10,7 +10,10 @@
 //    the total changes, so a long gap between two of them is normal and not uncertain in
 //    itself. A day is flagged as estimated only when the platform did not say when it was
 //    played (no `lastPlayedAt` inside the interval) and the gap is over 48 hours.
-//    Time is never spread across days (that would invent play days).
+//    Time is not spread across days (that would invent play days), unless it cannot have
+//    fitted into that day: more minutes than the day has between the two snapshots (a sync
+//    gap of several days). Then it goes evenly onto the fewest days before it that can hold
+//    it, all marked as estimated (see spreadOverGap).
 // 4. Real per-day data wins over snapshots. The two are never added together.
 // 5. Overlapping per-day sources: an import (Nintendo Store history) is a per-game, per-day
 //    value without a reliable device. If any native source has data for the same game and
@@ -18,7 +21,7 @@
 //    (`gameKey`), because an import and a native source may have created separate platform
 //    entries for it.
 // 6. Days, weeks (Monday start) and months are Europe/Zurich.
-import { monthKey, toLocalDate, weekStart } from "../time";
+import { addDays, localDayStart, monthKey, toLocalDate, weekStart } from "../time";
 import type { LocalDate } from "../types";
 
 export interface SnapshotRow {
@@ -94,22 +97,66 @@ export function snapshotsToDays(snapshots: readonly SnapshotRow[]): {
     const date = toLocalDate(lastPlayedInside ? lastPlayed : curTime);
     const estimated = !lastPlayedInside && curTime - prevTime > ESTIMATE_GAP_MS;
 
-    const existing = byDate.get(date);
-    if (existing) {
-      existing.minutes += delta;
-      existing.estimated = existing.estimated || estimated;
-    } else {
-      byDate.set(date, {
-        platformGameId: cur.platformGameId,
-        deviceId: null,
-        date,
-        minutes: delta,
-        estimated,
-        origin: "snapshot",
-      });
+    for (const part of spreadOverGap(delta, date, prevTime, curTime)) {
+      const existing = byDate.get(part.date);
+      if (existing) {
+        existing.minutes += part.minutes;
+        existing.estimated = existing.estimated || estimated || part.spread;
+      } else {
+        byDate.set(part.date, {
+          platformGameId: cur.platformGameId,
+          deviceId: null,
+          date: part.date,
+          minutes: part.minutes,
+          estimated: estimated || part.spread,
+          origin: "snapshot",
+        });
+      }
     }
   }
   return { days: [...byDate.values()], warnings };
+}
+
+/**
+ * Rule 3, the exception: `minutes` played between `fromMs` and `toMs` belong to `date`, unless
+ * that day does not have that many minutes between the two. Then they are shared evenly by the
+ * fewest days up to `date` (back to the day of `fromMs`) that can hold them, each day at most
+ * the minutes it has in the interval. `spread` marks the days of a shared value.
+ */
+export function spreadOverGap(
+  minutes: number,
+  date: LocalDate,
+  fromMs: number,
+  toMs: number,
+): { date: LocalDate; minutes: number; spread: boolean }[] {
+  const room = (day: LocalDate) =>
+    Math.max(0, Math.floor((Math.min(toMs, localDayStart(addDays(day, 1))) - Math.max(fromMs, localDayStart(day))) / 60_000));
+  if (minutes <= room(date)) return [{ date, minutes, spread: false }];
+
+  const first = toLocalDate(fromMs);
+  const days: { date: LocalDate; room: number }[] = [];
+  let total = 0;
+  for (let day = date; ; day = addDays(day, -1)) {
+    days.push({ date: day, room: room(day) });
+    total += days.at(-1)!.room;
+    if (total >= minutes || day <= first) break;
+  }
+  // Evenly, but no day over its room: the small days are filled first, the rest is shared.
+  const share = new Map<LocalDate, number>();
+  let left = minutes;
+  const byRoom = [...days].sort((a, b) => a.room - b.room);
+  byRoom.forEach((day, i) => {
+    const even = Math.floor(left / (byRoom.length - i));
+    const given = Math.min(day.room, even);
+    share.set(day.date, given);
+    left -= given;
+  });
+  // Rounding leftovers (and time that fits nowhere, if the data is impossible) go to the latest day.
+  share.set(date, share.get(date)! + left);
+  return days
+    .map((d) => ({ date: d.date, minutes: share.get(d.date)!, spread: true }))
+    .filter((d) => d.minutes > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**
