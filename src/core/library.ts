@@ -306,9 +306,10 @@ export function buildLibrary(raw: RawData): Library {
   }
 
   // Coverage per platform: first per-day row, or the first snapshot (start of tracking).
+  // Games added by hand are not tracked: their snapshots only record the starting value.
   const dataSince: Partial<Record<PlatformId, LocalDate>> = {};
   const note = (platform: PlatformId | undefined, date: LocalDate) => {
-    if (!platform) return;
+    if (!platform || platform === "manual") return;
     const known = dataSince[platform];
     if (!known || date < known) dataSince[platform] = date;
   };

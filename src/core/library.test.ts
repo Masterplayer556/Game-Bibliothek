@@ -99,6 +99,13 @@ describe("buildLibrary", () => {
   it("knows from when each platform has data", () => {
     expect(lib.dataSince).toEqual({ nintendo: "2026-03-01", psn: "2026-03-01" });
   });
+
+  it("does not treat games added by hand as a tracked platform", () => {
+    // Adding a game by hand stores its starting value as a snapshot.
+    const data = raw();
+    data.snapshots.push({ platform_game_id: "e-peg", taken_at: "2026-06-01T08:00:00Z", total_minutes: 300, last_played_at: null });
+    expect(buildLibrary(data).dataSince).toEqual({ nintendo: "2026-03-01", psn: "2026-03-01" });
+  });
 });
 
 describe("statistics", () => {

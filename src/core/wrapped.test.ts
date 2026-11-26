@@ -285,3 +285,22 @@ describe("buildWrapped: achievements", () => {
     expect(buildWrapped(buildLibrary(hidden), hidden, 2026, { today: "2026-12-05" }).achievements).toEqual({ unlocked: 0, rarest: null });
   });
 });
+
+describe("buildWrapped: games added by hand", () => {
+  it("do not show up as a platform tracked only from a later day", () => {
+    const raw: RawData = {
+      games: [{ id: "peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+      platformGames: [{
+        id: "p-peg", game_id: "peg", platform: "manual", source: "manual", external_id: "manual:1", title: "Peggle",
+        cover_url: null, device_kind: "xbox360", owned: true, first_played_at: null, last_played_at: null,
+        total_playtime_minutes: 300, achievements_unlocked: null, achievements_total: null,
+      }],
+      devices: [], daily: [], achievements: [], userData: [], connections: [], settings: {},
+      // the starting value, stored when the game was added in June
+      snapshots: [{ platform_game_id: "p-peg", taken_at: "2026-06-01T08:00:00Z", total_minutes: 300, last_played_at: null }],
+    };
+    const w = buildWrapped(buildLibrary(raw), raw, 2026, { today: "2026-12-05" });
+    expect(w.coverageGaps).toEqual([]);
+    expect(w.previousYear).toBeNull();
+  });
+});
