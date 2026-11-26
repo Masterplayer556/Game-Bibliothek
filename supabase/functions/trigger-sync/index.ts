@@ -8,8 +8,12 @@
 // «Actions: Read and write») and GB_GITHUB_REPO («owner/name»).
 import { authorize, reply } from "../_common/http.ts";
 
-/** A new run is refused while another one started less than this long ago is not finished. */
-const BUSY_WINDOW_MINUTES = 15;
+/**
+ * A new run is refused while another one is open and gave news less than this long ago: its
+ * start, or its creation while it still waits. GitHub stops the sync job after 20 minutes and a
+ * run can wait that long behind the scheduled one. Same window as RUN_STALE_AFTER_MS in the app.
+ */
+const BUSY_WINDOW_MINUTES = 25;
 const ADAPTER_PATTERN = /^[a-z0-9-]{1,40}$/;
 const REPO_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -37,17 +41,20 @@ Deno.serve(async (request: Request) => {
   if (adapter && !ADAPTER_PATTERN.test(adapter)) return reply(400, { error: "Unbekannte Quelle." });
 
   // One run at a time
-  const since = new Date(Date.now() - BUSY_WINDOW_MINUTES * 60_000).toISOString();
-  const busy = await admin
+  const since = Date.now() - BUSY_WINDOW_MINUTES * 60_000;
+  const open = await admin
     .from("sync_runs")
-    .select("id")
+    .select("id, created_at, started_at")
     .eq("user_id", userId)
     .in("status", ["queued", "running"])
-    .gte("created_at", since)
-    .limit(1);
-  if (busy.error) return reply(500, { error: "Der Sync-Status ist nicht lesbar." });
-  if ((busy.data ?? []).length > 0) {
-    return reply(409, { error: "Es läuft schon ein Sync. Bitte warten, bis er fertig ist.", runId: busy.data![0]!.id });
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (open.error) return reply(500, { error: "Der Sync-Status ist nicht lesbar." });
+  const busy = ((open.data ?? []) as { id: string; created_at: string; started_at: string | null }[]).find(
+    (r) => new Date(r.started_at ?? r.created_at).getTime() >= since,
+  );
+  if (busy) {
+    return reply(409, { error: "Es läuft schon ein Sync. Bitte warten, bis er fertig ist.", runId: busy.id });
   }
 
   const created = await admin

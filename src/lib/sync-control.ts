@@ -24,12 +24,18 @@ export interface SyncRun {
 
 export const isFinished = (status: RunStatus) => status === "success" || status === "partial" || status === "error";
 
-/** Same window as in the Edge Function «trigger-sync»: after it, a new run may be started. */
-export const RUN_STALE_AFTER_MS = 15 * 60_000;
+/**
+ * Same window as in the Edge Function «trigger-sync»: after it, a new run may be started. GitHub
+ * stops the sync job after 20 minutes (sync.yml); a run may also wait that long behind the
+ * scheduled one before it starts. Counted from its start, or from its creation while queued.
+ */
+export const RUN_STALE_AFTER_MS = 25 * 60_000;
 
 /** An open run that has not reported back for too long (workflow cancelled or never started). */
-export function isStale(run: Pick<SyncRun, "status" | "created_at">, now: Date): boolean {
-  return !isFinished(run.status) && now.getTime() - new Date(run.created_at).getTime() > RUN_STALE_AFTER_MS;
+export function isStale(run: Pick<SyncRun, "status" | "created_at" | "started_at">, now: Date): boolean {
+  if (isFinished(run.status)) return false;
+  const since = new Date(run.started_at ?? run.created_at).getTime();
+  return now.getTime() - since > RUN_STALE_AFTER_MS;
 }
 
 export async function startSync(db: SupabaseClient, mode: "sync" | "test", adapter: string | null): Promise<string> {

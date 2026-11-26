@@ -10,10 +10,18 @@ describe("sync run state", () => {
     expect(states.map(isFinished)).toEqual([false, false, true, true, true]);
   });
 
-  it("treats an open run as stale after 15 minutes, a finished one never", () => {
-    expect(isStale({ status: "running", created_at: ago(14) }, NOW)).toBe(false);
-    expect(isStale({ status: "queued", created_at: ago(16) }, NOW)).toBe(true);
-    expect(isStale({ status: "running", created_at: ago(600) }, NOW)).toBe(true);
-    expect(isStale({ status: "error", created_at: ago(600) }, NOW)).toBe(false);
+  it("treats an open run as stale after 25 minutes without news, a finished one never", () => {
+    expect(isStale({ status: "running", created_at: ago(24), started_at: ago(20) }, NOW)).toBe(false);
+    expect(isStale({ status: "queued", created_at: ago(26), started_at: null }, NOW)).toBe(true);
+    expect(isStale({ status: "running", created_at: ago(600), started_at: ago(599) }, NOW)).toBe(true);
+    expect(isStale({ status: "error", created_at: ago(600), started_at: null }, NOW)).toBe(false);
+  });
+
+  it("does not give up on a run that waited behind another one and is still within the job's time", () => {
+    // queued 12 minutes behind the scheduled sync, running for 10: 22 minutes since it was created
+    expect(isStale({ status: "running", created_at: ago(22), started_at: ago(10) }, NOW)).toBe(false);
+    expect(isStale({ status: "running", created_at: ago(40), started_at: ago(18) }, NOW)).toBe(false);
+    // a queued run that waits longer than a whole sync can take never started
+    expect(isStale({ status: "queued", created_at: ago(24), started_at: null }, NOW)).toBe(false);
   });
 });
