@@ -124,7 +124,7 @@ export default function PlatformsPage() {
               </ul>
             </Card>
 
-            <SyncControls onFinished={() => void reload()} />
+            <SyncControls />
 
             {/* Open by themselves only when something needs doing (never connected or expired). */}
             <PlayStationConnect
