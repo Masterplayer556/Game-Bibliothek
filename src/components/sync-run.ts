@@ -21,8 +21,10 @@ export function useSyncRun(onFinished: () => void): SyncRunState {
   const [run, setRun] = useState<SyncRun | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const following = useRef<string | null>(null);
+  /** A check is waiting for the database: no second one meanwhile. */
+  const checking = useRef(false);
   const finished = useRef(onFinished);
   useEffect(() => {
     finished.current = onFinished;
@@ -30,11 +32,13 @@ export function useSyncRun(onFinished: () => void): SyncRunState {
 
   // Plain functions over refs: they are recreated per render but always act on the same timer.
   const stop = () => {
-    if (timer.current) clearInterval(timer.current);
+    if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     following.current = null;
   };
   const check = async (runId: string) => {
+    if (checking.current) return;
+    checking.current = true;
     try {
       const r = await loadRun(getSupabase(), runId);
       if (!r || following.current !== runId) return;
@@ -45,12 +49,23 @@ export function useSyncRun(onFinished: () => void): SyncRunState {
       }
     } catch {
       // try again with the next tick
+    } finally {
+      checking.current = false;
     }
+  };
+  // The next check is planned only once the previous one has answered: on a slow connection
+  // the checks never pile up or answer out of order (as with a fixed interval).
+  const schedule = (runId: string) => {
+    timer.current = setTimeout(async () => {
+      timer.current = null;
+      await check(runId);
+      if (following.current === runId && !timer.current) schedule(runId);
+    }, POLL_MS);
   };
   const follow = (runId: string) => {
     stop();
     following.current = runId;
-    timer.current = setInterval(() => void check(runId), POLL_MS);
+    schedule(runId);
   };
   // The last run (also one started by the schedule): shown, and followed while it is open.
   const showLatest = async () => {
