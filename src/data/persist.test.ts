@@ -139,6 +139,26 @@ describe("persistBatch on later runs", () => {
     expect(await snapshotCount()).toBe(2);
   });
 
+  it("sees a change again on the next run when its snapshot could not be saved", async () => {
+    const broken = {
+      from: (table: string) =>
+        table === "playtime_snapshots" ? { upsert: async () => ({ error: { message: "connection lost" } }) } : db.from(table),
+    } as unknown as SupabaseClient;
+    await expect(persistBatch(broken, USER, steam(220, "2026-11-11T16:30:00Z"), new Date("2026-11-11T18:00:00Z"))).rejects.toThrow(
+      /snapshots/,
+    );
+    const stored = await rows<{ total_playtime_minutes: number }>(
+      "select total_playtime_minutes from game_bibliothek.platform_games where external_id = '730'",
+    );
+    expect(stored[0]!.total_playtime_minutes).toBe(160);
+    await persistBatch(db, USER, steam(220, "2026-11-11T16:30:00Z"), new Date("2026-11-11T20:00:00Z"));
+    expect(await snapshotCount()).toBe(3);
+    const after = await rows<{ total_playtime_minutes: number }>(
+      "select total_playtime_minutes from game_bibliothek.platform_games where external_id = '730'",
+    );
+    expect(after[0]!.total_playtime_minutes).toBe(220);
+  });
+
   it("links a real entry to the game the demo data created, and keeps the link", async () => {
     const linked = await rows<{ title: string }>(
       `select g.title from game_bibliothek.platform_games pg join game_bibliothek.games g on g.id = pg.game_id where pg.external_id = '730'`,

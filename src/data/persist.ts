@@ -202,10 +202,17 @@ export async function persistBatch(
   const rowsToWrite = isImportSource(batch.source)
     ? platformRows.filter((row) => !existingByExternalId.has(row.external_id))
     : platformRows;
+  // The new totals are written only after their snapshots (step 4): the next run compares
+  // with the stored total, so if saving a snapshot fails, the change is still seen then.
+  const storedTotal = (row: (typeof platformRows)[number]) =>
+    existingByExternalId.get(row.external_id)?.total_playtime_minutes ?? 0;
   for (const part of chunks(rowsToWrite)) {
     const { error } = await db
       .from("platform_games")
-      .upsert(part, { onConflict: "user_id,platform,external_id" });
+      .upsert(
+        part.map((row) => ({ ...row, total_playtime_minutes: storedTotal(row) })),
+        { onConflict: "user_id,platform,external_id" },
+      );
     fail("platform games", error);
   }
   summary.games = platformRows.length;
@@ -252,6 +259,15 @@ export async function persistBatch(
     fail("snapshots", error);
   }
   summary.snapshots = snapshotRows.length;
+
+  // Now the totals (see step 3)
+  const changedTotals = rowsToWrite.filter((row) => row.total_playtime_minutes !== storedTotal(row));
+  for (const part of chunks(changedTotals)) {
+    const { error } = await db
+      .from("platform_games")
+      .upsert(part, { onConflict: "user_id,platform,external_id" });
+    fail("playtime totals", error);
+  }
 
   // 5. Per-day playtime
   const dailyRows = batch.dailyPlaytime.map((row) => {
