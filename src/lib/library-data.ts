@@ -68,6 +68,35 @@ export async function loadRawParts(db: SupabaseClient, parts: readonly RawPart[]
   return Object.fromEntries(unique.map((part, i) => [part, values[i]])) as Partial<RawData>;
 }
 
+/**
+ * Keeps reloads in order. Every reload gets a number when it starts; when it answers, a table
+ * is only taken if no later reload has already delivered it. A slow full reload that started
+ * before a note was saved therefore cannot bring back the old note after the quick reload of
+ * that one table.
+ */
+export class ReloadOrder {
+  private started = 0;
+  private applied = new Map<RawPart, number>();
+
+  /** Call when a reload starts; pass the result to `take` when it answers. */
+  begin(): number {
+    return ++this.started;
+  }
+
+  /**
+   * The part of an answer that is newer than what is shown, and marks it as shown; null if
+   * nothing in it is newer. `current` null (nothing shown yet) takes only a complete answer.
+   */
+  take(ticket: number, fresh: Partial<RawData>, current: RawData | null): RawData | null {
+    const newer = (Object.keys(fresh) as RawPart[]).filter((part) => (this.applied.get(part) ?? 0) < ticket);
+    if (newer.length === 0) return null;
+    if (!current && newer.length < ALL_PARTS.length) return null;
+    for (const part of newer) this.applied.set(part, ticket);
+    const picked = Object.fromEntries(newer.map((part) => [part, fresh[part]])) as Partial<RawData>;
+    return { ...(current ?? ({} as RawData)), ...picked };
+  }
+}
+
 /** Everything the app shows, as stored (shared trophy lists not yet joined, see the provider). */
 export async function loadRawData(db: SupabaseClient): Promise<RawData> {
   return (await loadRawParts(db)) as RawData;
