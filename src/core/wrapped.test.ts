@@ -188,7 +188,22 @@ describe("buildWrapped: new games", () => {
 
   it("lists only games that are new since tracking began, by their first day", () => {
     const w = buildWrapped(buildLibrary(raw), raw, 2026, { today: "2026-12-05" });
-    expect(w.newGames).toEqual(["switch-later", "bought"]);
+    expect(w.newGames).toEqual(["switch-later", "bought", "fresh-steam"]);
+  });
+
+  it("counts the first session of a game that shows up after tracking began", () => {
+    const library = buildLibrary(raw);
+    expect(library.days.filter((d) => d.gameId === "fresh-steam").map((d) => [d.date, d.minutes])).toEqual([["2026-08-01", 45]]);
+    const w = buildWrapped(library, raw, 2026, { today: "2026-12-05" });
+    expect(w.top.find((t) => t.gameId === "fresh-steam")?.minutes).toBe(45);
+  });
+
+  it("never lists a new game as rediscovered", () => {
+    // fresh-steam's 45 minutes without the fix would look like time «before» the year
+    for (const threshold of [10, 60, 1000]) {
+      const w = buildWrapped(buildLibrary(raw), raw, 2026, { today: "2026-12-05", rediscoverMinutes: threshold });
+      for (const r of w.rediscovered) expect(w.newGames).not.toContain(r.gameId);
+    }
   });
 
   it("puts a new game into the year it was first played", () => {

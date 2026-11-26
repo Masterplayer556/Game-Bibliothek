@@ -1,6 +1,8 @@
 // Playtime rules. This is where most mistakes happen, so everything here is pure and tested.
 //
-// 1. The first snapshot of a game is only a starting value.
+// 1. The first snapshot of a game is only a starting value, unless the game first shows up
+//    after its platform's tracking began (bought or first played since): then it started at
+//    0 and its first total is played time (see addStartingBaselines).
 // 2. The difference between two snapshots is played time. Negative differences count as 0
 //    and are reported.
 // 3. A difference is assigned to the day of `lastPlayedAt` if that lies between the two
@@ -108,6 +110,55 @@ export function snapshotsToDays(snapshots: readonly SnapshotRow[]): {
     }
   }
   return { days: [...byDate.values()], warnings };
+}
+
+/**
+ * Rule 1, second half: an entry whose first snapshot comes from a later sync than its
+ * platform's first one did not exist when tracking began, so it started at 0. A snapshot of
+ * 0 minutes is added at the platform's last snapshot before it (the latest moment the entry is
+ * known to have been missing); rules 2 and 3 then date its first total like any other
+ * difference. Not when the platform says it was played before tracking began (last or first
+ * played before the platform's first snapshot): that time is old, not a session.
+ */
+export function addStartingBaselines(
+  snapshots: readonly SnapshotRow[],
+  /** The platform of an entry; entries without one get no baseline. */
+  platformOf: (platformGameId: string) => string | undefined,
+  /** First played as reported by the platform, if known. */
+  firstPlayedAt: (platformGameId: string) => string | null | undefined = () => null,
+): SnapshotRow[] {
+  const timesByPlatform = new Map<string, number[]>();
+  const firstByEntry = new Map<string, SnapshotRow>();
+  for (const s of snapshots) {
+    const platform = platformOf(s.platformGameId);
+    if (!platform) continue;
+    const times = timesByPlatform.get(platform) ?? [];
+    times.push(new Date(s.takenAt).getTime());
+    timesByPlatform.set(platform, times);
+    const first = firstByEntry.get(s.platformGameId);
+    if (!first || new Date(s.takenAt).getTime() < new Date(first.takenAt).getTime()) firstByEntry.set(s.platformGameId, s);
+  }
+  for (const times of timesByPlatform.values()) times.sort((a, b) => a - b);
+
+  const baselines: SnapshotRow[] = [];
+  for (const [entryId, first] of firstByEntry) {
+    if (first.totalMinutes <= 0) continue;
+    const times = timesByPlatform.get(platformOf(entryId)!)!;
+    const at = new Date(first.takenAt).getTime();
+    const trackingStart = times[0]!;
+    if (at <= trackingStart) continue;
+    const playedBefore = [first.lastPlayedAt, firstPlayedAt(entryId)].some(
+      (t) => t && new Date(t).getTime() < trackingStart,
+    );
+    if (playedBefore) continue;
+    let previous = trackingStart;
+    for (const t of times) {
+      if (t >= at) break;
+      previous = t;
+    }
+    baselines.push({ platformGameId: entryId, takenAt: new Date(previous).toISOString(), totalMinutes: 0, lastPlayedAt: null });
+  }
+  return baselines.length > 0 ? [...snapshots, ...baselines] : [...snapshots];
 }
 
 /** Imports rank below every native source. */

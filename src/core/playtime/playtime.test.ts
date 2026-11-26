@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addStartingBaselines,
   buildPlayedDays,
   resolveDailyRows,
   shouldWriteSnapshot,
@@ -210,5 +211,50 @@ describe("shouldWriteSnapshot", () => {
     expect(shouldWriteSnapshot(undefined, 120)).toBe(true);
     expect(shouldWriteSnapshot(120, 120)).toBe(false);
     expect(shouldWriteSnapshot(120, 150)).toBe(true);
+  });
+});
+
+describe("addStartingBaselines", () => {
+  const at = (platformGameId: string, takenAt: string, totalMinutes: number, lastPlayedAt?: string): SnapshotRow => ({
+    platformGameId,
+    takenAt,
+    totalMinutes,
+    lastPlayedAt,
+  });
+  const platform = () => "steam";
+
+  it("dates the first total of an entry that showed up after tracking began", () => {
+    const snapshots = [
+      at("old", "2026-03-01T06:00:00Z", 500),
+      at("old", "2026-03-05T06:00:00Z", 560, "2026-03-04T21:00:00Z"),
+      // bought and played on the 7th, first seen by the sync on the 8th
+      at("new", "2026-03-08T06:00:00Z", 120, "2026-03-07T20:00:00Z"),
+    ];
+    const { days } = buildPlayedDays({ dailyRows: [], snapshots: addStartingBaselines(snapshots, platform) });
+    expect(days.map((d) => [d.platformGameId, d.date, d.minutes, d.estimated])).toEqual([
+      ["old", "2026-03-04", 60, false],
+      ["new", "2026-03-07", 120, false],
+    ]);
+  });
+
+  it("keeps the first snapshot a starting value at the first sync and for old play", () => {
+    const snapshots = [
+      at("a", "2026-03-01T06:00:00Z", 500),
+      // shows up later, but the platform says it was last played before tracking began
+      at("b", "2026-03-08T06:00:00Z", 300, "2026-01-07T20:00:00Z"),
+      // shows up later, first played (per platform) before tracking began
+      at("c", "2026-03-08T06:00:00Z", 200),
+      // shows up later with 0 minutes: nothing to date
+      at("d", "2026-03-08T06:00:00Z", 0),
+    ];
+    const withBaselines = addStartingBaselines(snapshots, platform, (id) => (id === "c" ? "2025-12-24T10:00:00Z" : null));
+    expect(withBaselines).toEqual(snapshots);
+  });
+
+  it("works per platform", () => {
+    const snapshots = [at("s", "2026-03-01T06:00:00Z", 10), at("p", "2026-03-08T06:00:00Z", 30)];
+    const byId = (id: string) => (id === "s" ? "steam" : "psn");
+    // «p» is the first PlayStation snapshot: the start of its tracking, not a new game
+    expect(addStartingBaselines(snapshots, byId)).toEqual(snapshots);
   });
 });

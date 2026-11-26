@@ -195,8 +195,10 @@ export function buildWrapped(
   }
   const threshold = options.rediscoverMinutes ?? REDISCOVER_MINUTES;
   const rediscovered: Rediscovered[] = [];
+  const isNew = new Set(newGames);
   for (const g of library.games) {
-    if (g.hidden || !g.owned) continue;
+    // A new game has no time «before»; any it seems to have is undated time, not a comeback.
+    if (g.hidden || !g.owned || isNew.has(g.id)) continue;
     const inYear = minutesInYear.get(g.id) ?? 0;
     if (inYear === 0) continue;
     const before = Math.max(0, g.totalMinutes - inYear - (minutesAfterYear.get(g.id) ?? 0));
