@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSampleBatches } from "../testing/sample-library";
-import { buildLibrary, type GameDay, type Library, type RawData } from "./library";
+import { buildLibrary, type AchievementRow, type GameDay, type Library, type RawData } from "./library";
 import { availableYears, bestDay, buildWrapped, longestStreak, yearRange } from "./wrapped";
 
 const day = (date: string, minutes: number, gameId = "g1", estimated = false): GameDay => ({
@@ -236,5 +236,52 @@ describe("buildWrapped: coverage of this and the previous year", () => {
     // 2025 has none of the Steam and PlayStation time
     expect(wrapped({ nintendo: "2021-03-28", steam: "2026-11-12" }, 2025).coverageGaps).toEqual([{ platform: "steam", since: "2026-11-12" }]);
     expect(wrapped({ nintendo: "2026-01-01" }).coverageGaps).toEqual([]);
+  });
+});
+
+describe("buildWrapped: achievements", () => {
+  const entry = (id: string, gameId: string, platform: "steam" | "psn") => ({
+    id, game_id: gameId, platform, source: platform, external_id: id, title: gameId,
+    cover_url: null, device_kind: null, owned: true, first_played_at: null, last_played_at: null,
+    total_playtime_minutes: 60, achievements_unlocked: 3, achievements_total: 3,
+  });
+  const ach = (entryId: string, externalId: string, name: string, unlockedAt: string | null, rarity: number | null): AchievementRow => ({
+    platform_game_id: entryId, external_id: externalId, name, description: null, icon_url: null,
+    unlocked_at: unlockedAt, rarity_percent: rarity, tier: null,
+  });
+  const raw: RawData = {
+    games: [{ id: "hk", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+    platformGames: [entry("hk-steam", "hk", "steam"), entry("hk-psn", "hk", "psn")],
+    devices: [], daily: [], snapshots: [], userData: [], connections: [], settings: {},
+    achievements: [
+      // the same achievement on PC and PlayStation, both unlocked in 2026: one achievement
+      ach("hk-steam", "FALSE_KNIGHT", "Test der Entschlossenheit", "2026-03-01T10:00:00Z", 40),
+      ach("hk-psn", "NPWR1_00:1", "Test der Entschlossenheit", "2026-04-01T10:00:00Z", 35),
+      // first unlocked on PC in 2025: belongs to 2025, not again to 2026
+      ach("hk-steam", "HORNET", "Beschützerin", "2025-12-20T10:00:00Z", 30),
+      ach("hk-psn", "NPWR1_00:2", "Beschützerin", "2026-02-01T10:00:00Z", 25),
+      // rare on PlayStation, but only unlocked on PC: the PC share counts
+      ach("hk-steam", "GRIMM", "Albtraumkönig", "2026-06-01T10:00:00Z", 12),
+      ach("hk-psn", "NPWR1_00:3", "Albtraumkönig", null, 2),
+      // the same row delivered twice
+      ach("hk-psn", "NPWR1_00:4", "Seelentyrann", "2026-07-01T10:00:00Z", 20),
+      ach("hk-psn", "NPWR1_00:4", "Seelentyrann", "2026-07-01T10:00:00Z", 20),
+    ],
+  };
+  const library = buildLibrary(raw);
+
+  it("counts an achievement once, in the year of its first unlock", () => {
+    expect(buildWrapped(library, raw, 2026, { today: "2026-12-05" }).achievements.unlocked).toBe(3);
+    expect(buildWrapped(library, raw, 2025, { today: "2026-12-05" }).achievements.unlocked).toBe(1);
+  });
+
+  it("takes the rarest share from a platform where it is unlocked", () => {
+    const { rarest } = buildWrapped(library, raw, 2026, { today: "2026-12-05" }).achievements;
+    expect([rarest?.name, rarest?.rarity_percent, rarest?.gameId]).toEqual(["Albtraumkönig", 12, "hk"]);
+  });
+
+  it("leaves out games marked «Kein Spiel»", () => {
+    const hidden = { ...raw, userData: [{ game_id: "hk", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true }] };
+    expect(buildWrapped(buildLibrary(hidden), hidden, 2026, { today: "2026-12-05" }).achievements).toEqual({ unlocked: 0, rarest: null });
   });
 });
