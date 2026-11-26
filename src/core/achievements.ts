@@ -4,7 +4,7 @@
 // Steam achievement. For «Zusammen» the two lists of one game are joined by name (both are
 // read in German): an achievement counts as unlocked if it is unlocked on either platform.
 // Achievements without a twin (e.g. the platinum trophy) stay on their own.
-import type { AchievementRow as RawAchievement, LibraryGame, PlatformEntry, RawData } from "./library";
+import { compareTitles, type AchievementRow as RawAchievement, type LibraryGame, type PlatformEntry, type RawData } from "./library";
 import type { PlatformId } from "./types";
 
 /** «all» = PC and PlayStation joined. */
@@ -163,7 +163,7 @@ export function achievementSummary(
       });
     }
   }
-  rows.sort((a, b) => b.unlocked / b.total - a.unlocked / a.total || a.game.title.localeCompare(b.game.title, "de"));
+  rows.sort((a, b) => b.unlocked / b.total - a.unlocked / a.total || compareTitles(a.game.title, b.game.title));
   return {
     rows,
     unlocked: rows.reduce((s, r) => s + r.unlocked, 0),

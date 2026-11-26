@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatHours, formatMinutes } from "./labels";
 import {
   buildLibrary,
+  compareTitles,
   deviceTotals,
   distribution,
   filterLibrary,
@@ -228,6 +229,18 @@ describe("filterLibrary", () => {
     expect(filterLibrary(lib.games, {}).map((g) => g.id)).toEqual(["g-mc", "g-hk", "g-peg"]);
     expect(filterLibrary(lib.games, { sort: "playtime" }).map((g) => g.id)).toEqual(["g-mc", "g-hk", "g-peg"]);
     expect(filterLibrary(lib.games, { sort: "name" }).map((g) => g.title)).toEqual(["Hollow Knight", "Minecraft", "Peggle"]);
+  });
+
+  it("orders titles like German localeCompare (umlauts next to their base letter)", () => {
+    const titles = ["Zelda", "Ökolopoly", "Oxenfree", "Ori", "ark", "Äpfel"];
+    expect([...titles].sort(compareTitles)).toEqual([...titles].sort((a, b) => a.localeCompare(b, "de")));
+    expect([...titles].sort(compareTitles)).toEqual(["Äpfel", "ark", "Ökolopoly", "Ori", "Oxenfree", "Zelda"]);
+  });
+
+  it("finds the same games when searching again (cached search texts)", () => {
+    const first = filterLibrary(lib.games, { search: "hollow" }).map((g) => g.id);
+    expect(filterLibrary(lib.games, { search: "hollow" }).map((g) => g.id)).toEqual(first);
+    expect(filterLibrary(lib.games, { search: "peg" }).map((g) => g.id)).toEqual(["g-peg"]);
   });
 });
 
