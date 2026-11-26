@@ -1,5 +1,6 @@
 // «Game Bibliothek Wrapped»: the numbers of one calendar year (Europe/Zurich).
 // Pure functions on top of the library model; the page only displays the result.
+import { firstPlayedDay, newSinceTracking } from "./chronicle";
 import {
   distribution,
   topGames,
@@ -9,6 +10,7 @@ import {
   type Library,
   type Range,
   type RankedGame,
+  type RawData,
   type Share,
   UNKNOWN_GENRE,
 } from "./library";
@@ -54,11 +56,15 @@ export interface WrappedYear {
   favoriteGenre: Share | null;
   bestDay: BestDay | null;
   longestStreak: StreakResult | null;
+  /** Games first played this year, among those new since tracking began (oldest first). */
   newGames: string[];
   achievements: { unlocked: number; rarest: (AchievementRow & { gameId: string }) | null };
   /** Games barely touched before the year that got real playtime in it. */
   rediscovered: Rediscovered[];
-  /** Platforms whose data starts after 1 January: their values for this year are incomplete. */
+  /**
+   * Platforms whose data starts after 1 January (or only after the year): their values for this
+   * year are incomplete.
+   */
   coverageGaps: CoverageGap[];
 }
 
@@ -134,7 +140,7 @@ export function bestDay(days: readonly GameDay[], range: Range): BestDay | null 
 
 export function buildWrapped(
   library: Library,
-  achievements: readonly AchievementRow[],
+  raw: Pick<RawData, "achievements" | "daily" | "snapshots">,
   year: number,
   options: { today: LocalDate; rediscoverMinutes?: number },
 ): WrappedYear {
@@ -143,29 +149,36 @@ export function buildWrapped(
   const total = totalInRange(days, range);
   const playDays = new Set(days.filter((d) => d.date >= range.from && d.date <= range.to).map((d) => d.date)).size;
 
-  // Previous year, and whether it was fully tracked
+  // Previous year, and whether it was fully tracked: only if every platform was tracked from
+  // its first day. One platform with old data (an imported history) does not make up for
+  // another one that only started later.
   const previousRange = yearRange(year - 1, options.today);
   const previousTotal = totalInRange(days, previousRange);
-  const sinceDates = Object.values(library.dataSince);
-  const firstTracked = sinceDates.length > 0 ? sinceDates.sort()[0]! : null;
+  const since = Object.entries(library.dataSince) as [PlatformId, LocalDate][];
+  const firstTracked = since.length > 0 ? since.map(([, d]) => d).sort()[0]! : null;
   const previousYear =
     firstTracked && firstTracked <= previousRange.to
-      ? { minutes: previousTotal.minutes, partial: firstTracked > previousRange.from }
+      ? { minutes: previousTotal.minutes, partial: since.some(([, d]) => d > previousRange.from) }
       : null;
 
   const genres = distribution(days, range, "genre", byId).filter((s) => s.key !== UNKNOWN_GENRE);
 
-  // Games first played this year (on any platform)
+  // Games first played this year, like «Erstmals gespielt» in the Chronik: only games that are
+  // new since tracking began. A game that already had playtime at the first sync is not new,
+  // even if the platform dates its first day (or the first synced day) into this year.
+  const fresh = newSinceTracking(library, raw);
   const newGames = library.games
-    .filter((g) => !g.hidden && g.firstPlayedAt && toLocalDate(g.firstPlayedAt) >= range.from && toLocalDate(g.firstPlayedAt) <= range.to)
-    .sort((a, b) => (a.firstPlayedAt ?? "").localeCompare(b.firstPlayedAt ?? ""))
+    .filter((g) => !g.hidden && fresh.has(g.id))
+    .map((g) => ({ id: g.id, start: firstPlayedDay(g, days) }))
+    .filter((g): g is { id: string; start: LocalDate } => !!g.start && g.start >= range.from && g.start <= range.to)
+    .sort((a, b) => a.start.localeCompare(b.start) || a.id.localeCompare(b.id))
     .map((g) => g.id);
 
   // Achievements unlocked this year and the rarest of them
   const entryToGame = new Map(library.games.filter((g) => !g.hidden).flatMap((g) => g.entries.map((e) => [e.id, g.id] as const)));
   let unlocked = 0;
   let rarest: (AchievementRow & { gameId: string }) | null = null;
-  for (const a of achievements) {
+  for (const a of raw.achievements) {
     if (!a.unlocked_at) continue;
     const gameId = entryToGame.get(a.platform_game_id);
     const date = toLocalDate(a.unlocked_at);
@@ -187,8 +200,10 @@ export function buildWrapped(
   }
   const threshold = options.rediscoverMinutes ?? REDISCOVER_MINUTES;
   const rediscovered: Rediscovered[] = [];
+  const isNew = new Set(newGames);
   for (const g of library.games) {
-    if (g.hidden || !g.owned) continue;
+    // A new game has no time «before»; any it seems to have is undated time, not a comeback.
+    if (g.hidden || !g.owned || isNew.has(g.id)) continue;
     const inYear = minutesInYear.get(g.id) ?? 0;
     if (inYear === 0) continue;
     const before = Math.max(0, g.totalMinutes - inYear - (minutesAfterYear.get(g.id) ?? 0));
@@ -198,9 +213,11 @@ export function buildWrapped(
   }
   rediscovered.sort((a, b) => b.minutesInYear - a.minutesInYear);
 
-  const coverageGaps = (Object.entries(library.dataSince) as [PlatformId, LocalDate][])
-    .filter(([, since]) => since > range.from && since <= range.to)
-    .map(([platform, since]) => ({ platform, since }))
+  // Platforms tracked only from a later day, also those that started after the year: the year
+  // has none of their time.
+  const coverageGaps = since
+    .filter(([, d]) => d > range.from)
+    .map(([platform, d]) => ({ platform, since: d }))
     .sort((a, b) => a.since.localeCompare(b.since));
 
   return {

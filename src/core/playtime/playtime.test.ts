@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  addStartingBaselines,
   buildPlayedDays,
   resolveDailyRows,
   shouldWriteSnapshot,
   snapshotsToDays,
+  spreadOverGap,
   sumByPeriod,
   type DailyRow,
   type SnapshotRow,
@@ -210,5 +212,82 @@ describe("shouldWriteSnapshot", () => {
     expect(shouldWriteSnapshot(undefined, 120)).toBe(true);
     expect(shouldWriteSnapshot(120, 120)).toBe(false);
     expect(shouldWriteSnapshot(120, 150)).toBe(true);
+  });
+});
+
+describe("addStartingBaselines", () => {
+  const at = (platformGameId: string, takenAt: string, totalMinutes: number, lastPlayedAt?: string): SnapshotRow => ({
+    platformGameId,
+    takenAt,
+    totalMinutes,
+    lastPlayedAt,
+  });
+  const platform = () => "steam";
+
+  it("dates the first total of an entry that showed up after tracking began", () => {
+    const snapshots = [
+      at("old", "2026-03-01T06:00:00Z", 500),
+      at("old", "2026-03-05T06:00:00Z", 560, "2026-03-04T21:00:00Z"),
+      // bought and played on the 7th, first seen by the sync on the 8th
+      at("new", "2026-03-08T06:00:00Z", 120, "2026-03-07T20:00:00Z"),
+    ];
+    const { days } = buildPlayedDays({ dailyRows: [], snapshots: addStartingBaselines(snapshots, platform) });
+    expect(days.map((d) => [d.platformGameId, d.date, d.minutes, d.estimated])).toEqual([
+      ["old", "2026-03-04", 60, false],
+      ["new", "2026-03-07", 120, false],
+    ]);
+  });
+
+  it("keeps the first snapshot a starting value at the first sync and for old play", () => {
+    const snapshots = [
+      at("a", "2026-03-01T06:00:00Z", 500),
+      // shows up later, but the platform says it was last played before tracking began
+      at("b", "2026-03-08T06:00:00Z", 300, "2026-01-07T20:00:00Z"),
+      // shows up later, first played (per platform) before tracking began
+      at("c", "2026-03-08T06:00:00Z", 200),
+      // shows up later with 0 minutes: nothing to date
+      at("d", "2026-03-08T06:00:00Z", 0),
+    ];
+    const withBaselines = addStartingBaselines(snapshots, platform, (id) => (id === "c" ? "2025-12-24T10:00:00Z" : null));
+    expect(withBaselines).toEqual(snapshots);
+  });
+
+  it("works per platform", () => {
+    const snapshots = [at("s", "2026-03-01T06:00:00Z", 10), at("p", "2026-03-08T06:00:00Z", 30)];
+    const byId = (id: string) => (id === "s" ? "steam" : "psn");
+    // «p» is the first PlayStation snapshot: the start of its tracking, not a new game
+    expect(addStartingBaselines(snapshots, byId)).toEqual(snapshots);
+  });
+});
+
+describe("spreadOverGap (sync gap of several days)", () => {
+  it("leaves time on its day when it fits", () => {
+    // 10 hours, the last session ending on the 12th, three days without a sync
+    const { days } = snapshotsToDays([
+      snap("2026-03-09T20:00:00Z", 100),
+      snap("2026-03-12T21:00:00Z", 700, "2026-03-12T20:00:00Z"),
+    ]);
+    expect(days.map((d) => [d.date, d.minutes, d.estimated])).toEqual([["2026-03-12", 600, false]]);
+  });
+
+  it("shares time that cannot fit into one day among the fewest days before it", () => {
+    // 30 hours between the 9th 21:00 and the 12th 10:00 (Zurich): the 12th only has 10 of them
+    const { days } = snapshotsToDays([
+      snap("2026-03-09T20:00:00Z", 0),
+      snap("2026-03-12T09:00:00Z", 1800, "2026-03-12T08:30:00Z"),
+    ]);
+    expect(days.map((d) => [d.date, d.minutes, d.estimated])).toEqual([
+      ["2026-03-11", 1200, true],
+      ["2026-03-12", 600, true],
+    ]);
+    expect(days.reduce((s, d) => s + d.minutes, 0)).toBe(1800);
+  });
+
+  it("never puts more on a day than it has between the snapshots", () => {
+    const parts = spreadOverGap(1800, "2026-03-12", Date.parse("2026-03-10T22:00:00Z"), Date.parse("2026-03-12T05:00:00Z"));
+    expect(parts.reduce((s, p) => s + p.minutes, 0)).toBe(1800);
+    expect(parts.every((p) => p.minutes <= 1440 && p.spread)).toBe(true);
+    // the 12th has six hours (00:00–06:00 Zurich), the 11th all day: two days are enough
+    expect(parts.map((p) => [p.date, p.minutes])).toEqual([["2026-03-11", 1440], ["2026-03-12", 360]]);
   });
 });

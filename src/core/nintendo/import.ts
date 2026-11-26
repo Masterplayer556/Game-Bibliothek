@@ -292,3 +292,31 @@ export function buildImportBatch(rows: readonly ImportRow[], context: ImportCont
   for (const key of newDevices) batch.devices.push(IMPORT_DEVICES[key]);
   return batch;
 }
+
+export interface ImportDayRow<Id = number> {
+  id: Id;
+  platformGameId: string;
+  deviceId: string;
+  date: LocalDate;
+}
+
+/**
+ * Makes an import idempotent per game and day: stored import rows of a game and day that the
+ * new import covers, but that it did not write itself, are replaced. They come from an earlier
+ * import of the same days that ended up on another console (a real Switch connected since, a
+ * console column filled in) or on another entry of the same game; keeping them would count
+ * the day twice. Returns the ids to delete.
+ */
+export function supersededImportRows<Id>(
+  stored: readonly ImportDayRow<Id>[],
+  written: readonly Omit<ImportDayRow, "id">[],
+  /** The game an entry belongs to (entries of one game count as one). */
+  gameOf: (platformGameId: string) => string | undefined,
+): Id[] {
+  const game = (entryId: string) => gameOf(entryId) ?? entryId;
+  const days = new Set(written.map((r) => `${game(r.platformGameId)}|${r.date}`));
+  const exact = new Set(written.map((r) => `${r.platformGameId}|${r.deviceId}|${r.date}`));
+  return stored
+    .filter((r) => days.has(`${game(r.platformGameId)}|${r.date}`) && !exact.has(`${r.platformGameId}|${r.deviceId}|${r.date}`))
+    .map((r) => r.id);
+}

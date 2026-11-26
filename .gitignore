@@ -12,3 +12,4 @@ supabase/.temp/
 
 # copies of src/core made by the deploy workflow
 supabase/functions/_shared/
+.take-my-usage/

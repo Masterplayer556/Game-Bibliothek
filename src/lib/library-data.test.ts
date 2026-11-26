@@ -10,6 +10,7 @@ import {
   addManualGame,
   deleteManualEntry,
   loadRawData,
+  loadRawParts,
   mergeGames,
   saveSettings,
   saveUserData,
@@ -40,6 +41,15 @@ describe("loadRawData", () => {
     const lib = buildLibrary(raw);
     expect(lib.games.length).toBe(37);
     expect(lib.days.length).toBeGreaterThan(300);
+  });
+
+  it("loads only the tables asked for", async () => {
+    const queried: string[] = [];
+    const spy = { from: (table: string) => (queried.push(table), db.from(table)) } as unknown as SupabaseClient;
+    const part = await loadRawParts(spy, ["userData", "settings"]);
+    expect(Object.keys(part).sort()).toEqual(["settings", "userData"]);
+    expect(queried.sort()).toEqual(["app_settings", "game_user_data"]);
+    expect(part.settings).toEqual({});
   });
 });
 

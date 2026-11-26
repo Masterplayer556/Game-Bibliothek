@@ -17,6 +17,16 @@ export function toLocalDate(instant: Date | string | number): LocalDate {
   return dateFormatter.format(date);
 }
 
+/** The instant a calendar day begins in Europe/Zurich (UTC+1 or UTC+2), in milliseconds. */
+export function localDayStart(date: LocalDate): number {
+  const midnightUtc = parse(date).getTime();
+  for (const hours of [2, 1, 0]) {
+    const candidate = midnightUtc - hours * 3_600_000;
+    if (toLocalDate(candidate) === date) return candidate;
+  }
+  return midnightUtc;
+}
+
 function parse(date: LocalDate): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) throw new Error(`Invalid local date: ${date}`);

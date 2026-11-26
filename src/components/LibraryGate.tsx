@@ -1,24 +1,59 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Library, RawData } from "@/core/library";
+import type { RawPart } from "@/lib/library-data";
 import { useLibraryContext } from "./LibraryProvider";
-import { Card, Notice } from "./ui";
+import { Button, Card, Notice } from "./ui";
 
-/** Shows loading and error states; renders children once the library is there. */
+/** «Nochmals»: loads the data again, disabled while it runs. */
+function RetryButton({ reload }: { reload: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      icon="sync"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await reload();
+        setBusy(false);
+      }}
+    >
+      {busy ? "Lädt …" : "Nochmals"}
+    </Button>
+  );
+}
+
+/**
+ * Shows loading and error states; renders children once the library is there. If loading again
+ * fails, the last data stays on screen with a note and «Nochmals».
+ */
 export function LibraryGate({
   children,
 }: {
-  children: (ctx: { library: Library; raw: RawData; reload: () => Promise<void>; userId: string }) => ReactNode;
+  children: (ctx: { library: Library; raw: RawData; reload: (parts?: readonly RawPart[]) => Promise<void>; userId: string }) => ReactNode;
 }) {
   const { library, raw, error, reload, session } = useLibraryContext();
   if (error && !library) {
     return (
       <Card title="Daten nicht verfügbar" icon="warning">
         <Notice tone="danger">Die Datenbank antwortet mit einem Fehler: {error}</Notice>
+        <div>
+          <RetryButton reload={() => reload()} />
+        </div>
       </Card>
     );
   }
   if (!library || !raw) return <Notice>Lade …</Notice>;
-  return <>{children({ library, raw, reload, userId: session.user.id })}</>;
+  return (
+    <>
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface-raised p-3">
+          <Notice tone="warning">Neu laden fehlgeschlagen ({error}). Angezeigt wird der letzte Stand.</Notice>
+          <RetryButton reload={() => reload()} />
+        </div>
+      ) : null}
+      {children({ library, raw, reload, userId: session.user.id })}
+    </>
+  );
 }

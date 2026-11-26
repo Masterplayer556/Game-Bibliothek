@@ -6,7 +6,25 @@ import { normalizeTitle } from "@/core/normalize-title";
 import type { DeviceKind, GameStatus } from "@/core/types";
 import { fetchAll, persistBatch } from "@/data/persist";
 
-export async function loadRawData(db: SupabaseClient): Promise<RawData> {
+export type RawPart = Exclude<keyof RawData, never>;
+
+export const ALL_PARTS: readonly RawPart[] = [
+  "games",
+  "platformGames",
+  "devices",
+  "daily",
+  "snapshots",
+  "achievements",
+  "userData",
+  "connections",
+  "settings",
+];
+
+/**
+ * Reads the given tables only (all by default). A change reloads what it touched, not the
+ * whole library: saving a note reads one table instead of nine.
+ */
+export async function loadRawParts(db: SupabaseClient, parts: readonly RawPart[] = ALL_PARTS): Promise<Partial<RawData>> {
   // Column lists are dynamic strings, so the client cannot infer row types: cast once here.
   const all = <T>(table: string, columns: string, order = "id") =>
     fetchAll<T>(
@@ -17,40 +35,41 @@ export async function loadRawData(db: SupabaseClient): Promise<RawData> {
         }>,
     );
 
-  const [games, platformGames, devices, daily, snapshots, achievements, userData, connections, settings] =
-    await Promise.all([
-      all<RawData["games"][number]>("games", "id, title, cover_url, genres, release_year, igdb_id"),
-      all<RawData["platformGames"][number]>(
+  const loaders: { [K in RawPart]: () => Promise<RawData[K]> } = {
+    games: () => all("games", "id, title, cover_url, genres, release_year, igdb_id"),
+    platformGames: () =>
+      all(
         "platform_games",
         "id, game_id, platform, source, external_id, title, cover_url, device_kind, owned, first_played_at, last_played_at, total_playtime_minutes, achievements_unlocked, achievements_total",
       ),
-      all<RawData["devices"][number]>("devices", "id, platform, kind, label"),
-      all<RawData["daily"][number]>("daily_playtime", "platform_game_id, device_id, play_date, minutes, source, estimated"),
-      all<RawData["snapshots"][number]>("playtime_snapshots", "platform_game_id, taken_at, total_minutes, last_played_at"),
-      all<RawData["achievements"][number]>(
-        "achievements",
-        "platform_game_id, external_id, name, description, icon_url, unlocked_at, rarity_percent, tier",
-      ),
-      all<RawData["userData"][number]>("game_user_data", "game_id, status, favorite, note, hide_from_pile, hidden", "game_id"),
-      all<RawData["connections"][number]>(
+    devices: () => all("devices", "id, platform, kind, label"),
+    daily: () => all("daily_playtime", "platform_game_id, device_id, play_date, minutes, source, estimated"),
+    snapshots: () => all("playtime_snapshots", "platform_game_id, taken_at, total_minutes, last_played_at"),
+    achievements: async () =>
+      (
+        await all<RawData["achievements"][number]>(
+          "achievements",
+          "platform_game_id, external_id, name, description, icon_url, unlocked_at, rarity_percent, tier",
+        )
+      ).map((a) => ({ ...a, rarity_percent: a.rarity_percent == null ? null : Number(a.rarity_percent) })),
+    userData: () => all("game_user_data", "game_id, status, favorite, note, hide_from_pile, hidden", "game_id"),
+    connections: () =>
+      all(
         "platform_connections",
         "adapter_id, platform, status, enabled, configured, last_sync_at, last_success_at, last_error, data_since, token_expires_at, details",
         "adapter_id",
       ),
-      all<{ settings: Record<string, unknown> }>("app_settings", "settings", "user_id"),
-    ]);
-
-  return {
-    games,
-    platformGames,
-    devices,
-    daily,
-    snapshots,
-    achievements: achievements.map((a) => ({ ...a, rarity_percent: a.rarity_percent == null ? null : Number(a.rarity_percent) })),
-    userData,
-    connections,
-    settings: settings[0]?.settings ?? {},
+    settings: async () => (await all<{ settings: Record<string, unknown> }>("app_settings", "settings", "user_id"))[0]?.settings ?? {},
   };
+
+  const unique = [...new Set(parts)];
+  const values = await Promise.all(unique.map((part) => loaders[part]()));
+  return Object.fromEntries(unique.map((part, i) => [part, values[i]])) as Partial<RawData>;
+}
+
+/** Everything the app shows, as stored (shared trophy lists not yet joined, see the provider). */
+export async function loadRawData(db: SupabaseClient): Promise<RawData> {
+  return (await loadRawParts(db)) as RawData;
 }
 
 function check(error: { message: string } | null): void {

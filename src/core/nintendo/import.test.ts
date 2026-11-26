@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildImportBatch, combineImports, importVariant, parseDate, parseDuration, parseImportCsv } from "./import";
+import {
+  buildImportBatch,
+  combineImports,
+  importVariant,
+  parseDate,
+  parseDuration,
+  parseImportCsv,
+  supersededImportRows,
+} from "./import";
 
 const TODAY = "2026-11-10";
 
@@ -182,5 +190,23 @@ describe("buildImportBatch", () => {
   it("gives imported games no lifetime total: it is derived from the days that count", () => {
     const batch = buildImportBatch(rows, { existingGames: [], existingDevices: [] });
     expect(batch.games.every((g) => g.totalPlaytimeMinutes === undefined)).toBe(true);
+  });
+});
+
+describe("supersededImportRows", () => {
+  it("replaces earlier rows of a game and day that the new import covers", () => {
+    const stored = [
+      { id: 1, platformGameId: "e1", deviceId: "import:switch1", date: "2024-05-01" }, // moved to a real console
+      { id: 2, platformGameId: "e1", deviceId: "console-1", date: "2024-05-01" }, // written again
+      { id: 3, platformGameId: "e2", deviceId: "console-1", date: "2024-05-02" }, // other entry, same game
+      { id: 4, platformGameId: "e1", deviceId: "import:switch1", date: "2024-05-03" }, // day not in the new import
+      { id: 5, platformGameId: "x", deviceId: "console-1", date: "2024-05-01" }, // other game
+    ];
+    const written = [
+      { platformGameId: "e1", deviceId: "console-1", date: "2024-05-01" },
+      { platformGameId: "e1", deviceId: "console-1", date: "2024-05-02" },
+    ];
+    const gameOf = (id: string) => (id === "x" ? "game-x" : "game-1");
+    expect(supersededImportRows(stored, written, gameOf)).toEqual([1, 3]);
   });
 });

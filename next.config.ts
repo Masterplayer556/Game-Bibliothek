@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
+import { BASE_PATH as basePath } from "./src/lib/base-path";
 
 // GitHub Pages serves the site from /<repo>. Override with NEXT_PUBLIC_BASE_PATH
-// (empty or "/" for a custom domain).
-const rawBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const basePath = rawBasePath === "/" ? "" : rawBasePath.replace(/\/$/, "");
+// (empty or "/" for a custom domain). Cleaned in src/lib/base-path.ts, like every file URL.
 
 const nextConfig: NextConfig = {
   output: "export",

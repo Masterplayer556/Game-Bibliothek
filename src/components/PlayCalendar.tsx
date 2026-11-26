@@ -1,9 +1,10 @@
 "use client";
 
 // A year of play days as a grid of pixels: one square per day, one colour step per hour played.
-// Tapping a square shows what was played that day.
+// Tapping a square shows what was played that day. Narrow screens scroll the weeks sideways;
+// the newest week (today) starts in view on the right.
 import Link from "next/link";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { formatMinutes } from "@/core/labels";
 import type { GameDay, LibraryGame } from "@/core/library";
 import { addDays, weekStart } from "@/core/time";
@@ -70,14 +71,20 @@ export function PlayCalendar({
   for (const d of days) {
     if (d.date >= first && d.date <= last) minutesOn.set(d.date, (minutesOn.get(d.date) ?? 0) + d.minutes);
   }
+  // Show the newest week first: scrolled to the right end, also after «Früher» / «Später».
+  const scroller = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [back, weeks, today]);
   const move = (by: number) => {
     setBack((b) => Math.max(0, b + by));
     setSelected(null);
   };
 
-  // Newest week first: the row is laid out from the right, so the latest weeks always fit.
+  // Oldest week first, left to right.
   const columns = Array.from({ length: weeks }, (_, w) => {
-    const monday = addDays(first, (weeks - 1 - w) * 7);
+    const monday = addDays(first, w * 7);
     const dates = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
     // Name a month above the first week that starts in it.
     const month = Number(monday.slice(8, 10)) <= 7 ? MONTHS[Number(monday.slice(5, 7)) - 1] : null;
@@ -106,14 +113,16 @@ export function PlayCalendar({
         <IconButton icon="forward" label="Später" disabled={back === 0} onClick={() => move(-1)} />
       </div>
       {/*
-        Weeks that do not fit wrap onto a second line, which is cut off: no half columns on a phone.
+        All weeks of the window, scrolling sideways where they do not fit (a phone shows about
+        19): the dates above and the count below always match what can be seen by scrolling.
         In the light theme the grid sits on a dark «screen», so the white steps glow as at night.
       */}
       <div className="heat-screen">
+        <div ref={scroller} className="overflow-x-auto overscroll-x-contain">
         <div
           role="group"
           aria-label={`Spieltage vom ${label(first)} bis ${label(last)}: an ${minutesOn.size} Tagen gespielt`}
-          className="flex h-[121px] flex-row-reverse flex-wrap content-start gap-x-[3px] gap-y-4 overflow-hidden"
+          className="flex w-max flex-row gap-x-[3px] pb-1"
         >
         {columns.map((column) => (
           <div key={column.monday} className="flex flex-col gap-[3px]">
@@ -138,6 +147,7 @@ export function PlayCalendar({
             )}
           </div>
         ))}
+        </div>
         </div>
       </div>
 

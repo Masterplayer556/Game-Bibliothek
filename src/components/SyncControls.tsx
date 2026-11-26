@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ADAPTER_CATALOG } from "@/core/adapter-catalog";
-import { isFinished, isStale, latestRun, loadRun, startSync, type SyncRun } from "@/lib/sync-control";
+import { isFinished, isStale, type SyncRun } from "@/lib/sync-control";
 import { workflowUrl } from "@/lib/links";
-import { getSupabase } from "@/lib/supabase";
 import { formatDateTime } from "./game-ui";
+import { useLibraryContext } from "./LibraryProvider";
 import { Button, Card, fieldClass, Notice } from "./ui";
-import { errorMessage } from "@/lib/errors";
 
 const SOURCES = [...ADAPTER_CATALOG.filter((a) => a.credentialSource !== "none"), { id: "igdb", displayName: "IGDB" }];
 
@@ -31,62 +30,11 @@ function sourceName(id: string): string {
   return SOURCES.find((s) => s.id === id)?.displayName ?? id;
 }
 
-export function SyncControls({ onFinished }: { onFinished: () => void }) {
+/** The run itself is kept by the LibraryProvider (see sync-run.ts), so it survives leaving the page. */
+export function SyncControls() {
   const [source, setSource] = useState("");
-  const [run, setRun] = useState<SyncRun | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Show the last run (also one started by the schedule) and keep following it if open.
-  useEffect(() => {
-    let active = true;
-    latestRun(getSupabase()).then(
-      (r) => {
-        if (!active || !r) return;
-        setRun(r);
-        if (!isFinished(r.status) && !isStale(r, new Date())) follow(r.id);
-      },
-      () => undefined,
-    );
-    return () => {
-      active = false;
-      if (timer.current) clearInterval(timer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
-  }, []);
-
-  function follow(runId: string) {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = setInterval(async () => {
-      try {
-        const r = await loadRun(getSupabase(), runId);
-        if (!r) return;
-        setRun(r);
-        if (isFinished(r.status) || isStale(r, new Date())) {
-          if (timer.current) clearInterval(timer.current);
-          timer.current = null;
-          if (isFinished(r.status)) onFinished();
-        }
-      } catch {
-        // try again with the next tick
-      }
-    }, 5000);
-  }
-
-  async function start(mode: "sync" | "test") {
-    setBusy(true);
-    setError(null);
-    try {
-      const runId = await startSync(getSupabase(), mode, source || null);
-      const r = await loadRun(getSupabase(), runId);
-      if (r) setRun(r);
-      follow(runId);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-    setBusy(false);
-  }
+  const { run, busy, error, start: startRun } = useLibraryContext().sync;
+  const start = (mode: "sync" | "test") => startRun(mode, source || null);
 
   // A run without any answer for too long no longer blocks the buttons.
   const stale = run !== null && isStale(run, new Date());

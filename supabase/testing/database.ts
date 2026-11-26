@@ -35,7 +35,8 @@ export function migrationFiles(): string[] {
 }
 
 export async function createTestDatabase(): Promise<PGlite> {
-  const db = new PGlite();
+  // Dates come back as text, like from the Supabase API (not as Date objects).
+  const db = new PGlite({ parsers: { 1082: (value: string) => value } });
   await db.exec(SUPABASE_STUB);
   for (const file of migrationFiles()) {
     await db.exec(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));

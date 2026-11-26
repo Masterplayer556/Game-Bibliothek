@@ -124,10 +124,11 @@ export class SupabaseSyncStore implements SyncStore {
       external_id: string;
       total_playtime_minutes: number;
       last_played_at: string | null;
+      achievements_total: number | null;
     }>((from, to) =>
       this.db
         .from("platform_games")
-        .select("external_id, total_playtime_minutes, last_played_at")
+        .select("external_id, total_playtime_minutes, last_played_at, achievements_total")
         .eq("user_id", this.userId)
         .eq("platform", adapter.platform)
         .eq("source", adapter.id)
@@ -137,7 +138,11 @@ export class SupabaseSyncStore implements SyncStore {
     return new Map(
       rows.map((r) => [
         r.external_id,
-        { totalPlaytimeMinutes: r.total_playtime_minutes, lastPlayedAt: r.last_played_at },
+        {
+          totalPlaytimeMinutes: r.total_playtime_minutes,
+          lastPlayedAt: r.last_played_at,
+          achievementsTotal: r.achievements_total,
+        },
       ]),
     );
   }

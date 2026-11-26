@@ -1,6 +1,6 @@
 // Turns raw database rows into the view model of the app and computes every statistic.
 // Pure functions only: no Supabase, no React. All dates are Europe/Zurich calendar days.
-import { buildPlayedDays, type PlayedDay, type PlaytimeWarning } from "./playtime";
+import { addStartingBaselines, buildPlayedDays, type PlayedDay, type PlaytimeWarning } from "./playtime";
 import { addDays, monthKey, toLocalDate, weekStart } from "./time";
 import type { ConnectionStatus, DeviceKind, GameStatus, LocalDate, PlatformId } from "./types";
 
@@ -278,12 +278,20 @@ export function buildLibrary(raw: RawData): Library {
       source: r.source,
       estimated: r.estimated,
     })),
-    snapshots: raw.snapshots.map((s) => ({
-      platformGameId: s.platform_game_id,
-      takenAt: s.taken_at,
-      totalMinutes: s.total_minutes,
-      lastPlayedAt: s.last_played_at,
-    })),
+    snapshots: addStartingBaselines(
+      raw.snapshots.map((s) => ({
+        platformGameId: s.platform_game_id,
+        takenAt: s.taken_at,
+        totalMinutes: s.total_minutes,
+        lastPlayedAt: s.last_played_at,
+      })),
+      // Games added by hand are never synced: their total is always a starting value.
+      (id) => {
+        const platform = entryById.get(id)?.platform;
+        return platform === "manual" ? undefined : platform;
+      },
+      (id) => entryById.get(id)?.first_played_at,
+    ),
   });
 
   const days: GameDay[] = [];

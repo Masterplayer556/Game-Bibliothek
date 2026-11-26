@@ -466,10 +466,10 @@ export function GameDetail({ id }: { id: string }) {
               )}
             </Card>
 
-            <MyData key={`${game.id}-${game.note}`} game={game} userId={userId} reload={reload} />
+            <MyData key={`${game.id}-${game.note}`} game={game} userId={userId} reload={() => reload(["userData"])} />
             <Achievements game={game} raw={raw} />
-            <Entries game={game} games={library.games} userId={userId} reload={reload} />
-            <IgdbCard game={game} reload={reload} />
+            <Entries game={game} games={library.games} userId={userId} reload={() => reload(["games", "platformGames", "snapshots", "userData"])} />
+            <IgdbCard game={game} reload={() => reload(["games", "platformGames", "userData"])} />
           </>
         );
       }}

@@ -13,7 +13,7 @@
 //   tracking   – the day a platform's day-by-day data starts
 import { achievementKey } from "./achievements";
 import { NINTENDO_IMPORT_ID } from "./nintendo/import";
-import { undatedTime, type AchievementRow, type Library, type RawData } from "./library";
+import { undatedTime, type AchievementRow, type GameDay, type Library, type LibraryGame, type RawData } from "./library";
 import { toLocalDate } from "./time";
 import type { DeviceKind, LocalDate, PlatformId } from "./types";
 
@@ -99,6 +99,19 @@ export function newSinceTracking(library: Library, raw: Pick<RawData, "daily" | 
   return out;
 }
 
+/**
+ * The day a game was first played: the earlier of what the platform reports and its first day
+ * with playtime. Only meaningful for games in `newSinceTracking`.
+ */
+export function firstPlayedDay(game: LibraryGame, days: readonly GameDay[]): LocalDate | undefined {
+  const reported = game.firstPlayedAt ? toLocalDate(game.firstPlayedAt) : undefined;
+  let firstDay: LocalDate | undefined;
+  for (const d of days) {
+    if (d.gameId === game.id && (!firstDay || d.date < firstDay)) firstDay = d.date;
+  }
+  return reported && firstDay ? (reported < firstDay ? reported : firstDay) : (reported ?? firstDay);
+}
+
 export function buildChronicle(
   library: Library,
   raw: Pick<RawData, "achievements" | "daily" | "snapshots">,
@@ -128,9 +141,7 @@ export function buildChronicle(
 
     // Start: the earliest known day, only for games that are new since tracking began
     if (fresh.has(game.id)) {
-      const reported = game.firstPlayedAt ? toLocalDate(game.firstPlayedAt) : undefined;
-      const firstDay = gameDays[0]?.date;
-      const start = reported && firstDay ? (reported < firstDay ? reported : firstDay) : (reported ?? firstDay);
+      const start = firstPlayedDay(game, gameDays);
       if (start) events.push({ id: `start-${game.id}`, kind: "start", date: start, gameId: game.id });
     }
 

@@ -190,6 +190,12 @@ function useLiquidLens(index: number, range: [number, number], onPick: (slot: nu
     return d.under;
   }
 
+  /** Ends a drag without choosing: the drop goes back to its slot. */
+  function cancel() {
+    if (release() !== null && motion.current) motion.current.target = resting.current * pitch.current;
+    if (reducedMotion()) rest();
+  }
+
   const handlers = {
     onPointerDown(event: PointerEvent<HTMLElement>) {
       if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -198,6 +204,13 @@ function useLiquidLens(index: number, range: [number, number], onPick: (slot: nu
     onPointerMove(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
+      // A mouse keeps its pointer id and moves without a button pressed: if the button was let
+      // go somewhere the bar did not hear it (outside it, before the drag began), the drag is
+      // over. Without this the drop would follow the bare mouse.
+      if (event.pointerType === "mouse" && (event.buttons & 1) === 0) {
+        cancel();
+        return;
+      }
       if (!d.active) {
         if (Math.abs(event.clientX - d.x) < DRAG_THRESHOLD_PX) return;
         d.active = true;
@@ -238,18 +251,28 @@ function useLiquidLens(index: number, range: [number, number], onPick: (slot: nu
     onPointerCancel(event: PointerEvent<HTMLElement>) {
       const d = drag.current;
       if (!d || d.id !== event.pointerId) return;
-      if (release() !== null && motion.current) motion.current.target = resting.current * pitch.current;
-      if (reducedMotion()) rest();
+      cancel();
+    },
+    // The browser took the pointer away (window lost focus, a dialog …) before it was let go.
+    onLostPointerCapture(event: PointerEvent<HTMLElement>) {
+      const d = drag.current;
+      if (!d || d.id !== event.pointerId) return;
+      cancel();
     },
   };
 
   return { track, lens, body, shine, under, handlers };
 }
 
-/** Remembers a tapped slot until the page has changed, so the drop moves at once. */
+/**
+ * Remembers a tapped slot until the page has changed, so the drop moves at once. Forgotten as
+ * soon as the page changes: otherwise «Zurück» to the page it was tapped on would bring the
+ * old tap back and the drop would stay on the page that was left.
+ */
 function useChosen(routeIndex: number) {
   const pathname = usePathname();
   const [tapped, setTapped] = useState<{ from: string; index: number } | null>(null);
+  if (tapped && tapped.from !== pathname) setTapped(null);
   const chosen = tapped && tapped.from === pathname ? tapped.index : routeIndex;
   return { chosen, choose: (index: number) => setTapped({ from: pathname, index }) };
 }
