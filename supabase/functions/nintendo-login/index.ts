@@ -14,6 +14,7 @@
 import { encryptSecret } from "../_shared/crypto.ts";
 import { fetchDevices } from "../_shared/nintendo-api.ts";
 import {
+  checkLoginState,
   exchangeCodeForSessionToken,
   fetchApiTokens,
   NintendoAuthError,
@@ -40,17 +41,14 @@ Deno.serve(async (request: Request) => {
   const link = typeof body.link === "string" ? body.link : "";
   const verifier = typeof body.verifier === "string" ? body.verifier : "";
   const state = typeof body.state === "string" ? body.state : "";
-  if (!verifier) {
+  if (!verifier || !state) {
     return reply(400, { error: "Bitte zuerst den Login-Link in der App öffnen und danach den Link einfügen." });
   }
 
   try {
     const parsed = parseRedirectLink(link);
-    if (state && parsed.state && parsed.state !== state) {
-      return reply(400, {
-        error: "Der Link gehört zu einem älteren Login-Versuch. Bitte den Login-Link neu öffnen und den Link frisch kopieren.",
-      });
-    }
+    // Required: the link must belong to the login the app started (OAuth state).
+    checkLoginState(parsed.state, state);
 
     // 4. Nintendo: code → session token → check that it works
     const sessionToken = await exchangeCodeForSessionToken(fetch, parsed.code, verifier);

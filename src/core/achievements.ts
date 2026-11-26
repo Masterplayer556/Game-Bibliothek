@@ -4,7 +4,7 @@
 // Steam achievement. For «Zusammen» the two lists of one game are joined by name (both are
 // read in German): an achievement counts as unlocked if it is unlocked on either platform.
 // Achievements without a twin (e.g. the platinum trophy) stay on their own.
-import type { AchievementRow as RawAchievement, LibraryGame, PlatformEntry, RawData } from "./library";
+import { compareTitles, type AchievementRow as RawAchievement, type LibraryGame, type PlatformEntry, type RawData } from "./library";
 import type { PlatformId } from "./types";
 
 /** «all» = PC and PlayStation joined. */
@@ -54,59 +54,53 @@ export function achievementKey(name: string): string {
 }
 
 /**
- * Joins the achievements of several platform entries of one game by name. Within one
- * platform nothing is joined, even if two achievements share a name.
+ * The rows of one game grouped into achievements: the same name on several platforms is one
+ * achievement. Within one platform nothing is joined, even if two achievements share a name.
+ * Rows of entries without a platform in `platformOf` are left out.
  */
-export function mergeAchievements(
+export function groupTwins(
   rows: readonly RawAchievement[],
   platformOf: ReadonlyMap<string, PlatformId>,
-): MergedAchievement[] {
-  const groups: (MergedAchievement & { byPlatform: Set<PlatformId> })[] = [];
-  const open = new Map<string, (typeof groups)[number][]>();
+): { key: string; rows: { row: RawAchievement; platform: PlatformId }[] }[] {
+  const groups: { key: string; rows: { row: RawAchievement; platform: PlatformId }[]; platforms: Set<PlatformId> }[] = [];
+  const open = new Map<string, typeof groups>();
   for (const row of rows) {
     const platform = platformOf.get(row.platform_game_id);
     if (!platform) continue;
     const key = achievementKey(row.name) || `${row.platform_game_id}:${row.external_id}`;
     const candidates = open.get(key) ?? [];
-    let group = candidates.find((g) => !g.byPlatform.has(platform));
+    let group = candidates.find((g) => !g.platforms.has(platform));
     if (!group) {
-      group = {
-        key: `${key}#${candidates.length}`,
-        name: row.name,
-        description: row.description,
-        iconUrl: row.icon_url,
-        platforms: [],
-        unlockedOn: [],
-        unlockedAt: null,
-        rarityPercent: null,
-        byPlatform: new Set(),
-      };
+      group = { key: `${key}#${candidates.length}`, rows: [], platforms: new Set() };
       candidates.push(group);
       open.set(key, candidates);
       groups.push(group);
     }
-    group.byPlatform.add(platform);
-    group.platforms.push(platform);
-    group.description ??= row.description;
-    group.iconUrl ??= row.icon_url;
-    if (row.unlocked_at) {
-      group.unlockedOn.push(platform);
-      if (!group.unlockedAt || row.unlocked_at < group.unlockedAt) group.unlockedAt = row.unlocked_at;
-    }
-    if (row.rarity_percent != null) {
-      group.rarityPercent = group.rarityPercent == null ? row.rarity_percent : Math.min(group.rarityPercent, row.rarity_percent);
-    }
+    group.platforms.add(platform);
+    group.rows.push({ row, platform });
   }
-  return groups.map((g) => ({
-    key: g.key,
-    name: g.name,
-    description: g.description,
-    iconUrl: g.iconUrl,
-    platforms: g.platforms,
-    unlockedOn: g.unlockedOn,
-    unlockedAt: g.unlockedAt,
-    rarityPercent: g.rarityPercent,
-  }));
+  return groups.map(({ key, rows }) => ({ key, rows }));
+}
+
+/** Joins the achievements of several platform entries of one game by name (see groupTwins). */
+export function mergeAchievements(
+  rows: readonly RawAchievement[],
+  platformOf: ReadonlyMap<string, PlatformId>,
+): MergedAchievement[] {
+  return groupTwins(rows, platformOf).map(({ key, rows: twins }) => {
+    const unlocked = twins.filter((t) => t.row.unlocked_at);
+    const rarities = twins.map((t) => t.row.rarity_percent).filter((r): r is number => r != null);
+    return {
+      key,
+      name: twins[0]!.row.name,
+      description: twins.find((t) => t.row.description != null)?.row.description ?? null,
+      iconUrl: twins.find((t) => t.row.icon_url != null)?.row.icon_url ?? null,
+      platforms: twins.map((t) => t.platform),
+      unlockedOn: unlocked.map((t) => t.platform),
+      unlockedAt: unlocked.reduce<string | null>((min, t) => (!min || t.row.unlocked_at! < min ? t.row.unlocked_at! : min), null),
+      rarityPercent: rarities.length > 0 ? Math.min(...rarities) : null,
+    };
+  });
 }
 
 /** Platforms that have achievements in the library, PC first. */
@@ -163,7 +157,7 @@ export function achievementSummary(
       });
     }
   }
-  rows.sort((a, b) => b.unlocked / b.total - a.unlocked / a.total || a.game.title.localeCompare(b.game.title, "de"));
+  rows.sort((a, b) => b.unlocked / b.total - a.unlocked / a.total || compareTitles(a.game.title, b.game.title));
   return {
     rows,
     unlocked: rows.reduce((s, r) => s + r.unlocked, 0),

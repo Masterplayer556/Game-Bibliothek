@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/bricolage-grotesque/standard.css";
 import { AppShell } from "@/components/AppShell";
 import { withBasePath } from "@/lib/base-path";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_BACKGROUND, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 /**
@@ -39,13 +39,16 @@ export const metadata: Metadata = {
       media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`,
     })),
   },
+  // Next writes `capable` only as «mobile-web-app-capable». Safari on iPhone shows the start
+  // screens and the translucent status bar only with its own name for it.
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
-  // Same values as --color-bg in src/styles/tokens.css; the theme switch updates them at runtime.
+  // The page background of each theme; a theme picked by hand recolours both at runtime.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3efff" },
-    { media: "(prefers-color-scheme: dark)", color: "#08061a" },
+    { media: "(prefers-color-scheme: light)", color: THEME_BACKGROUND.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_BACKGROUND.dark },
   ],
   // Lets the page reach under the notch and home indicator; the bars keep clear with safe-area padding.
   viewportFit: "cover",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ACHIEVEMENT_PLATFORM_LABEL, DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { achievementSummary, mergeAchievements, type AchievementFilter } from "@/core/achievements";
-import { deviceTotals, type LibraryGame, type RawData } from "@/core/library";
+import { compareTitles, deviceTotals, type LibraryGame, type RawData } from "@/core/library";
 import { toLocalDate } from "@/core/time";
 import { GAME_STATUSES, type DeviceKind, type GameStatus, type PlatformId } from "@/core/types";
 import { deleteManualEntry, mergeGames, saveUserData, splitEntry, type UserDataPatch } from "@/lib/library-data";
@@ -125,7 +125,7 @@ function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const platformOf = new Map(visible.map((e) => [e.id, e.platform] as const));
   const stored = raw.achievements.filter((a) => platformOf.has(a.platform_game_id));
   const byDate = <T,>(date: (x: T) => string | null, name: (x: T) => string) => (a: T, b: T) =>
-    (date(b) ?? "").localeCompare(date(a) ?? "") || name(a).localeCompare(name(b), "de");
+    (date(b) ?? "").localeCompare(date(a) ?? "") || compareTitles(name(a), name(b));
   const merged = joined ? mergeAchievements(stored, platformOf).sort(byDate((m) => m.unlockedAt, (m) => m.name)) : [];
   const list = joined ? [] : [...stored].sort(byDate((a) => a.unlocked_at, (a) => a.name));
   const together = joined ? achievementSummary([game], "all", raw.achievements).rows[0] : undefined;

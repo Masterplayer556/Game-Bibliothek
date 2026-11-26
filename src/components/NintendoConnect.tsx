@@ -24,11 +24,21 @@ export function NintendoConnect({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<NintendoLoginResult | null>(null);
 
+  // Preparing the login can fail (no secure context for the key, storage blocked): say so
+  // instead of showing «Login wird vorbereitet …» for ever.
+  const [prepareFailed, setPrepareFailed] = useState(false);
   useEffect(() => {
     let active = true;
-    prepareLogin().then((request) => {
-      if (active) setLogin(request);
-    });
+    prepareLogin().then(
+      (request) => {
+        if (active) setLogin(request);
+      },
+      (e: unknown) => {
+        if (!active) return;
+        setPrepareFailed(true);
+        setError(`Der Nintendo-Login konnte nicht vorbereitet werden: ${errorMessage(e)}`);
+      },
+    );
     return () => {
       active = false;
     };
@@ -45,9 +55,15 @@ export function NintendoConnect({
     } catch (e) {
       setError(errorMessage(e));
       // A code works only once: prepare a fresh login for the next attempt.
-      setLogin(await prepareLogin(true));
+      try {
+        setLogin(await prepareLogin(true));
+      } catch {
+        setLogin(null);
+        setPrepareFailed(true);
+      }
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
@@ -62,6 +78,8 @@ export function NintendoConnect({
             <a className="link" href={login.url} target="_blank" rel="noopener noreferrer">
               Nintendo-Login öffnen
             </a>
+          ) : prepareFailed ? (
+            "Nintendo-Login (nicht verfügbar, Seite neu laden)"
           ) : (
             "Login wird vorbereitet …"
           )}{" "}

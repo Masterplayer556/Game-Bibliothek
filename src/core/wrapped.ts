@@ -1,5 +1,6 @@
 // «Game Bibliothek Wrapped»: the numbers of one calendar year (Europe/Zurich).
 // Pure functions on top of the library model; the page only displays the result.
+import { groupTwins } from "./achievements";
 import { firstPlayedDay, newSinceTracking } from "./chronicle";
 import {
   distribution,
@@ -138,6 +139,52 @@ export function bestDay(days: readonly GameDay[], range: Range): BestDay | null 
   return best;
 }
 
+/**
+ * Achievements unlocked in the range, counted like «Zusammen» on the achievements page: the
+ * same achievement of one game on PC and PlayStation is one achievement, unlocked on the day
+ * of its first unlock. A row listed twice counts once.
+ */
+export function achievementsInYear(
+  library: Pick<Library, "games">,
+  achievements: readonly AchievementRow[],
+  range: Range,
+): WrappedYear["achievements"] {
+  const games = library.games.filter((g) => !g.hidden);
+  const entryToGame = new Map(games.flatMap((g) => g.entries.map((e) => [e.id, g.id] as const)));
+  const platformOf = new Map(games.flatMap((g) => g.entries.map((e) => [e.id, e.platform] as const)));
+  const byGame = new Map<string, AchievementRow[]>();
+  const seen = new Set<string>();
+  for (const a of achievements) {
+    const gameId = entryToGame.get(a.platform_game_id);
+    const id = `${a.platform_game_id}|${a.external_id}`;
+    if (!gameId || seen.has(id)) continue;
+    seen.add(id);
+    const list = byGame.get(gameId) ?? [];
+    list.push(a);
+    byGame.set(gameId, list);
+  }
+
+  let unlocked = 0;
+  let rarest: (AchievementRow & { gameId: string }) | null = null;
+  for (const [gameId, rows] of byGame) {
+    for (const { rows: twins } of groupTwins(rows, platformOf)) {
+      const done = twins.map((t) => t.row).filter((r) => r.unlocked_at);
+      if (done.length === 0) continue;
+      const first = done.reduce((a, b) => (b.unlocked_at! < a.unlocked_at! ? b : a));
+      const date = toLocalDate(first.unlocked_at!);
+      if (date < range.from || date > range.to) continue;
+      unlocked++;
+      // The share of players on a platform where I have it, not on one where it is still locked.
+      for (const r of done) {
+        if (r.rarity_percent != null && (!rarest || r.rarity_percent < (rarest.rarity_percent ?? Infinity))) {
+          rarest = { ...r, gameId };
+        }
+      }
+    }
+  }
+  return { unlocked, rarest };
+}
+
 export function buildWrapped(
   library: Library,
   raw: Pick<RawData, "achievements" | "daily" | "snapshots">,
@@ -175,19 +222,7 @@ export function buildWrapped(
     .map((g) => g.id);
 
   // Achievements unlocked this year and the rarest of them
-  const entryToGame = new Map(library.games.filter((g) => !g.hidden).flatMap((g) => g.entries.map((e) => [e.id, g.id] as const)));
-  let unlocked = 0;
-  let rarest: (AchievementRow & { gameId: string }) | null = null;
-  for (const a of raw.achievements) {
-    if (!a.unlocked_at) continue;
-    const gameId = entryToGame.get(a.platform_game_id);
-    const date = toLocalDate(a.unlocked_at);
-    if (!gameId || date < range.from || date > range.to) continue;
-    unlocked++;
-    if (a.rarity_percent != null && (!rarest || a.rarity_percent < (rarest.rarity_percent ?? Infinity))) {
-      rarest = { ...a, gameId };
-    }
-  }
+  const { unlocked, rarest } = achievementsInYear(library, raw.achievements, range);
 
   // Rediscovered: started before the year but stayed below the threshold, and crossed it
   // during the year. Games never played before 1 January are left out: without a purchase

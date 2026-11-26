@@ -20,7 +20,7 @@ export async function prepareLogin(forceNew = false): Promise<NintendoLoginReque
         | null;
       // Nintendo's login page does not stay valid forever: reuse for half an hour at most.
       // The address ends up in a link: only ever reuse one that really points to Nintendo.
-      if (stored && isNintendoLoginUrl(stored.url) && stored.verifier && Date.now() - stored.createdAt < 30 * 60 * 1000) {
+      if (stored && isNintendoLoginUrl(stored.url) && stored.verifier && stored.state && Date.now() - stored.createdAt < 30 * 60 * 1000) {
         return stored;
       }
     } catch {

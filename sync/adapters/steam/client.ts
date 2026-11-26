@@ -18,6 +18,25 @@ export interface SteamOptions {
   apiKey: string;
   /** German names and descriptions where Steam has them. */
   language?: string;
+  /** Waits before asking again after a rate limit (replaced in tests). */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/** After «429 Too Many Requests»: ask again this many times, waiting longer each time. */
+export const RATE_LIMIT_RETRIES = 2;
+const RATE_LIMIT_WAIT_MS = [5_000, 20_000];
+/** A Retry-After longer than this is not waited for: the next sync tries again. */
+const MAX_RETRY_AFTER_MS = 60_000;
+
+const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Retry-After in seconds or as a date; null if missing or unreadable. */
+export function retryAfterMs(header: string | null, now = Date.now()): number | null {
+  if (!header) return null;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const at = Date.parse(header);
+  return Number.isNaN(at) ? null : Math.max(0, at - now);
 }
 
 export interface OwnedGame {
@@ -51,10 +70,17 @@ const num = (v: unknown): number => (typeof v === "number" ? v : typeof v === "s
 async function get(options: SteamOptions, path: string, params: Record<string, string>): Promise<{ status: number; body: unknown }> {
   const query = new URLSearchParams({ ...params, key: options.apiKey, format: "json" });
   let response: Response;
-  try {
-    response = await options.fetch(`${BASE}${path}?${query.toString()}`, { headers: { Accept: "application/json" } });
-  } catch {
-    throw new SteamApiError(0, "Steam ist nicht erreichbar.");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      response = await options.fetch(`${BASE}${path}?${query.toString()}`, { headers: { Accept: "application/json" } });
+    } catch {
+      throw new SteamApiError(0, "Steam ist nicht erreichbar.");
+    }
+    if (response.status !== 429 || attempt >= RATE_LIMIT_RETRIES) break;
+    // Rate limited: wait as long as Steam asks (or a growing pause), then ask again.
+    const wait = retryAfterMs(response.headers.get("Retry-After")) ?? RATE_LIMIT_WAIT_MS[attempt]!;
+    if (wait > MAX_RETRY_AFTER_MS) break;
+    await (options.sleep ?? realSleep)(wait);
   }
   let body: unknown = null;
   try {
@@ -165,6 +191,9 @@ export async function getGlobalPercentages(options: SteamOptions, appId: number)
     gameid: String(appId),
   });
   const out = new Map<string, number>();
+  // Still limited after waiting: an error, so the game is read again next time instead of
+  // being saved without its rarity.
+  if (status === 429) raise(status);
   if (status !== 200) return out;
   const root = isObject(body) && isObject(body.achievementpercentages) ? body.achievementpercentages : {};
   for (const a of Array.isArray(root.achievements) ? root.achievements : []) {

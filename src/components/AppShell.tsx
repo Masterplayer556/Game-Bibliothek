@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* App bar: frosted glass, stays at the top. */}
       <header className="glass pt-safe sticky top-0 z-30 !rounded-none !border-x-0 !border-t-0">
-        <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between gap-3 px-page">
+        <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between gap-3 px-page-safe">
           <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-control">
             <Logo className="h-9 w-9 shrink-0" />
             <span className="font-display text-[1.3rem] font-extrabold leading-none tracking-tight">
@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className={`mx-auto flex w-full max-w-content flex-col gap-page px-page pt-6 ${session ? "pb-tabbar" : "pb-10"}`}>
+      <div className={`mx-auto flex w-full max-w-content flex-col gap-page px-page-safe pt-6 ${session ? "pb-tabbar" : "pb-10"}`}>
         {!isSupabaseConfigured ? (
           <Card title="Noch nicht eingerichtet" icon="warning">
             <Notice tone="warning">

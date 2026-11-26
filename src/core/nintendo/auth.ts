@@ -116,6 +116,20 @@ export function parseRedirectLink(link: string): { code: string; state: string |
   return { code, state: params.get("state") };
 }
 
+/**
+ * The link must come from the login the app started: its state has to be there and equal the
+ * one created with the login link. Otherwise a link from another login attempt (or one foisted
+ * on the user) would be accepted.
+ */
+export function checkLoginState(linkState: string | null, expected: string): void {
+  if (!expected || !linkState || linkState !== expected) {
+    throw new NintendoAuthError(
+      "invalid_link",
+      "Der Link gehört nicht zu diesem Login-Versuch. Bitte den Login-Link neu öffnen und den Link frisch kopieren.",
+    );
+  }
+}
+
 async function readJson(response: Response): Promise<Record<string, unknown>> {
   try {
     const data: unknown = await response.json();

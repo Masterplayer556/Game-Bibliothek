@@ -132,6 +132,14 @@ export async function runAdapters(options: RunOptions): Promise<AdapterRunResult
         warnings: result.warnings?.length ?? 0,
       });
     } catch (error) {
+      // A token received before the failure (rotated refresh token) must not be lost.
+      if (error instanceof AdapterError && error.credentialUpdates?.length) {
+        try {
+          await store.saveCredentials(adapter.id, error.credentialUpdates);
+        } catch {
+          log.warn(`${adapter.id}: rotated token could not be saved`);
+        }
+      }
       const kind = error instanceof AdapterError ? error.kind : "unknown";
       const raw = error instanceof Error ? error.message : String(error);
       const message = redact(raw, secrets);

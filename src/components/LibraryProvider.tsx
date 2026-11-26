@@ -4,7 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dedupeSharedTrophyLists } from "@/core/achievements";
 import { buildLibrary, type Library, type RawData } from "@/core/library";
-import { loadRawData, loadRawParts, type RawPart } from "@/lib/library-data";
+import { loadRawData, loadRawParts, ReloadOrder, type RawPart } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/errors";
 import { useSyncRun, type SyncRunState } from "./sync-run";
@@ -33,28 +33,42 @@ export function LibraryProvider({ session, children }: { session: Session; child
   const [error, setError] = useState<string | null>(null);
 
   const loadedAt = useRef(0);
-
-  const reload = useCallback(async (parts?: readonly RawPart[]) => {
-    try {
-      if (parts) {
-        const fresh = await loadRawParts(getSupabase(), parts);
-        setRaw((current) => (current ? { ...current, ...fresh } : current));
-      } else {
-        setRaw(await loadRawData(getSupabase()));
-        loadedAt.current = Date.now();
-      }
-      setError(null);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
+  // Answers can arrive out of order (a slow full reload after a quick one): only newer tables
+  // are shown. `shownRef` mirrors `raw` so the decision is made outside the state updater.
+  const order = useRef(new ReloadOrder());
+  const shownRef = useRef<RawData | null>(null);
+  const show = useCallback((ticket: number, fresh: Partial<RawData>) => {
+    const next = order.current.take(ticket, fresh, shownRef.current);
+    if (!next) return;
+    shownRef.current = next;
+    setRaw(next);
   }, []);
+
+  const reload = useCallback(
+    async (parts?: readonly RawPart[]) => {
+      const ticket = order.current.begin();
+      try {
+        if (parts) {
+          show(ticket, await loadRawParts(getSupabase(), parts));
+        } else {
+          show(ticket, await loadRawData(getSupabase()));
+          loadedAt.current = Date.now();
+        }
+        setError(null);
+      } catch (e) {
+        setError(errorMessage(e));
+      }
+    },
+    [show],
+  );
 
   useEffect(() => {
     let active = true;
+    const ticket = order.current.begin();
     loadRawData(getSupabase()).then(
       (data) => {
         if (!active) return;
-        setRaw(data);
+        show(ticket, data);
         loadedAt.current = Date.now();
       },
       (e: unknown) => {
@@ -70,7 +84,7 @@ export function LibraryProvider({ session, children }: { session: Session; child
       active = false;
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [reload]);
+  }, [reload, show]);
 
   const sync = useSyncRun(useCallback(() => void reload(), [reload]));
 

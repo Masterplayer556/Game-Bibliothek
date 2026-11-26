@@ -4,7 +4,7 @@
 // Tapping a square shows what was played that day. Narrow screens scroll the weeks sideways;
 // the newest week (today) starts in view on the right.
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { formatMinutes } from "@/core/labels";
 import type { GameDay, LibraryGame } from "@/core/library";
 import { addDays, weekStart } from "@/core/time";
@@ -44,6 +44,9 @@ function label(date: LocalDate): string {
   return `${d}.${m}.${y}`;
 }
 
+/** How far from a square's centre a tap still picks it (a square plus the gap, and more). */
+const TAP_REACH_PX = 14;
+
 function weekday(date: LocalDate): string {
   return WEEKDAYS[new Date(`${date}T12:00:00Z`).getUTCDay()]!;
 }
@@ -81,6 +84,26 @@ export function PlayCalendar({
     setBack((b) => Math.max(0, b + by));
     setSelected(null);
   };
+  const toggle = (date: LocalDate) => setSelected((s) => (s === date ? null : date));
+
+  // The squares are 12 px: too small to hit with a finger. A tap in the gaps or just beside
+  // the grid picks the nearest day, so the whole area is a target without a dead pixel; the
+  // detail box then steps day by day with large buttons.
+  const pickNearest = (event: MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("[data-date]")) return;
+    let best: { date: string; distance: number } | null = null;
+    for (const cell of event.currentTarget.querySelectorAll<HTMLElement>("[data-date]")) {
+      const r = cell.getBoundingClientRect();
+      const distance = Math.hypot(event.clientX - (r.left + r.width / 2), event.clientY - (r.top + r.height / 2));
+      if (!best || distance < best.distance) best = { date: cell.dataset.date!, distance };
+    }
+    if (best && best.distance <= TAP_REACH_PX) toggle(best.date);
+  };
+  const step = (by: number) => {
+    if (!selected) return;
+    const next = addDays(selected, by);
+    if (next >= first && next <= last) setSelected(next);
+  };
 
   // Oldest week first, left to right.
   const columns = Array.from({ length: weeks }, (_, w) => {
@@ -117,7 +140,7 @@ export function PlayCalendar({
         19): the dates above and the count below always match what can be seen by scrolling.
         In the light theme the grid sits on a dark «screen», so the white steps glow as at night.
       */}
-      <div className="heat-screen">
+      <div className="heat-screen" onClick={pickNearest}>
         <div ref={scroller} className="overflow-x-auto overscroll-x-contain">
         <div
           role="group"
@@ -136,8 +159,9 @@ export function PlayCalendar({
                 <button
                   key={date}
                   type="button"
+                  data-date={date}
                   aria-pressed={selected === date}
-                  onClick={() => setSelected(selected === date ? null : date)}
+                  onClick={() => toggle(date)}
                   className={`h-3 w-3 rounded-[3.5px] ${selected === date ? "heat-selected outline-2 outline-offset-1" : ""}`}
                   style={heatStyle(heatLevel(minutesOn.get(date) ?? 0))}
                   title={`${label(date)}: ${minutesOn.has(date) ? formatMinutes(minutesOn.get(date)!) : "nicht gespielt"}`}
@@ -154,11 +178,15 @@ export function PlayCalendar({
       <div aria-live="polite">
         {selected ? (
           <div className="anim-drop-in flex flex-col gap-2 rounded-2xl border border-border bg-section-soft p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-display font-bold">
-                {weekday(selected)}, {label(selected)}
+            <div className="flex items-center justify-between gap-2">
+              <IconButton icon="back" label="Vortag" disabled={selected <= first} onClick={() => step(-1)} />
+              <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-2">
+                <span className="font-display font-bold">
+                  {weekday(selected)}, {label(selected)}
+                </span>
+                <span className="num text-lg leading-none">{minutesOn.has(selected) ? formatMinutes(minutesOn.get(selected)!) : "–"}</span>
               </span>
-              <span className="num text-lg leading-none">{minutesOn.has(selected) ? formatMinutes(minutesOn.get(selected)!) : "–"}</span>
+              <IconButton icon="forward" label="Nächster Tag" disabled={selected >= last} onClick={() => step(1)} />
             </div>
             {playedGames.length === 0 ? (
               <p className="text-sm text-muted">An diesem Tag ist keine Spielzeit erfasst.</p>

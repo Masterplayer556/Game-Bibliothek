@@ -5,7 +5,7 @@ import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL } from "@/core
 import type { Library } from "@/core/library";
 import type { DeviceKind, PlatformId } from "@/core/types";
 import type { WrappedYear } from "@/core/wrapped";
-import { exportCard } from "@/lib/export-image";
+import { deliverCard, renderCard, type CardImage, type DeliverResult } from "@/lib/export-image";
 import { formatDay, GameCover } from "./game-ui";
 import { Icon, type IconName } from "./Icon";
 import { sectionStyle, type Section } from "./section";
@@ -367,15 +367,40 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
     return () => observer.disconnect();
   }, [cards.length]);
 
+  // One export at a time: a second tap while the image is being made would make it twice
+  // (two downloads or two share sheets).
+  const exporting = useRef(false);
+  const [busy, setBusy] = useState(false);
+  // An image that is ready but could not be shared yet (see DeliverResult «needs-tap»).
+  const [ready, setReady] = useState<(CardImage & { card: number }) | null>(null);
+  const report = (result: DeliverResult, image: CardImage, card: number) => {
+    setReady(result === "needs-tap" ? { ...image, card } : null);
+    setStatus(result === "downloaded" ? "Bild gespeichert." : result === "needs-tap" ? "Bild ist bereit." : null);
+  };
   async function save() {
     const node = cardRefs.current[current];
-    if (!node) return;
+    if (!node || exporting.current) return;
+    exporting.current = true;
+    setBusy(true);
+    setReady(null);
     setStatus("Bild wird erstellt …");
     try {
-      const result = await exportCard(node, `game-bibliothek-${wrapped.year}-${cards[current]!.id}.png`);
-      setStatus(result === "downloaded" ? "Bild gespeichert." : null);
+      const image = await renderCard(node, `game-bibliothek-${wrapped.year}-${cards[current]!.id}.png`);
+      report(await deliverCard(image), image, current);
     } catch {
       setStatus("Das Bild konnte nicht erstellt werden.");
+    } finally {
+      exporting.current = false;
+      setBusy(false);
+    }
+  }
+  // Called straight from the tap: the share sheet may open now.
+  async function shareReady() {
+    if (!ready) return;
+    try {
+      report(await deliverCard(ready), ready, ready.card);
+    } catch {
+      setStatus("Das Bild konnte nicht geteilt werden.");
     }
   }
 
@@ -410,9 +435,14 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
         <IconButton icon="forward" label="Nächste Karte" disabled={current >= cards.length - 1} onClick={() => goTo(current + 1)} />
       </div>
       <div className="flex flex-wrap items-center gap-stack">
-        <Button variant="primary" icon="download" onClick={save}>
+        <Button variant="primary" icon="download" onClick={save} disabled={busy}>
           Karte als Bild speichern
         </Button>
+        {ready && ready.card === current ? (
+          <Button icon="download" onClick={shareReady}>
+            Teilen
+          </Button>
+        ) : null}
         {status ? <span className="text-sm text-muted">{status}</span> : null}
       </div>
     </section>

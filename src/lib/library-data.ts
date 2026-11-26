@@ -1,10 +1,11 @@
 // Reads everything the app shows in one go and writes my own changes.
 // The data of one person fits comfortably in the browser; all statistics are computed there.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ADAPTER_CATALOG } from "@/core/adapter-catalog";
 import type { RawData } from "@/core/library";
 import { normalizeTitle } from "@/core/normalize-title";
 import type { DeviceKind, GameStatus } from "@/core/types";
-import { fetchAll, persistBatch } from "@/data/persist";
+import { fetchAll, persistBatch, recomputeDailyTotals } from "@/data/persist";
 
 export type RawPart = Exclude<keyof RawData, never>;
 
@@ -67,6 +68,35 @@ export async function loadRawParts(db: SupabaseClient, parts: readonly RawPart[]
   return Object.fromEntries(unique.map((part, i) => [part, values[i]])) as Partial<RawData>;
 }
 
+/**
+ * Keeps reloads in order. Every reload gets a number when it starts; when it answers, a table
+ * is only taken if no later reload has already delivered it. A slow full reload that started
+ * before a note was saved therefore cannot bring back the old note after the quick reload of
+ * that one table.
+ */
+export class ReloadOrder {
+  private started = 0;
+  private applied = new Map<RawPart, number>();
+
+  /** Call when a reload starts; pass the result to `take` when it answers. */
+  begin(): number {
+    return ++this.started;
+  }
+
+  /**
+   * The part of an answer that is newer than what is shown, and marks it as shown; null if
+   * nothing in it is newer. `current` null (nothing shown yet) takes only a complete answer.
+   */
+  take(ticket: number, fresh: Partial<RawData>, current: RawData | null): RawData | null {
+    const newer = (Object.keys(fresh) as RawPart[]).filter((part) => (this.applied.get(part) ?? 0) < ticket);
+    if (newer.length === 0) return null;
+    if (!current && newer.length < ALL_PARTS.length) return null;
+    for (const part of newer) this.applied.set(part, ticket);
+    const picked = Object.fromEntries(newer.map((part) => [part, fresh[part]])) as Partial<RawData>;
+    return { ...(current ?? ({} as RawData)), ...picked };
+  }
+}
+
 /** Everything the app shows, as stored (shared trophy lists not yet joined, see the provider). */
 export async function loadRawData(db: SupabaseClient): Promise<RawData> {
   return (await loadRawParts(db)) as RawData;
@@ -106,6 +136,27 @@ export async function saveSettings(
   check(error);
 }
 
+// Sources without a lifetime total of their own (Nintendo): their stored total is the sum of
+// the per-day rows that count, and which rows count is decided per game.
+const DERIVED_TOTAL_SOURCES = ADAPTER_CATALOG.filter((a) => !a.capabilities.totalPlaytime).map((a) => a.id);
+
+/**
+ * After entries moved between games: recomputes the stored totals of their per-day entries.
+ * An import entry and a native entry that now share a game count each day only once (and
+ * after a split both count again).
+ */
+async function recomputeDerivedTotals(db: SupabaseClient, gameIds: readonly string[]): Promise<void> {
+  const { data, error } = await db
+    .from("platform_games")
+    .select("id, user_id")
+    .in("game_id", gameIds)
+    .in("source", DERIVED_TOTAL_SOURCES);
+  check(error);
+  const rows = (data ?? []) as { id: string; user_id: string }[];
+  if (rows.length === 0) return;
+  await recomputeDailyTotals(db, rows[0]!.user_id, rows.map((r) => r.id));
+}
+
 /** Moves all platform entries of `sourceGameId` to `targetGameId`; the sync keeps it that way. */
 export async function mergeGames(db: SupabaseClient, targetGameId: string, sourceGameId: string): Promise<void> {
   if (targetGameId === sourceGameId) return;
@@ -119,6 +170,7 @@ export async function mergeGames(db: SupabaseClient, targetGameId: string, sourc
   // The emptied game and its notes are no longer needed.
   const removed = await db.from("games").delete().eq("id", sourceGameId);
   check(removed.error);
+  await recomputeDerivedTotals(db, [targetGameId]);
 }
 
 /** Gives one platform entry its own game again. Returns the id of the new game. */
@@ -127,6 +179,9 @@ export async function splitEntry(
   userId: string,
   entry: { id: string; title: string },
 ): Promise<string> {
+  const before = await db.from("platform_games").select("game_id").eq("id", entry.id).maybeSingle();
+  check(before.error);
+  const previous = (before.data as { game_id: string | null } | null)?.game_id ?? null;
   const id = crypto.randomUUID();
   const created = await db
     .from("games")
@@ -137,6 +192,7 @@ export async function splitEntry(
     .update({ game_id: id, game_link_locked: true })
     .eq("id", entry.id);
   check(moved.error);
+  await recomputeDerivedTotals(db, previous ? [id, previous] : [id]);
   return id;
 }
 
