@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSampleBatches } from "../testing/sample-library";
-import { buildLibrary, type GameDay, type RawData } from "./library";
+import { buildLibrary, type GameDay, type Library, type RawData } from "./library";
 import { availableYears, bestDay, buildWrapped, longestStreak, yearRange } from "./wrapped";
 
 const day = (date: string, minutes: number, gameId = "g1", estimated = false): GameDay => ({
@@ -209,5 +209,32 @@ describe("buildWrapped: new games", () => {
   it("puts a new game into the year it was first played", () => {
     const w = buildWrapped(buildLibrary(raw), raw, 2027, { today: "2027-12-05" });
     expect(w.newGames).toEqual([]);
+  });
+});
+
+describe("buildWrapped: coverage of this and the previous year", () => {
+  const raw: RawData = { games: [], platformGames: [], devices: [], daily: [], snapshots: [], achievements: [], userData: [], connections: [], settings: {} };
+  const library = (dataSince: Library["dataSince"]): Library => ({ ...buildLibrary(raw), dataSince });
+  const wrapped = (dataSince: Library["dataSince"], year = 2026) => buildWrapped(library(dataSince), raw, year, { today: "2026-12-05" });
+
+  it("calls the previous year partial as soon as one platform started after its first day", () => {
+    // the Switch history reaches back years (import), Steam and PlayStation started in November
+    const w = wrapped({ nintendo: "2021-03-28", steam: "2026-11-12", psn: "2026-11-13" });
+    expect(w.previousYear).toEqual({ minutes: 0, partial: true });
+    expect(wrapped({ nintendo: "2021-03-28", steam: "2024-02-01" }).previousYear?.partial).toBe(false);
+    expect(wrapped({ nintendo: "2025-01-01" }).previousYear?.partial).toBe(false);
+    expect(wrapped({ nintendo: "2025-01-02" }).previousYear?.partial).toBe(true);
+    // nothing tracked in the previous year at all: no comparison
+    expect(wrapped({ steam: "2026-11-12" }).previousYear).toBeNull();
+  });
+
+  it("lists every platform that was not tracked the whole year, also those that started later", () => {
+    expect(wrapped({ nintendo: "2021-03-28", steam: "2026-11-12", psn: "2026-11-13" }).coverageGaps).toEqual([
+      { platform: "steam", since: "2026-11-12" },
+      { platform: "psn", since: "2026-11-13" },
+    ]);
+    // 2025 has none of the Steam and PlayStation time
+    expect(wrapped({ nintendo: "2021-03-28", steam: "2026-11-12" }, 2025).coverageGaps).toEqual([{ platform: "steam", since: "2026-11-12" }]);
+    expect(wrapped({ nintendo: "2026-01-01" }).coverageGaps).toEqual([]);
   });
 });

@@ -61,7 +61,10 @@ export interface WrappedYear {
   achievements: { unlocked: number; rarest: (AchievementRow & { gameId: string }) | null };
   /** Games barely touched before the year that got real playtime in it. */
   rediscovered: Rediscovered[];
-  /** Platforms whose data starts after 1 January: their values for this year are incomplete. */
+  /**
+   * Platforms whose data starts after 1 January (or only after the year): their values for this
+   * year are incomplete.
+   */
   coverageGaps: CoverageGap[];
 }
 
@@ -146,14 +149,16 @@ export function buildWrapped(
   const total = totalInRange(days, range);
   const playDays = new Set(days.filter((d) => d.date >= range.from && d.date <= range.to).map((d) => d.date)).size;
 
-  // Previous year, and whether it was fully tracked
+  // Previous year, and whether it was fully tracked: only if every platform was tracked from
+  // its first day. One platform with old data (an imported history) does not make up for
+  // another one that only started later.
   const previousRange = yearRange(year - 1, options.today);
   const previousTotal = totalInRange(days, previousRange);
-  const sinceDates = Object.values(library.dataSince);
-  const firstTracked = sinceDates.length > 0 ? sinceDates.sort()[0]! : null;
+  const since = Object.entries(library.dataSince) as [PlatformId, LocalDate][];
+  const firstTracked = since.length > 0 ? since.map(([, d]) => d).sort()[0]! : null;
   const previousYear =
     firstTracked && firstTracked <= previousRange.to
-      ? { minutes: previousTotal.minutes, partial: firstTracked > previousRange.from }
+      ? { minutes: previousTotal.minutes, partial: since.some(([, d]) => d > previousRange.from) }
       : null;
 
   const genres = distribution(days, range, "genre", byId).filter((s) => s.key !== UNKNOWN_GENRE);
@@ -208,9 +213,11 @@ export function buildWrapped(
   }
   rediscovered.sort((a, b) => b.minutesInYear - a.minutesInYear);
 
-  const coverageGaps = (Object.entries(library.dataSince) as [PlatformId, LocalDate][])
-    .filter(([, since]) => since > range.from && since <= range.to)
-    .map(([platform, since]) => ({ platform, since }))
+  // Platforms tracked only from a later day, also those that started after the year: the year
+  // has none of their time.
+  const coverageGaps = since
+    .filter(([, d]) => d > range.from)
+    .map(([platform, d]) => ({ platform, since: d }))
     .sort((a, b) => a.since.localeCompare(b.since));
 
   return {
