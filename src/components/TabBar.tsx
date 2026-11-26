@@ -298,6 +298,7 @@ function TabLink({
   className = "",
   style,
   full = false,
+  away = false,
 }: {
   item: NavItem;
   current: NavItem;
@@ -308,6 +309,8 @@ function TabLink({
   style?: CSSProperties;
   /** Room for the full name (wide bar). */
   full?: boolean;
+  /** Slid out of view on the phone: not focusable and not read out. */
+  away?: boolean;
 }) {
   return (
     <Link
@@ -318,6 +321,7 @@ function TabLink({
       data-on={on}
       data-under={under}
       onClick={onTap}
+      inert={away}
       style={{ ...sectionStyle(item.section), ...style }}
       className={`tab-item ${className}`}
     >
@@ -365,7 +369,7 @@ function PhoneTabBar({ current }: { current: NavItem }) {
     // Its own name: the page never covers the bar. Only one bar shows at a time.
     <div className="glass tabbar pointer-events-auto md:hidden" {...handlers}>
       <div className="tab-viewport" style={{ width: "calc(5 * var(--slot) + 4 * var(--gap))" }}>
-        <div ref={track} className="tab-track" data-open={open}>
+        <div ref={track} id="tab-more-pages" className="tab-track" data-open={open}>
           <Lens index={lensIndex} item={lensItem} lensRef={lens} bodyRef={body} shineRef={shine} />
           {PRIMARY.map((item, i) => (
             <TabLink
@@ -375,6 +379,7 @@ function PhoneTabBar({ current }: { current: NavItem }) {
               on={lensIndex === i}
               under={under === i}
               onTap={() => choose(i)}
+              away={open}
               className="tab-leaving"
               style={{ transitionDelay: open ? `${i * 25}ms` : `${(PRIMARY.length - i) * 35}ms` }}
             />
@@ -382,8 +387,9 @@ function PhoneTabBar({ current }: { current: NavItem }) {
           <button
             type="button"
             data-slot
+            // Named by its visible text «Mehr»; aria-expanded tells whether the other pages show.
             aria-expanded={open}
-            aria-label={open ? "Weniger" : "Mehr"}
+            aria-controls="tab-more-pages"
             data-on={lensIndex === MORE}
             data-under={under === MORE}
             onClick={() => setOpen((o) => !o)}
@@ -409,6 +415,7 @@ function PhoneTabBar({ current }: { current: NavItem }) {
               on={lensIndex === MORE + 1 + i}
               under={under === MORE + 1 + i}
               onTap={() => choose(MORE + 1 + i)}
+              away={!open}
               className="tab-following"
               style={{ transitionDelay: open ? `${60 + i * 55}ms` : "0ms", "--follow": `${(i + 1) * 18}px` } as CSSProperties}
             />
