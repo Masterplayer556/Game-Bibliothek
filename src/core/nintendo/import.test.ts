@@ -46,6 +46,17 @@ describe("parseDate", () => {
 });
 
 describe("parseImportCsv", () => {
+  it("takes the delimiter from the first data line, not from a comment above it", () => {
+    const csv = [
+      "# Exportiert am 26.11.2026, von Hand ergänzt, Zeiten gerundet",
+      "Spiel;Datum;Dauer;Gerät",
+      "Mario, Luigi und Co.;17.02.2026;45 Min.;Switch 1",
+    ].join("\n");
+    const { rows, problems } = parseImportCsv(csv, TODAY);
+    expect(problems).toEqual([]);
+    expect(rows.map((r) => [r.title, r.date, r.minutes, r.device])).toEqual([["Mario, Luigi und Co.", "2026-02-17", 45, "switch1"]]);
+  });
+
   it("reads the template format with header, comments and empty lines", () => {
     const csv = [
       "﻿Spiel;Datum;Dauer;Gerät",

@@ -152,12 +152,14 @@ export function parseImportCsv(text: string, today: LocalDate): ImportParseResul
   const problems: ImportProblem[] = [];
   const byKey = new Map<string, ImportRow>();
   const lines = text.replace(/^﻿/, "").split(/\r?\n/);
-  const firstContent = lines.find((l) => l.trim() !== "") ?? "";
+  const isSkipped = (l: string) => l.trim() === "" || l.trim().startsWith("#");
+  // The delimiter comes from the first real line: a comment above it may hold any punctuation.
+  const firstContent = lines.find((l) => !isSkipped(l)) ?? "";
   const delimiter = detectDelimiter(firstContent);
 
   lines.forEach((raw, index) => {
     const line = index + 1;
-    if (raw.trim() === "" || raw.trim().startsWith("#")) return;
+    if (isSkipped(raw)) return;
     const cells = splitLine(raw, delimiter);
     const [title = "", dateText = "", durationText = "", deviceText = ""] = cells;
     if (/^(spiel|titel|title|game)$/i.test(title)) return; // header
