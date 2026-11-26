@@ -246,10 +246,15 @@ function useLiquidLens(index: number, range: [number, number], onPick: (slot: nu
   return { track, lens, body, shine, under, handlers };
 }
 
-/** Remembers a tapped slot until the page has changed, so the drop moves at once. */
+/**
+ * Remembers a tapped slot until the page has changed, so the drop moves at once. Forgotten as
+ * soon as the page changes: otherwise «Zurück» to the page it was tapped on would bring the
+ * old tap back and the drop would stay on the page that was left.
+ */
 function useChosen(routeIndex: number) {
   const pathname = usePathname();
   const [tapped, setTapped] = useState<{ from: string; index: number } | null>(null);
+  if (tapped && tapped.from !== pathname) setTapped(null);
   const chosen = tapped && tapped.from === pathname ? tapped.index : routeIndex;
   return { chosen, choose: (index: number) => setTapped({ from: pathname, index }) };
 }
