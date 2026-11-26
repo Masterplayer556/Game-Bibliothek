@@ -123,7 +123,8 @@ export function createPsnAdapter(client: PsnClient): PlatformAdapter {
       try {
         played = await client.playedGames(token);
       } catch {
-        throw new AdapterError("unknown", "Die Liste der gespielten Spiele ist nicht lesbar.");
+        // The refresh token may have been rotated already: it goes with the error.
+        throw new AdapterError("unknown", "Die Liste der gespielten Spiele ist nicht lesbar.", session.updates);
       }
 
       // Purchases: optional, only used to add bought but never started games. Every played

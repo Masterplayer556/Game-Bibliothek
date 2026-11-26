@@ -158,6 +158,21 @@ describe("runAdapters", () => {
     expect(results[0]?.outcome).toBe("error");
   });
 
+  it("stores a rotated token that comes with an error", async () => {
+    const store = new FakeStore();
+    const results = await run(store, [
+      fakeAdapter("psn", {
+        sync: async () => {
+          throw new AdapterError("unknown", "Die Liste der gespielten Spiele ist nicht lesbar.", [
+            { kind: "refresh_token", value: "new-token" },
+          ]);
+        },
+      }),
+    ]);
+    expect(store.credentialWrites).toHaveLength(1);
+    expect(results[0]?.outcome).toBe("error");
+  });
+
   it("removes secrets from stored error messages", async () => {
     const store = new FakeStore();
     store.credentials.psn = { refresh_token: "super-secret-refresh-token" };

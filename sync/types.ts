@@ -12,10 +12,16 @@ export type AdapterErrorKind = "auth_expired" | "rate_limited" | "network" | "un
  */
 export class AdapterError extends Error {
   readonly kind: AdapterErrorKind;
-  constructor(kind: AdapterErrorKind, message: string) {
+  /**
+   * Tokens the adapter already received before it failed (a rotated refresh token): the runner
+   * stores them anyway, or the next run would start with a token that no longer works.
+   */
+  credentialUpdates?: CredentialUpdate[];
+  constructor(kind: AdapterErrorKind, message: string, credentialUpdates?: CredentialUpdate[]) {
     super(message);
     this.name = "AdapterError";
     this.kind = kind;
+    if (credentialUpdates?.length) this.credentialUpdates = credentialUpdates;
   }
 }
 

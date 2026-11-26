@@ -266,6 +266,17 @@ describe("psnAdapter.sync", () => {
     expect(result.batch.games.length).toBeGreaterThan(0);
   });
 
+  it("hands the rotated token over with the error when the game list fails", async () => {
+    const client = fakeClient({
+      playedGames: async () => {
+        throw new Error("503");
+      },
+    });
+    const error = await createPsnAdapter(client).sync(context({ [REFRESH_TOKEN_KIND]: "refresh-0" })).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AdapterError);
+    expect((error as AdapterError).credentialUpdates).toEqual([{ kind: REFRESH_TOKEN_KIND, value: "refresh-rotated" }]);
+  });
+
   it("tests the connection and returns the rotated token for storage", async () => {
     const result = await createPsnAdapter(fakeClient()).testConnection(context({ [NPSSO_KIND]: "good-npsso" }));
     expect(result).toMatchObject({ ok: true, message: "Verbunden: 3 gespielte Spiele gefunden." });
