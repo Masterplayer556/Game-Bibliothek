@@ -367,15 +367,24 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
     return () => observer.disconnect();
   }, [cards.length]);
 
+  // One export at a time: a second tap while the image is being made would make it twice
+  // (two downloads or two share sheets).
+  const exporting = useRef(false);
+  const [busy, setBusy] = useState(false);
   async function save() {
     const node = cardRefs.current[current];
-    if (!node) return;
+    if (!node || exporting.current) return;
+    exporting.current = true;
+    setBusy(true);
     setStatus("Bild wird erstellt …");
     try {
       const result = await exportCard(node, `game-bibliothek-${wrapped.year}-${cards[current]!.id}.png`);
       setStatus(result === "downloaded" ? "Bild gespeichert." : null);
     } catch {
       setStatus("Das Bild konnte nicht erstellt werden.");
+    } finally {
+      exporting.current = false;
+      setBusy(false);
     }
   }
 
@@ -410,7 +419,7 @@ export function WrappedCards({ wrapped, library }: { wrapped: WrappedYear; libra
         <IconButton icon="forward" label="Nächste Karte" disabled={current >= cards.length - 1} onClick={() => goTo(current + 1)} />
       </div>
       <div className="flex flex-wrap items-center gap-stack">
-        <Button variant="primary" icon="download" onClick={save}>
+        <Button variant="primary" icon="download" onClick={save} disabled={busy}>
           Karte als Bild speichern
         </Button>
         {status ? <span className="text-sm text-muted">{status}</span> : null}
