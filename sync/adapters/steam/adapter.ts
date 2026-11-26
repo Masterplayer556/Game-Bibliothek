@@ -38,7 +38,7 @@ function toAdapterError(error: unknown): AdapterError {
 }
 
 function options(ctx: AdapterContext): SteamOptions {
-  return { fetch: ctx.fetch, apiKey: ctx.env.STEAM_API_KEY ?? "" };
+  return { fetch: ctx.fetch, apiKey: ctx.env.STEAM_API_KEY ?? "", sleep: ctx.sleep };
 }
 
 function iso(unixSeconds: number): string | null {
@@ -103,7 +103,8 @@ export const steamAdapter: PlatformAdapter = {
       // Still to read next time: the postponed games and those that failed now.
       const pending = due.slice(now.length).map((g) => String(g.appId));
       let failed = 0;
-      for (const game of now) {
+      let limited = 0;
+      for (const [index, game] of now.entries()) {
         try {
           const player = await getPlayerAchievements(opts, steamId, game.appId);
           if (!player || player.length === 0) {
@@ -131,15 +132,21 @@ export const steamAdapter: PlatformAdapter = {
           }
           progress.set(game.appId, { unlocked: player.filter((a) => a.achieved).length, total: player.length });
         } catch (error) {
-          // A rate limit stops the whole run; anything else only skips this game.
-          if (error instanceof SteamApiError && (error.status === 429 || error.status === 401 || error.status === 403)) {
-            throw error;
+          // A rejected key stops the run. A rate limit that lasts despite waiting stops reading
+          // achievements: this game and the rest follow next time, the playtime is saved now.
+          if (error instanceof SteamApiError && (error.status === 401 || error.status === 403)) throw error;
+          if (error instanceof SteamApiError && error.status === 429) {
+            const rest = now.slice(index).map((g) => String(g.appId));
+            limited = rest.length;
+            pending.push(...rest);
+            break;
           }
           failed++;
           pending.push(String(game.appId));
         }
       }
       if (failed > 0) warnings.push(`Erfolge von ${failed} Spielen nicht lesbar`);
+      if (limited > 0) warnings.push(`Steam bremst die Abfragen: Erfolge von ${limited} Spielen folgen beim nächsten Sync`);
 
       for (const game of owned) {
         const p = progress.get(game.appId);
@@ -159,14 +166,14 @@ export const steamAdapter: PlatformAdapter = {
       }
 
       ctx.log.info(
-        `${STEAM_ID}: ${owned.length} games, achievements read for ${now.length - failed}, ${due.length - now.length} postponed`,
+        `${STEAM_ID}: ${owned.length} games, achievements read for ${now.length - failed - limited}, ${due.length - now.length + limited} postponed`,
       );
       return {
         batch,
         // Day-level history starts with the first sync: lifetime totals before it are a starting value.
         dataSince: toLocalDate(ctx.now),
         warnings,
-        details: { games: owned.length, achievementGames: now.length - failed, achievementsPending: pending },
+        details: { games: owned.length, achievementGames: now.length - failed - limited, achievementsPending: pending },
       };
     } catch (error) {
       throw toAdapterError(error);

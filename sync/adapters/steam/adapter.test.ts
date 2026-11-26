@@ -180,8 +180,38 @@ describe("steamAdapter", () => {
     expect(error).toBeInstanceOf(AdapterError);
     expect((error as AdapterError).message).toMatch(/STEAM_API_KEY/);
 
-    const limited = fakeSteam({ GetPlayerAchievements: () => new Response("", { status: 429 }) });
-    await expect(steamAdapter.sync(context(limited.fetchFn))).rejects.toMatchObject({ kind: "rate_limited" });
+    const waits: number[] = [];
+    const sleep = async (ms: number) => void waits.push(ms);
+    const limited = fakeSteam({ GetOwnedGames: () => new Response("", { status: 429 }) });
+    await expect(steamAdapter.sync(context(limited.fetchFn, { sleep }))).rejects.toMatchObject({ kind: "rate_limited" });
+    // asked three times, waiting longer each time
+    expect(limited.calls.filter((c) => c.pathname.includes("GetOwnedGames"))).toHaveLength(3);
+    expect(waits).toEqual([5_000, 20_000]);
+  });
+
+  it("waits as long as Steam asks after a rate limit, then goes on", async () => {
+    const waits: number[] = [];
+    let first = true;
+    const { fetchFn } = fakeSteam({
+      GetOwnedGames: () => {
+        if (!first) return json(fixture("owned-games"));
+        first = false;
+        return new Response("", { status: 429, headers: { "Retry-After": "3" } });
+      },
+    });
+    const result = await steamAdapter.sync(context(fetchFn, { sleep: async (ms) => void waits.push(ms) }));
+    expect(waits).toEqual([3_000]);
+    expect(result.batch.games).toHaveLength(4);
+  });
+
+  it("keeps the playtime when the achievements stay rate limited, and reads them next time", async () => {
+    const { fetchFn } = fakeSteam({ GetPlayerAchievements: () => new Response("", { status: 429 }) });
+    const result = await steamAdapter.sync(context(fetchFn, { sleep: async () => undefined }));
+    expect(result.batch.games).toHaveLength(4);
+    expect(result.batch.games.every((g) => g.totalPlaytimeMinutes !== undefined)).toBe(true);
+    expect(result.batch.achievements).toEqual([]);
+    expect(result.warnings).toEqual([expect.stringMatching(/Steam bremst/)]);
+    expect((result.details!.achievementsPending as string[]).length).toBeGreaterThan(0);
   });
 
   it("tests the connection without saving anything", async () => {

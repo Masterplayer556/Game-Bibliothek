@@ -43,6 +43,8 @@ export interface AdapterContext {
   now: Date;
   log: Logger;
   fetch: typeof fetch;
+  /** Pause before asking a rate-limited API again (tests replace it). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** value null = delete the stored credential */
