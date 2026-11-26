@@ -8,14 +8,23 @@ import type { LibraryGame } from "@/core/library";
 import type { DeviceKind, GameStatus, PlatformId } from "@/core/types";
 import { Icon } from "./Icon";
 
+/** The wide Steam header for an upright Steam cover address; other addresses stay as they are. */
+export function steamHeaderFor(src: string): string {
+  return src.replace(/\/library_600x900(_2x)?\.jpg(\?.*)?$/, "/header.jpg");
+}
+
 /**
  * Steam's upright cover is missing for some older games; then use the wide header, which every
- * game has. For an <img onError>: swaps the picture once, then gives up.
+ * game has. For an <img onError>: swaps the picture once, then gives up. The blurred copy
+ * behind a cover (.cover-fill) gets the same picture, as the wide header is shown on it.
  */
 export function steamCoverFallback(event: SyntheticEvent<HTMLImageElement>): void {
   const img = event.currentTarget;
-  const wide = img.src.replace(/\/library_600x900(_2x)?\.jpg(\?.*)?$/, "/header.jpg");
-  if (wide !== img.src) img.src = wide;
+  const wide = steamHeaderFor(img.src);
+  if (wide === img.src) return;
+  img.src = wide;
+  const fill = img.closest(".cover")?.querySelector<HTMLImageElement>(".cover-fill");
+  if (fill && fill.src !== wide) fill.src = wide;
 }
 
 /**
