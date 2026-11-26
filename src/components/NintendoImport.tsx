@@ -3,12 +3,13 @@
 import { useState, type ChangeEvent } from "react";
 import { combineImports, parseImportCsv, type ImportParseResult } from "@/core/nintendo/import";
 import { toLocalDate } from "@/core/time";
+import { withBasePath } from "@/lib/base-path";
 import { importHistory } from "@/lib/nintendo";
 import { getSupabase } from "@/lib/supabase";
 import { Button, Card, Notice } from "./ui";
 import { errorMessage } from "@/lib/errors";
 
-const TEMPLATE_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/vorlagen/nintendo-import-vorlage.csv`;
+const TEMPLATE_URL = withBasePath("/vorlagen/nintendo-import-vorlage.csv");
 
 interface ParsedFile {
   name: string;

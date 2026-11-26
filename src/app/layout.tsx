@@ -2,10 +2,9 @@ import type { Metadata, Viewport } from "next";
 // The display font is served from this site (no request to a font service).
 import "@fontsource-variable/bricolage-grotesque/standard.css";
 import { AppShell } from "@/components/AppShell";
+import { withBasePath } from "@/lib/base-path";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
-
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 /**
  * iPhone screens in CSS pixels and pixel ratio; public/splash has a start screen for each
@@ -36,7 +35,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     // Shown while the home-screen app starts, instead of a blank screen (one per iPhone size).
     startupImage: SPLASH_SIZES.map(([width, height, ratio]) => ({
-      url: `${BASE_PATH}/splash/splash-${width * ratio}x${height * ratio}.jpg`,
+      url: withBasePath(`/splash/splash-${width * ratio}x${height * ratio}.jpg`),
       media: `(device-width: ${width}px) and (device-height: ${height}px) and (-webkit-device-pixel-ratio: ${ratio}) and (orientation: portrait)`,
     })),
   },
