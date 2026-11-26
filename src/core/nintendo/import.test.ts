@@ -26,6 +26,17 @@ describe("parseDuration", () => {
     expect(parseDuration("3 Stunden")).toEqual({ minutes: 180, estimated: false });
   });
 
+  it("reads decimal hours", () => {
+    expect(parseDuration("1.5 h")).toEqual({ minutes: 90, estimated: false });
+    expect(parseDuration("1,5 Std.")).toEqual({ minutes: 90, estimated: false });
+    expect(parseDuration("0.25 Stunden")).toEqual({ minutes: 15, estimated: false });
+    expect(parseDuration("1,5")).toEqual({ minutes: 90, estimated: false });
+    expect(parseDuration("2.75")).toEqual({ minutes: 165, estimated: false });
+    expect(parseDuration("1.5h 10min")).toEqual({ minutes: 100, estimated: false });
+    // more than a day cannot be hours: minutes with a fraction
+    expect(parseDuration("90.0")).toEqual({ minutes: 90, estimated: false });
+  });
+
   it("rejects nonsense", () => {
     expect(parseDuration("")).toBeNull();
     expect(parseDuration("viel")).toBeNull();

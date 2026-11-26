@@ -38,24 +38,33 @@ export interface ImportParseResult {
   problems: ImportProblem[];
 }
 
-/** "1 Std. 15 Min.", "45 Min.", "5 Std. 0 Min.", "Für kurze Zeit", "90", "1:30" */
+const number = (text: string) => Number(text.replace(",", "."));
+
+/**
+ * "1 Std. 15 Min.", "45 Min.", "5 Std. 0 Min.", "Für kurze Zeit", "90", "1:30", "1.5 h", "1,5".
+ * A plain whole number is minutes. A plain decimal number up to 24 is hours ("1,5" = 90 min.):
+ * the Store app has no fractions of a minute, and more than 24 hours a day is impossible.
+ */
 export function parseDuration(text: string): { minutes: number; estimated: boolean } | null {
   const t = text.trim().toLowerCase();
   if (t === "") return null;
   if (/kurze zeit|a short time|a little while/.test(t)) {
     return { minutes: SHORT_PLAY_MINUTES, estimated: true };
   }
-  if (/^\d+([.,]\d+)?$/.test(t)) {
-    return { minutes: Math.round(Number(t.replace(",", "."))), estimated: false };
+  if (/^\d+$/.test(t)) return { minutes: Number(t), estimated: false };
+  if (/^\d+[.,]\d+$/.test(t)) {
+    const value = number(t);
+    return { minutes: Math.round(value <= 24 ? value * 60 : value), estimated: false };
   }
   const clock = /^(\d{1,2}):(\d{2})$/.exec(t);
   if (clock) return { minutes: Number(clock[1]) * 60 + Number(clock[2]), estimated: false };
 
-  const hours = /(\d+)\s*(std|stunden?|h|hrs?|hours?)\b\.?/.exec(t);
-  const minutes = /(\d+)\s*(min|minuten?|m|mins?|minutes?)\b\.?/.exec(t);
+  // A decimal comma or point belongs to the number («1.5 h»), not before it («5 h»).
+  const hours = /(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(std|stunden?|h|hrs?|hours?)\b\.?/.exec(t);
+  const minutes = /(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(min|minuten?|m|mins?|minutes?)\b\.?/.exec(t);
   if (!hours && !minutes) return null;
   return {
-    minutes: (hours ? Number(hours[1]) * 60 : 0) + (minutes ? Number(minutes[1]) : 0),
+    minutes: Math.round((hours ? number(hours[1]!) * 60 : 0) + (minutes ? number(minutes[1]!) : 0)),
     estimated: false,
   };
 }

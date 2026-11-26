@@ -70,7 +70,7 @@ Von Hand:
    Minecraft for Nintendo Switch;04.01.2026;Für kurze Zeit;Switch 2
    ```
 
-   - **Dauer:** so wie in der App (`1 Std. 15 Min.`, `45 Min.`) oder einfach Minuten (`75`). `Für kurze Zeit` zählt als 5 Minuten und gilt als geschätzt.
+   - **Dauer:** so wie in der App (`1 Std. 15 Min.`, `45 Min.`) oder einfach Minuten (`75`). Stunden mit Komma gehen auch (`1,5 Std.`, `1.5 h` oder nur `1,5` = 90 Minuten). `Für kurze Zeit` zählt als 5 Minuten und gilt als geschätzt.
    - **Gerät:** leer lassen, `Switch 1` oder `Switch 2`. Leer heisst: vor dem 13.06.2025 Switch 1, danach «Switch (unbekannt)», weil die Store-App das Gerät nicht pro Tag anzeigt.
 3. Datei hochladen. Die App zeigt, wie viele Tage sie gelesen hat und welche Zeilen nicht lesbar sind. Dann **«Importieren»**.
 
