@@ -7,7 +7,7 @@ import { normalizeTitle } from "../core/normalize-title";
 import { buildPlayedDays } from "../core/playtime";
 import { emptyBatch, type SyncBatch } from "../core/types";
 import { buildSampleBatches } from "../testing/sample-library";
-import { persistBatch } from "./persist";
+import { persistBatch, recomputeDailyTotals } from "./persist";
 
 const USER = "11111111-1111-1111-1111-111111111111";
 const NOW = new Date("2026-11-10T12:00:00Z");
@@ -76,6 +76,22 @@ describe("persistBatch with demo data", () => {
       "select count(*)::int as n from game_bibliothek.platform_games where platform = 'nintendo' and total_playtime_minutes > 0",
     );
     expect(played[0]!.n).toBeGreaterThan(15);
+  });
+
+  it("recomputes the totals of many entries with a few requests", async () => {
+    const ids = (await rows<{ id: string }>("select id from game_bibliothek.platform_games where platform = 'nintendo'")).map((r) => r.id);
+    expect(ids.length).toBeGreaterThan(15);
+    await pg.query("update game_bibliothek.platform_games set total_playtime_minutes = 1 where platform = 'nintendo'");
+    let requests = 0;
+    const counting = { from: (table: string) => (requests++, db.from(table)) } as unknown as SupabaseClient;
+    await recomputeDailyTotals(counting, USER, ids);
+    expect(requests).toBeLessThanOrEqual(6);
+    const mismatches = await rows(`
+      select pg.title from game_bibliothek.platform_games pg
+      left join (select platform_game_id, sum(minutes)::int as minutes
+                 from game_bibliothek.daily_playtime group by 1) d on d.platform_game_id = pg.id
+      where pg.platform = 'nintendo' and pg.total_playtime_minutes <> coalesce(d.minutes, 0)`);
+    expect(mismatches).toEqual([]);
   });
 
   it("stores per-day rows for both consoles", async () => {

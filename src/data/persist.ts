@@ -342,11 +342,13 @@ export async function recomputeDailyTotals(
   if (platformGameIds.length === 0) return;
 
   // 1. The games behind the given entries
-  const requested: { id: string; game_id: string | null; platform: string }[] = [];
+  type EntryRow = { id: string; game_id: string | null; platform: string; source: string; external_id: string; title: string };
+  const columns = "id, game_id, platform, source, external_id, title";
+  const requested: EntryRow[] = [];
   for (const ids of chunks(platformGameIds, 100)) {
     const { data, error } = await db
       .from("platform_games")
-      .select("id, game_id, platform")
+      .select(columns)
       .eq("user_id", userId)
       .in("id", ids);
     fail("read", error);
@@ -356,18 +358,18 @@ export async function recomputeDailyTotals(
   const platforms = new Set(requested.map((r) => r.platform));
 
   // 2. Every entry of those games on the same platform(s)
-  const entries = new Map<string, { gameKey: string; previousTotal: number | null }>();
-  for (const row of requested) entries.set(row.id, { gameKey: row.game_id ?? row.id, previousTotal: null });
+  const entries = new Map<string, { gameKey: string; row: EntryRow }>();
+  for (const row of requested) entries.set(row.id, { gameKey: row.game_id ?? row.id, row });
   for (const ids of chunks(gameIds, 100)) {
     const { data, error } = await db
       .from("platform_games")
-      .select("id, game_id, platform")
+      .select(columns)
       .eq("user_id", userId)
       .in("game_id", ids);
     fail("read", error);
-    for (const row of (data ?? []) as typeof requested) {
+    for (const row of (data ?? []) as EntryRow[]) {
       if (platforms.has(row.platform)) {
-        entries.set(row.id, { gameKey: row.game_id ?? row.id, previousTotal: null });
+        entries.set(row.id, { gameKey: row.game_id ?? row.id, row });
       }
     }
   }
@@ -415,18 +417,36 @@ export async function recomputeDailyTotals(
     }
   }
 
-  // 4. Write the totals. Entries whose rows no longer count drop to zero.
+  // 4. Write the totals, a few hundred entries per request (not one request per entry).
+  // Entries whose rows no longer count drop to zero.
+  const withDays: Record<string, unknown>[] = [];
+  const withoutDays: string[] = [];
   for (const id of allIds) {
     const t = totals.get(id);
-    const patch = t
-      ? {
-          total_playtime_minutes: t.minutes,
-          // noon UTC keeps the calendar day stable in Europe/Zurich
-          first_played_at: `${t.first}T12:00:00Z`,
-          last_played_at: `${t.last}T12:00:00Z`,
-        }
-      : { total_playtime_minutes: 0 };
-    const { error } = await db.from("platform_games").update(patch).eq("id", id).eq("user_id", userId);
+    const { row } = entries.get(id)!;
+    if (!t) {
+      withoutDays.push(id);
+      continue;
+    }
+    withDays.push({
+      id,
+      user_id: userId,
+      platform: row.platform,
+      source: row.source,
+      external_id: row.external_id,
+      title: row.title,
+      total_playtime_minutes: t.minutes,
+      // noon UTC keeps the calendar day stable in Europe/Zurich
+      first_played_at: `${t.first}T12:00:00Z`,
+      last_played_at: `${t.last}T12:00:00Z`,
+    });
+  }
+  for (const part of chunks(withDays)) {
+    const { error } = await db.from("platform_games").upsert(part, { onConflict: "user_id,platform,external_id" });
+    fail("playtime totals", error);
+  }
+  for (const ids of chunks(withoutDays, 100)) {
+    const { error } = await db.from("platform_games").update({ total_playtime_minutes: 0 }).eq("user_id", userId).in("id", ids);
     fail("playtime totals", error);
   }
 }
