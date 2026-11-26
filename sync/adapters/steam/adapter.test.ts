@@ -124,6 +124,42 @@ describe("steamAdapter", () => {
     expect([cs.achievementsUnlocked, cs.achievementsTotal]).toEqual([undefined, undefined]);
   });
 
+  it("reads postponed and failed achievements in a later run", async () => {
+    const asked = (calls: URL[]) => calls.filter((c) => c.pathname.includes("GetPlayerAchievements")).map((c) => c.searchParams.get("appid"));
+    const unchanged = new Map<string, PreviousGameState>([
+      ["730", { totalPlaytimeMinutes: 8210, lastPlayedAt: null, achievementsTotal: null }],
+      ["322500", { totalPlaytimeMinutes: 262, lastPlayedAt: null, achievementsTotal: null }],
+    ]);
+    // A failed read is kept for the next run …
+    const broken = fakeSteam({ GetSchemaForGame: () => new Response("oops", { status: 500 }) });
+    const first = await steamAdapter.sync(context(broken.fetchFn, { previousGames: unchanged, previousDetails: { achievementsPending: [] } }));
+    expect(asked(broken.calls)).toEqual([]);
+    const changed = new Map(unchanged).set("322500", { totalPlaytimeMinutes: 200, lastPlayedAt: null, achievementsTotal: null });
+    const failing = fakeSteam({ GetSchemaForGame: () => new Response("oops", { status: 500 }) });
+    const second = await steamAdapter.sync(context(failing.fetchFn, { previousGames: changed, previousDetails: first.details! }));
+    expect(second.details!.achievementsPending).toEqual(["322500"]);
+    // … and read then, although the playtime did not change again
+    const { fetchFn, calls } = fakeSteam();
+    const third = await steamAdapter.sync(context(fetchFn, { previousGames: unchanged, previousDetails: second.details! }));
+    expect(asked(calls)).toEqual(["322500"]);
+    expect(third.details!.achievementsPending).toEqual([]);
+  });
+
+  it("postpones achievements over the limit per run", async () => {
+    const { MAX_ACHIEVEMENT_GAMES_PER_RUN, gamesNeedingAchievements } = await import("./adapter");
+    const games = Array.from({ length: MAX_ACHIEVEMENT_GAMES_PER_RUN + 5 }, (_, i) => ({
+      appId: i + 1, name: `G${i}`, playtimeMinutes: 10, lastPlayed: 1000 - i, hasStats: true,
+    })) as Parameters<typeof gamesNeedingAchievements>[0];
+    const after = new Map(games.map((g) => [String(g.appId), { totalPlaytimeMinutes: 10, lastPlayedAt: null, achievementsTotal: null }]));
+    // the five postponed ones are due again even though nothing changed
+    const pending = games.slice(MAX_ACHIEVEMENT_GAMES_PER_RUN).map((g) => String(g.appId));
+    const due = gamesNeedingAchievements(games, context(fakeSteam().fetchFn, { previousGames: after, previousDetails: { achievementsPending: pending } }));
+    expect(due.map((g) => String(g.appId))).toEqual(pending);
+    // before the list existed: games without a stored total are read once
+    const bootstrap = gamesNeedingAchievements(games, context(fakeSteam().fetchFn, { previousGames: after }));
+    expect(bootstrap).toHaveLength(games.length);
+  });
+
   it("never asks for achievements of unplayed games or games without stats", async () => {
     const { fetchFn, calls } = fakeSteam();
     await steamAdapter.sync(context(fetchFn));

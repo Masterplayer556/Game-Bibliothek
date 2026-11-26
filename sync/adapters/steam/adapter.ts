@@ -47,15 +47,22 @@ function iso(unixSeconds: number): string | null {
 
 /**
  * Achievements are expensive (three calls per game), so they are only read for games whose
- * playtime changed since the last run, and for every game with stats on the first run.
+ * playtime changed since the last run, for games seen for the first time (all of them on the
+ * first run), and for games whose reading is still due from an earlier run: postponed over
+ * MAX_ACHIEVEMENT_GAMES_PER_RUN or failed. Those are kept in the connection details
+ * (`achievementsPending`). Before that list existed, a stored total of null stands for
+ * «maybe never read» (once; games without achievements stay null and are then left alone).
  */
 export function gamesNeedingAchievements(games: readonly OwnedGame[], ctx: AdapterContext): OwnedGame[] {
-  const firstRun = ctx.previousGames.size === 0;
+  const pending = ctx.previousDetails.achievementsPending;
+  const pendingIds = Array.isArray(pending) ? new Set(pending.map(String)) : null;
   return games
     .filter((g) => g.hasStats && g.playtimeMinutes > 0)
     .filter((g) => {
-      const previous = ctx.previousGames.get(String(g.appId));
-      return firstRun || !previous || previous.totalPlaytimeMinutes !== g.playtimeMinutes;
+      const id = String(g.appId);
+      const previous = ctx.previousGames.get(id);
+      if (!previous || previous.totalPlaytimeMinutes !== g.playtimeMinutes) return true;
+      return pendingIds ? pendingIds.has(id) : previous.achievementsTotal === null;
     })
     .sort((a, b) => b.lastPlayed - a.lastPlayed);
 }
@@ -93,6 +100,8 @@ export const steamAdapter: PlatformAdapter = {
       if (due.length > now.length) warnings.push(`Erfolge von ${due.length - now.length} Spielen folgen beim nächsten Sync`);
 
       const progress = new Map<number, { unlocked: number; total: number } | null>();
+      // Still to read next time: the postponed games and those that failed now.
+      const pending = due.slice(now.length).map((g) => String(g.appId));
       let failed = 0;
       for (const game of now) {
         try {
@@ -127,6 +136,7 @@ export const steamAdapter: PlatformAdapter = {
             throw error;
           }
           failed++;
+          pending.push(String(game.appId));
         }
       }
       if (failed > 0) warnings.push(`Erfolge von ${failed} Spielen nicht lesbar`);
@@ -156,7 +166,7 @@ export const steamAdapter: PlatformAdapter = {
         // Day-level history starts with the first sync: lifetime totals before it are a starting value.
         dataSince: toLocalDate(ctx.now),
         warnings,
-        details: { games: owned.length, achievementGames: now.length - failed },
+        details: { games: owned.length, achievementGames: now.length - failed, achievementsPending: pending },
       };
     } catch (error) {
       throw toAdapterError(error);

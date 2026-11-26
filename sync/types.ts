@@ -28,6 +28,8 @@ export interface Logger {
 export interface PreviousGameState {
   totalPlaytimeMinutes: number;
   lastPlayedAt: string | null;
+  /** Stored achievement total; null = none known (not read yet, or the game has none). */
+  achievementsTotal?: number | null;
 }
 
 export interface AdapterContext {
