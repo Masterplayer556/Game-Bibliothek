@@ -234,6 +234,20 @@ describe("row level security", () => {
     ).rejects.toThrow(/permission denied/);
   });
 
+  it("gives the API roles no use of the private schema, yet the policies still work", async () => {
+    const usage = await db.query<{ anon: boolean; authenticated: boolean; service: boolean }>(`
+      select has_schema_privilege('anon', 'game_bibliothek_private', 'usage') as anon,
+             has_schema_privilege('authenticated', 'game_bibliothek_private', 'usage') as authenticated,
+             has_schema_privilege('service_role', 'game_bibliothek_private', 'usage') as service`);
+    expect(usage.rows[0]).toEqual({ anon: false, authenticated: false, service: true });
+    await expect(
+      as("authenticated", owner, () => db.query("select game_bibliothek_private.is_allowed_user()")),
+    ).rejects.toThrow(/permission denied/);
+    // The owner still reads their rows: the policies call is_allowed_user() by its id.
+    const rows = await as("authenticated", owner, () => db.query("select 1 from game_bibliothek.games"));
+    expect(rows.rows).toHaveLength(1);
+  });
+
   it("lets only the service role ask whether an e-mail is allowed", async () => {
     const asService = async (email: string) => {
       await db.exec("begin");
