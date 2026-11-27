@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSampleBatches } from "../testing/sample-library";
+import { buildChronicle } from "./chronicle";
 import { buildLibrary, type AchievementRow, type GameDay, type Library, type RawData } from "./library";
 import { availableYears, bestDay, buildWrapped, finishedAndRated, longestStreak, yearRange } from "./wrapped";
 
@@ -157,7 +158,8 @@ describe("buildWrapped: new games", () => {
   const raw: RawData = {
     games: ["old-psn", "bought", "fresh-steam", "switch-first-day", "switch-later"].map(game),
     platformGames: [
-      // PlayStation dates its first play into 2026, but it had 600 minutes at the first sync
+      // PlayStation dates its first play into 2026, but it already had 600 minutes at a sync
+      // before that day: the date cannot be right, and the game is not new
       entry("old-psn", "psn", 700, "2026-03-01T10:00:00Z"),
       // Steam: owned with 0 minutes at the first sync, played in June
       entry("bought", "steam", 90),
@@ -209,6 +211,103 @@ describe("buildWrapped: new games", () => {
   it("puts a new game into the year it was first played", () => {
     const w = buildWrapped(buildLibrary(raw), raw, 2027, { today: "2027-12-05" });
     expect(w.newGames).toEqual([]);
+  });
+});
+
+describe("buildWrapped: new games by PlayStation's «first played» date", () => {
+  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null });
+  const entry = (id: string, gameId: string, platform: "steam" | "psn" | "nintendo", total: number, firstPlayedAt: string | null = null) => ({
+    id, game_id: gameId, platform, source: platform === "nintendo" ? "nintendo-parental" : platform, external_id: id, title: gameId,
+    cover_url: null, device_kind: null, owned: true, first_played_at: firstPlayedAt, last_played_at: null,
+    total_playtime_minutes: total, achievements_unlocked: null, achievements_total: null,
+  });
+  const snapshot = (id: string, at: string, total: number) => ({ platform_game_id: id, taken_at: at, total_minutes: total, last_played_at: null });
+  // PlayStation and Steam are tracked from mid-November 2026 on.
+  const FIRST_PSN_SYNC = "2026-11-13T06:00:00Z";
+  const raw: RawData = {
+    games: ["ps-2026", "ps-2025", "ps-twice", "ps-and-switch", "ps-and-steam", "ps-fresh", "ps-app", "ps-zero", "ps-comeback"].map(game),
+    platformGames: [
+      // first played in March 2026, long before tracking began: new in 2026
+      entry("p-2026", "ps-2026", "psn", 700, "2026-03-10T18:00:00Z"),
+      // first played at Christmas 2025: new in 2025, not in 2026
+      entry("p-2025", "ps-2025", "psn", 300, "2025-12-24T18:00:00Z"),
+      // two PlayStation versions: the earlier date counts
+      entry("p-twice-a", "ps-twice", "psn", 500, "2025-12-30T10:00:00Z"),
+      entry("p-twice-b", "ps-twice", "psn", 0, "2026-02-21T10:00:00Z"),
+      // new on the PS5 in 2026, but played on the Switch since 2025 (imported history)
+      entry("p-switch-ps", "ps-and-switch", "psn", 200, "2026-04-23T10:00:00Z"),
+      entry("p-switch-ns", "ps-and-switch", "nintendo", 60, "2025-09-05T12:00:00Z"),
+      // new on the PS5 in November, but 23 hours on Steam at its first sync: maybe played for years
+      entry("p-steam-ps", "ps-and-steam", "psn", 20, "2026-11-09T19:00:00Z"),
+      entry("p-steam-pc", "ps-and-steam", "steam", 1400),
+      // new since tracking began, and Sony dates it too: listed once
+      entry("p-fresh", "ps-fresh", "psn", 90, "2026-11-18T17:00:00Z"),
+      // an app marked «Kein Spiel»
+      entry("p-app", "ps-app", "psn", 40, "2026-01-24T10:00:00Z"),
+      // started, but less than a minute
+      entry("p-zero", "ps-zero", "psn", 0, "2026-04-16T10:00:00Z"),
+      // 30 minutes before tracking, an hour after it: new, not rediscovered
+      entry("p-comeback", "ps-comeback", "psn", 90, "2026-02-01T10:00:00Z"),
+    ],
+    devices: [{ id: "d-s1", platform: "nintendo", kind: "switch1", label: "Switch" }],
+    daily: [
+      { platform_game_id: "p-switch-ns", device_id: "d-s1", play_date: "2025-09-05", minutes: 60, source: "nintendo-import", estimated: false },
+    ],
+    snapshots: [
+      snapshot("p-2026", FIRST_PSN_SYNC, 600),
+      snapshot("p-2026", "2026-11-20T06:00:00Z", 700),
+      snapshot("p-2025", FIRST_PSN_SYNC, 300),
+      snapshot("p-twice-a", FIRST_PSN_SYNC, 500),
+      snapshot("p-twice-b", FIRST_PSN_SYNC, 0),
+      snapshot("p-switch-ps", FIRST_PSN_SYNC, 200),
+      snapshot("p-steam-ps", FIRST_PSN_SYNC, 20),
+      snapshot("p-steam-pc", "2026-11-12T06:00:00Z", 1400),
+      snapshot("p-fresh", FIRST_PSN_SYNC, 0),
+      snapshot("p-fresh", "2026-11-20T06:00:00Z", 90),
+      snapshot("p-app", FIRST_PSN_SYNC, 40),
+      snapshot("p-zero", FIRST_PSN_SYNC, 0),
+      snapshot("p-comeback", FIRST_PSN_SYNC, 30),
+      snapshot("p-comeback", "2026-11-20T06:00:00Z", 90),
+    ],
+    achievements: [],
+    userData: [{ game_id: "ps-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null }],
+    connections: [],
+    settings: {},
+  };
+  const library = buildLibrary(raw);
+  const options = { today: "2026-12-05" };
+
+  it("counts a PS5 game first played this year before tracking began, by Sony's day", () => {
+    expect(buildWrapped(library, raw, 2026, options).newGames).toEqual(["ps-comeback", "ps-2026", "ps-fresh"]);
+  });
+
+  it("puts a game Sony dates into the previous year there, not into this one", () => {
+    expect(buildWrapped(library, raw, 2025, options).newGames).toEqual(["ps-2025", "ps-twice"]);
+  });
+
+  it("leaves out a game played elsewhere without a known first day, apps and games never really played", () => {
+    const all = [2025, 2026].flatMap((year) => buildWrapped(library, raw, year, options).newGames);
+    for (const id of ["ps-and-switch", "ps-and-steam", "ps-app", "ps-zero"]) expect(all).not.toContain(id);
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("never lists a game both as new and as rediscovered", () => {
+    const w = buildWrapped(library, raw, 2026, options);
+    expect(w.rediscovered.map((r) => r.gameId)).not.toContain("ps-comeback");
+    for (const r of w.rediscovered) expect(w.newGames).not.toContain(r.gameId);
+  });
+
+  it("dates «Erstmals gespielt» in the Chronik on the same day", () => {
+    const starts = buildChronicle(library, raw, { isRare: () => false })
+      .filter((e) => e.kind === "start")
+      .map((e) => [e.gameId, e.date]);
+    expect(starts).toEqual([
+      ["ps-fresh", "2026-11-18"],
+      ["ps-2026", "2026-03-10"],
+      ["ps-comeback", "2026-02-01"],
+      ["ps-twice", "2025-12-30"],
+      ["ps-2025", "2025-12-24"],
+    ]);
   });
 });
 

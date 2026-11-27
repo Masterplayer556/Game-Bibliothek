@@ -1,7 +1,7 @@
 // «Game Bibliothek Wrapped»: the numbers of one calendar year (Europe/Zurich).
 // Pure functions on top of the library model; the page only displays the result.
 import { groupTwins } from "./achievements";
-import { firstPlayedDay, newSinceTracking } from "./chronicle";
+import { startedGames } from "./chronicle";
 import {
   distribution,
   topGames,
@@ -57,7 +57,7 @@ export interface WrappedYear {
   favoriteGenre: Share | null;
   bestDay: BestDay | null;
   longestStreak: StreakResult | null;
-  /** Games first played this year, among those new since tracking began (oldest first). */
+  /** Games first played this year, among those whose first day is known (oldest first). */
   newGames: string[];
   achievements: { unlocked: number; rarest: (AchievementRow & { gameId: string }) | null };
   /** Games barely touched before the year that got real playtime in it. */
@@ -241,14 +241,17 @@ export function buildWrapped(
 
   const genres = distribution(days, range, "genre", byId).filter((s) => s.key !== UNKNOWN_GENRE);
 
-  // Games first played this year, like «Erstmals gespielt» in the Chronik: only games that are
-  // new since tracking began. A game that already had playtime at the first sync is not new,
-  // even if the platform dates its first day (or the first synced day) into this year.
-  const fresh = newSinceTracking(library, raw);
+  // Games first played this year, like «Erstmals gespielt» in the Chronik (`startedGames`): new
+  // since tracking began, or on PlayStation by Sony's «first played» date, also from before the
+  // first sync. A game that already had playtime at the first sync without such a date is not
+  // new, even if the first synced day falls into this year.
+  const started = startedGames(library, raw);
   const newGames = library.games
-    .filter((g) => !g.hidden && fresh.has(g.id))
-    .map((g) => ({ id: g.id, start: firstPlayedDay(g, days) }))
-    .filter((g): g is { id: string; start: LocalDate } => !!g.start && g.start >= range.from && g.start <= range.to)
+    .filter((g) => !g.hidden)
+    .flatMap((g) => {
+      const start = started.get(g.id);
+      return start && start >= range.from && start <= range.to ? [{ id: g.id, start }] : [];
+    })
     .sort((a, b) => a.start.localeCompare(b.start) || a.id.localeCompare(b.id))
     .map((g) => g.id);
 

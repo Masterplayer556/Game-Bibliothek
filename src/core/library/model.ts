@@ -13,6 +13,11 @@ export interface PlatformEntry {
   deviceKind: DeviceKind | null;
   owned: boolean;
   totalMinutes: number;
+  /**
+   * First played: on PlayStation Sony's own date (also from before tracking began), on the
+   * Switch the first day with per-day data, elsewhere null.
+   */
+  firstPlayedAt: string | null;
   lastPlayedAt: string | null;
   /** null = the platform has no achievements */
   achievements: { unlocked: number; total: number } | null;
@@ -120,6 +125,7 @@ export function buildLibrary(raw: RawData): Library {
         deviceKind: r.device_kind,
         owned: r.owned,
         totalMinutes: r.total_playtime_minutes,
+        firstPlayedAt: r.first_played_at,
         lastPlayedAt: r.last_played_at,
         achievements:
           r.achievements_total != null
