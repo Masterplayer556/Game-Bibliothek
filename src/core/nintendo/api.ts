@@ -9,8 +9,8 @@
 export const NINTENDO_API_BASE_URL = "https://app.lp1.znma.srv.nintendo.net";
 
 /** Version of the official app this client presents itself as. Nintendo may require updates. */
-export const NINTENDO_APP_VERSION = "2.6.0";
-export const NINTENDO_APP_BUILD = "700";
+export const NINTENDO_APP_VERSION = "2.7.0";
+export const NINTENDO_APP_BUILD = "740";
 
 export interface NintendoApiOptions {
   fetch: typeof fetch;
@@ -207,6 +207,19 @@ export function parseKnownTitles(json: unknown): Record<string, NintendoTitleInf
   return titles;
 }
 
+/** Nintendo answers errors as problem+json; its `errorCode` says what is wrong. */
+async function readErrorCode(response: Response): Promise<string | null> {
+  try {
+    const data: unknown = await response.json();
+    if (!isObject(data)) return null;
+    const code = asString(data.errorCode);
+    // Only a short, plain code: it ends up in a message shown in the app.
+    return code && /^[A-Za-z0-9_.-]{1,64}$/.test(code) ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 async function request(options: NintendoApiOptions, path: string): Promise<unknown> {
   const version = options.appVersion ?? NINTENDO_APP_VERSION;
   const build = options.appBuild ?? NINTENDO_APP_BUILD;
@@ -241,9 +254,16 @@ async function request(options: NintendoApiOptions, path: string): Promise<unkno
     lastStatus = response.status;
     if (response.status === 401 || response.status === 403) continue;
     if (!response.ok) {
+      const code = await readErrorCode(response);
+      // A 400 without a better reason is how Nintendo turned away an outdated app version
+      // (November 2026: 2.6.0 → 2.7.0).
+      const hint =
+        response.status === 400
+          ? " Vermutlich verlangt Nintendo eine neuere App-Version (NINTENDO_APP_VERSION / NINTENDO_APP_BUILD)."
+          : "";
       throw new NintendoApiError(
         response.status,
-        `Die Nintendo-Jugendschutz-API antwortet mit einem Fehler (Status ${response.status}).`,
+        `Die Nintendo-Jugendschutz-API antwortet mit einem Fehler (Status ${response.status}${code ? `, ${code}` : ""}).${hint}`,
       );
     }
     try {
