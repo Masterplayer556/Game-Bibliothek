@@ -62,7 +62,7 @@ function demoRaw(now: Date): RawData {
       const key = g.title.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z]/g, "").replace(/(fornintendoswitch|javaedition)$/, "");
       if (!gameIds.has(key)) {
         gameIds.set(key, key);
-        raw.games.push({ id: key, title: g.title, cover_url: null, genres: key.startsWith("pokemon") ? ["RPG"] : [], release_year: null, igdb_id: null });
+        raw.games.push({ id: key, title: g.title, cover_url: null, genres: key.startsWith("pokemon") ? ["RPG"] : [], release_year: null, igdb_id: null, time_to_beat: null });
       }
       const daily = batch.dailyPlaytime.filter((r) => r.gameExternalId === g.externalId);
       const total = g.totalPlaytimeMinutes ?? daily.reduce((s, r) => s + r.minutes, 0);
@@ -147,7 +147,7 @@ describe("buildWrapped with demo data", () => {
 });
 
 describe("buildWrapped: new games", () => {
-  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null });
+  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null });
   const entry = (id: string, platform: "steam" | "psn" | "nintendo", total: number, firstPlayedAt: string | null = null) => ({
     id: `p-${id}`, game_id: id, platform, source: platform === "nintendo" ? "nintendo-parental" : platform, external_id: id, title: id,
     cover_url: null, device_kind: null, owned: true, first_played_at: firstPlayedAt, last_played_at: null,
@@ -250,7 +250,7 @@ describe("buildWrapped: achievements", () => {
     unlocked_at: unlockedAt, rarity_percent: rarity, tier: null,
   });
   const raw: RawData = {
-    games: [{ id: "hk", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+    games: [{ id: "hk", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null }],
     platformGames: [entry("hk-steam", "hk", "steam"), entry("hk-psn", "hk", "psn")],
     devices: [], daily: [], snapshots: [], userData: [], connections: [], settings: {},
     achievements: [
@@ -289,7 +289,7 @@ describe("buildWrapped: achievements", () => {
 describe("buildWrapped: games added by hand", () => {
   it("do not show up as a platform tracked only from a later day", () => {
     const raw: RawData = {
-      games: [{ id: "peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+      games: [{ id: "peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null }],
       platformGames: [{
         id: "p-peg", game_id: "peg", platform: "manual", source: "manual", external_id: "manual:1", title: "Peggle",
         cover_url: null, device_kind: "xbox360", owned: true, first_played_at: null, last_played_at: null,

@@ -15,6 +15,7 @@ import { Achievements } from "./game-detail/Achievements";
 import { Entries } from "./game-detail/Entries";
 import { IgdbCard } from "./game-detail/IgdbCard";
 import { MyData } from "./game-detail/MyData";
+import { TimeToBeat } from "./game-detail/TimeToBeat";
 
 // The game page; each card of «my data», achievements, entries and IGDB has its own file.
 export function GameDetail({ id }: { id: string }) {
@@ -114,6 +115,8 @@ export function GameDetail({ id }: { id: string }) {
                 />
               )}
             </Card>
+
+            <TimeToBeat game={game} />
 
             <Card title="Verlauf" icon="stats">
               {gameDays.length === 0 ? (

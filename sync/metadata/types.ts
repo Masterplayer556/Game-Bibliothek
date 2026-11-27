@@ -1,6 +1,7 @@
 // Metadata providers are separate from platform adapters: they do not know what I own or
 // play, they only describe games (cover, genres, year) and help to link the same game
 // across platforms (same provider id = same game).
+import type { TimeToBeat } from "../../src/core/igdb/time-to-beat";
 import type { DeviceKind } from "../../src/core/types";
 
 export interface GameMetadata {
@@ -30,4 +31,10 @@ export interface MetadataProvider {
     fetchFn: typeof fetch,
     requests: readonly LookupRequest[],
   ): Promise<Map<string, GameMetadata | null>>;
+  /** How long games take, by provider id (only the games the provider knows a time for). */
+  timeToBeat?(
+    env: Readonly<Record<string, string | undefined>>,
+    fetchFn: typeof fetch,
+    providerGameIds: readonly number[],
+  ): Promise<Map<number, TimeToBeat>>;
 }

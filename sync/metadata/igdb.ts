@@ -1,5 +1,6 @@
 import { IGDB_MIN_INTERVAL_MS, IgdbError, login, searchMany, searchGames, type IgdbSession } from "../../src/core/igdb/client";
 import { pickBestMatch, searchTitle } from "../../src/core/igdb/match";
+import { fetchTimeToBeat } from "../../src/core/igdb/time-to-beat";
 import type { GameMetadata, MetadataProvider } from "./types";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,5 +53,10 @@ export const igdbProvider: MetadataProvider & { intervalMs: number } = {
       }
     }
     return out;
+  },
+
+  async timeToBeat(env, fetchFn, ids) {
+    if (ids.length === 0) return new Map();
+    return fetchTimeToBeat(await session(env, fetchFn), ids, this.intervalMs);
   },
 };

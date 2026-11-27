@@ -37,7 +37,7 @@ export async function loadRawParts(db: SupabaseClient, parts: readonly RawPart[]
     );
 
   const loaders: { [K in RawPart]: () => Promise<RawData[K]> } = {
-    games: () => all("games", "id, title, cover_url, genres, release_year, igdb_id"),
+    games: () => all("games", "id, title, cover_url, genres, release_year, igdb_id, time_to_beat"),
     platformGames: () =>
       all(
         "platform_games",

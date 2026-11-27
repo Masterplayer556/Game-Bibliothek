@@ -1,4 +1,5 @@
 // Raw rows, as read from the database.
+import type { TimeToBeat } from "../igdb/time-to-beat";
 import type { ConnectionStatus, DeviceKind, GameStatus, LocalDate, PlatformId } from "../types";
 
 export interface GameRow {
@@ -8,6 +9,8 @@ export interface GameRow {
   genres: string[] | null;
   release_year: number | null;
   igdb_id: number | null;
+  /** How long the game takes (IGDB), in minutes; null = unknown. */
+  time_to_beat: TimeToBeat | null;
 }
 
 export interface PlatformGameRow {

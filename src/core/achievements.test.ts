@@ -30,10 +30,10 @@ function ach(entryId: string, n: number, name: string, unlockedAt: string | null
 
 const library = buildLibrary({
   games: [
-    { id: "g-both", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null },
-    { id: "g-ps", title: "Astro Bot", cover_url: null, genres: [], release_year: null, igdb_id: null },
-    { id: "g-app", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null },
-    { id: "g-nin", title: "Kirby", cover_url: null, genres: [], release_year: null, igdb_id: null },
+    { id: "g-both", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+    { id: "g-ps", title: "Astro Bot", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+    { id: "g-app", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+    { id: "g-nin", title: "Kirby", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
   ],
   platformGames: [
     entry("hk-steam", "g-both", "steam", 2, 3),
@@ -127,7 +127,7 @@ describe("dedupeSharedTrophyLists", () => {
     unlocked_at: unlocked ? "2026-05-01T10:00:00Z" : null, rarity_percent: 10, tier: "bronze",
   });
   const raw = (achievements: AchievementRow[], entries = [entry("ps4", 2, 3), entry("ps5", 2, 3)]): RawData => ({
-    games: [{ id: "g", title: "Game", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+    games: [{ id: "g", title: "Game", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null }],
     platformGames: entries, devices: [], daily: [], snapshots: [], achievements, userData: [], connections: [], settings: {},
   });
 

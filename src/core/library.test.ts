@@ -18,6 +18,7 @@ import {
   periodTotals,
   rangeFor,
   readStoredFilter,
+  timeToBeatSummary,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -25,10 +26,10 @@ import {
 function raw(): RawData {
   return {
     games: [
-      { id: "g-mc", title: "Minecraft", cover_url: null, genres: ["Sandbox"], release_year: 2011, igdb_id: null },
-      { id: "g-hk", title: "Hollow Knight", cover_url: null, genres: ["Platformer", "Metroidvania"], release_year: 2017, igdb_id: null },
-      { id: "g-yt", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-mc", title: "Minecraft", cover_url: null, genres: ["Sandbox"], release_year: 2011, igdb_id: null, time_to_beat: null },
+      { id: "g-hk", title: "Hollow Knight", cover_url: null, genres: ["Platformer", "Metroidvania"], release_year: 2017, igdb_id: null, time_to_beat: null },
+      { id: "g-yt", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
     ],
     platformGames: [
       // Minecraft on PS5 (lifetime totals, snapshots) and Switch (per-day data, two consoles)
@@ -345,5 +346,40 @@ describe("readStoredFilter", () => {
     expect(readStoredFilter("{kaputt")).toEqual({ sort: "lastPlayed" });
     expect(readStoredFilter("[1]")).toEqual({ sort: "lastPlayed" });
     expect(readStoredFilter(JSON.stringify({ sort: "random", search: 5, favorite: "yes", extra: 1 }))).toEqual({ sort: "lastPlayed" });
+  });
+});
+
+describe("time to beat", () => {
+  const withTimes = () => {
+    const r = raw();
+    r.games = r.games.map((g) =>
+      g.id === "g-hk" ? { ...g, time_to_beat: { hastily: 1200, normally: 1800, completely: 3600, count: 50 } }
+      : g.id === "g-mc" ? { ...g, time_to_beat: { hastily: null, normally: null, completely: 6000, count: 3 } }
+      : g,
+    );
+    return buildLibrary(r);
+  };
+
+  it("compares my playtime with the usual length", () => {
+    const hk = withTimes().byId.get("g-hk")!;
+    expect(timeToBeatSummary(hk)).toEqual({
+      steps: [
+        { kind: "hastily", minutes: 1200 },
+        { kind: "normally", minutes: 1800 },
+        { kind: "completely", minutes: 3600 },
+      ],
+      mainMinutes: 1800,
+      mineMinutes: 30,
+      progress: 30 / 1800,
+    });
+    // only «everything» known: that is the length; more than it is capped at 100 %
+    const mc = withTimes().byId.get("g-mc")!;
+    expect(timeToBeatSummary(mc)).toMatchObject({ mainMinutes: 6000, progress: 1150 / 6000 });
+    expect(timeToBeatSummary({ timeToBeat: { hastily: 10, normally: null, completely: null, count: 1 }, totalMinutes: 50 })?.progress).toBe(1);
+    expect(timeToBeatSummary(withTimes().byId.get("g-peg")!)).toBeNull();
+  });
+
+  it("sorts short games first, unknown length last", () => {
+    expect(filterLibrary(withTimes().games, { sort: "short" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
   });
 });

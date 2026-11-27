@@ -39,3 +39,33 @@ export function deviceTotals(game: LibraryGame, days: readonly GameDay[]): Devic
   }
   return [...merged.values()].sort((a, b) => b.minutes - a.minutes);
 }
+
+export type TimeToBeatKind = "hastily" | "normally" | "completely";
+
+export interface TimeToBeatSummary {
+  /** The values IGDB has, shortest first. */
+  steps: { kind: TimeToBeatKind; minutes: number }[];
+  /** The usual length: normal, else rushed, else everything. */
+  mainMinutes: number;
+  /** My playtime on all platforms. */
+  mineMinutes: number;
+  /** Mine compared with the usual length, 0 to 1 (capped). */
+  progress: number;
+}
+
+/** The usual length of a game in minutes (normal, else rushed, else everything); null = unknown. */
+export function mainLength(game: Pick<LibraryGame, "timeToBeat">): number | null {
+  const t = game.timeToBeat;
+  return t ? (t.normally ?? t.hastily ?? t.completely ?? null) : null;
+}
+
+/** «Hauptstory ca. 12 Std., du: 8 Std.»: null if IGDB knows no length. */
+export function timeToBeatSummary(game: Pick<LibraryGame, "timeToBeat" | "totalMinutes">): TimeToBeatSummary | null {
+  const t = game.timeToBeat;
+  const main = mainLength(game);
+  if (!t || main === null) return null;
+  const steps = (["hastily", "normally", "completely"] as const)
+    .filter((kind) => t[kind] != null)
+    .map((kind) => ({ kind, minutes: t[kind]! }));
+  return { steps, mainMinutes: main, mineMinutes: game.totalMinutes, progress: Math.min(1, game.totalMinutes / main) };
+}

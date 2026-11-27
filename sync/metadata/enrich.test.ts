@@ -118,3 +118,48 @@ describe("enrichMetadata", () => {
     expect(steam[0]!.game_id).toBe(id);
   });
 });
+
+describe("time to beat", () => {
+  const GTA_TIME = { hastily: 1500, normally: 2400, completely: 3600, count: 120 };
+  function timedProvider(fail = false) {
+    const asked: number[][] = [];
+    const { provider } = fakeProvider();
+    provider.timeToBeat = async (_env, _fetch, ids) => {
+      asked.push([...ids]);
+      if (fail) throw new Error("IGDB down");
+      return new Map(ids.filter((id) => id === 1020).map((id) => [id, GTA_TIME]));
+    };
+    return { provider, asked };
+  }
+
+  it("keeps covers and genres when the time cannot be fetched", async () => {
+    const { provider } = timedProvider(true);
+    const summary = await run(provider);
+    expect(summary.timeToBeat).toBe(0);
+    const checked = await rows<{ n: number }>("select count(*)::int as n from game_bibliothek.games where time_to_beat_checked_at is not null");
+    expect(checked[0]!.n).toBe(0);
+  });
+
+  it("stores the time of games with an IGDB id and marks the others as asked", async () => {
+    const { provider, asked } = timedProvider();
+    const summary = await run(provider);
+    expect(summary.timeToBeat).toBe(1);
+    // the two Kirby games (one split off by hand) share id 7
+    expect(asked[0]!.sort((a, b) => a - b)).toEqual([7, 7, 1020]);
+    const games = await rows<{ title: string; time_to_beat: unknown; checked: boolean }>(
+      "select title, time_to_beat, time_to_beat_checked_at is not null as checked from game_bibliothek.games where igdb_id is not null order by title",
+    );
+    const gta = (g: { title: string }) => g.title.startsWith("Grand Theft Auto");
+    expect(games.find(gta)).toMatchObject({ time_to_beat: GTA_TIME, checked: true });
+    expect(games.filter((g) => !gta(g)).every((g) => g.time_to_beat === null && g.checked)).toBe(true);
+  });
+
+  it("asks again only after 30 days", async () => {
+    const soon = timedProvider();
+    await run(soon.provider, new Date("2026-11-20T12:00:00Z"));
+    expect(soon.asked).toEqual([]);
+    const later = timedProvider();
+    await run(later.provider, new Date("2026-12-20T12:00:00Z"));
+    expect(later.asked[0]).toHaveLength(3);
+  });
+});

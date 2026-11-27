@@ -1,8 +1,9 @@
 // The library list: search, filters and sort order.
 import type { DeviceKind, GameStatus, PlatformId } from "../types";
+import { mainLength } from "./game";
 import type { LibraryGame } from "./model";
 
-export const SORT_KEYS = ["lastPlayed", "playtime", "name", "achievements", "releaseYear", "rating"] as const;
+export const SORT_KEYS = ["lastPlayed", "playtime", "name", "achievements", "releaseYear", "rating", "short"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 
 export interface LibraryFilter {
@@ -75,6 +76,8 @@ function descending(a: number | null, b: number | null): number {
   return b - a;
 }
 
+const negate = (n: number | null) => (n === null ? null : -n);
+
 /** Sort orders; equal games are ordered by title. */
 const SORTS: Record<SortKey, (a: LibraryGame, b: LibraryGame) => number> = {
   name: () => 0,
@@ -91,6 +94,8 @@ const SORTS: Record<SortKey, (a: LibraryGame, b: LibraryGame) => number> = {
   releaseYear: (a, b) => descending(a.releaseYear, b.releaseYear),
   // Best rated first; games without a rating last.
   rating: (a, b) => descending(a.rating, b.rating),
+  // Shortest first (IGDB «time to beat»); games without a known length last.
+  short: (a, b) => descending(negate(mainLength(a)), negate(mainLength(b))),
 };
 
 export function allGenres(games: readonly LibraryGame[]): string[] {

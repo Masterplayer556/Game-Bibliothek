@@ -10,6 +10,9 @@ export async function searchIgdb(db: SupabaseClient, query: string): Promise<Igd
   return answer.results ?? [];
 }
 
+/** Another IGDB entry takes another time: the next sync looks it up again. */
+const NO_TIME_YET = { time_to_beat: null, time_to_beat_checked_at: null };
+
 /**
  * Sets the IGDB entry of a game by hand (null = no entry). The sync will not change it again.
  * Another game with the same IGDB id is joined into this one.
@@ -19,8 +22,8 @@ export async function applyIgdb(db: SupabaseClient, gameId: string, choice: Igdb
     .from("games")
     .update(
       choice
-        ? { igdb_id: choice.igdbId, igdb_locked: true, cover_url: choice.coverUrl, genres: choice.genres, release_year: choice.releaseYear }
-        : { igdb_id: null, igdb_locked: true, cover_url: null, genres: [], release_year: null },
+        ? { igdb_id: choice.igdbId, igdb_locked: true, cover_url: choice.coverUrl, genres: choice.genres, release_year: choice.releaseYear, ...NO_TIME_YET }
+        : { igdb_id: null, igdb_locked: true, cover_url: null, genres: [], release_year: null, ...NO_TIME_YET },
     )
     .eq("id", gameId);
   if (error) throw new Error(error.message);

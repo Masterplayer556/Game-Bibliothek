@@ -29,6 +29,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   achievements: "Erfolge (Fortschritt)",
   releaseYear: "Erscheinungsjahr",
   rating: "Bewertung",
+  short: "Kurze Spiele zuerst",
 };
 const VIEWS: { id: View; label: string }[] = [
   { id: "shelf", label: "Raster" },

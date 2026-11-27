@@ -5,14 +5,14 @@ import { buildLibrary, type RawData } from "./library";
 function raw(): RawData {
   return {
     games: [
-      { id: "g-a", title: "Alpha", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-b", title: "Beta", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-c", title: "Gamma", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-app", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-d", title: "Delta", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-e", title: "Epsilon", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-f", title: "Phi", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-g", title: "Gamma Two", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-a", title: "Alpha", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-b", title: "Beta", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-c", title: "Gamma", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-app", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-d", title: "Delta", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-e", title: "Epsilon", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-f", title: "Phi", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-g", title: "Gamma Two", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
     ],
     platformGames: [
       // Alpha: Switch, per-day data from the start (no time before tracking)

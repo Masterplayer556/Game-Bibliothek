@@ -2,6 +2,7 @@
 import { addStartingBaselines, buildPlayedDays, type PlayedDay, type PlaytimeWarning } from "../playtime";
 import { toLocalDate } from "../time";
 import type { DeviceKind, GameStatus, LocalDate, PlatformId } from "../types";
+import type { TimeToBeat } from "../igdb/time-to-beat";
 import type { PlatformGameRow, RawData } from "./rows";
 
 export interface PlatformEntry {
@@ -24,6 +25,8 @@ export interface LibraryGame {
   genres: string[];
   releaseYear: number | null;
   igdbId: number | null;
+  /** How long the game takes according to IGDB players; null = unknown. */
+  timeToBeat: TimeToBeat | null;
   entries: PlatformEntry[];
   platforms: PlatformId[];
   deviceKinds: DeviceKind[];
@@ -145,6 +148,7 @@ export function buildLibrary(raw: RawData): Library {
       genres: game.genres ?? [],
       releaseYear: game.release_year,
       igdbId: game.igdb_id,
+      timeToBeat: game.time_to_beat ?? null,
       entries,
       platforms: [...new Set(entries.map((e) => e.platform))],
       deviceKinds: DEVICE_ORDER.filter((k) => kinds.has(k)),
