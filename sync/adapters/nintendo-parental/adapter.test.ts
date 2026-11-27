@@ -235,6 +235,19 @@ describe("nintendoParentalAdapter", () => {
     });
   });
 
+  it("names Nintendo's error code and the likely cause of a 400", async () => {
+    const outdated = fakeApi({
+      fetchOwnedDevices: () =>
+        new Response(JSON.stringify({ status: 400, errorCode: "upgrade_required", title: "BadRequest" }), {
+          status: 400,
+        }),
+    });
+    const error = await nintendoParentalAdapter.sync(context(outdated.fetchFn)).catch((e: unknown) => e);
+    expect(error).toMatchObject({ kind: "unknown" });
+    expect((error as AdapterError).message).toContain("Status 400, upgrade_required");
+    expect((error as AdapterError).message).toContain("neuere App-Version");
+  });
+
   it("still syncs when the software list is unavailable", async () => {
     const { fetchFn } = fakeApi({ fetchParentalControlSetting: () => new Response("", { status: 500 }) });
     const result = await nintendoParentalAdapter.sync(context(fetchFn));
