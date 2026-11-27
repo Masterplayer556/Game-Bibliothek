@@ -15,6 +15,8 @@ import {
   totalInRange,
   undatedTime,
   countsAppsInTotal,
+  periodTotals,
+  rangeFor,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -278,5 +280,46 @@ describe("format", () => {
     expect(formatMinutes(120)).toBe("2 Std.");
     expect(formatHours(90)).toBe("1.5 Std."); // Swiss decimal point
     expect(formatHours(6000)).toBe("100 Std.");
+  });
+});
+
+describe("rangeFor", () => {
+  it("counts back from today, the year from 1 January", () => {
+    expect(rangeFor("30d", "2026-03-31", undefined)).toEqual({ from: "2026-03-02", to: "2026-03-31" });
+    expect(rangeFor("12m", "2026-03-31", undefined)).toEqual({ from: "2025-04-01", to: "2026-03-31" });
+    expect(rangeFor("year", "2026-03-31", undefined)).toEqual({ from: "2026-01-01", to: "2026-03-31" });
+  });
+
+  it("starts «all» on the first played day, or today without any", () => {
+    expect(rangeFor("all", "2026-03-31", "2024-05-01")).toEqual({ from: "2024-05-01", to: "2026-03-31" });
+    expect(rangeFor("all", "2026-03-31", undefined)).toEqual({ from: "2026-03-31", to: "2026-03-31" });
+  });
+});
+
+describe("periodTotals", () => {
+  const library = buildLibrary(raw());
+  const all = rangeFor("all", "2026-03-10", library.days[0]?.date);
+
+  it("adds the time without a date only for everything", () => {
+    const dated = totalInRange(library.days, all).minutes;
+    const undated = undatedTime(library.games, library.days).reduce((s, u) => s + u.minutes, 0);
+    const everything = periodTotals(library, all, true, false);
+    expect(everything.undatedMinutes).toBe(undated);
+    expect(everything.total.minutes).toBe(dated + undated);
+    const range = periodTotals(library, all, false, false);
+    expect(range.undated).toEqual([]);
+    expect(range.total.minutes).toBe(dated);
+  });
+
+  it("adds the time in apps only when it counts", () => {
+    const without = periodTotals(library, all, true, false);
+    const withApps = periodTotals(library, all, true, true);
+    expect(without.appMinutes).toBe(500);
+    expect(withApps.total.minutes).toBe(without.total.minutes + 500);
+  });
+
+  it("counts played days of games only", () => {
+    // Minecraft on 1, 2 and 9 March; YouTube (an app) on 5 March does not count.
+    expect(periodTotals(library, all, false, false).playedDays).toBe(3);
   });
 });

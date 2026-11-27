@@ -22,7 +22,7 @@ import {
   StatTile,
   type RareLimit,
 } from "@/components/ui";
-import { achievementPlatforms, achievementSummary, type AchievementFilter } from "@/core/achievements";
+import { achievementPlatforms, achievementSummary, rareUnlocks, recentUnlocks, shownEntries, type AchievementFilter } from "@/core/achievements";
 import { ACHIEVEMENT_PLATFORM_LABEL, PLATFORM_LABEL } from "@/core/labels";
 import { errorMessage } from "@/lib/errors";
 import { saveSettings } from "@/lib/library-data";
@@ -46,28 +46,12 @@ export default function AchievementsPage() {
         const active: AchievementFilter = filter === "all" || platforms.includes(filter) ? filter : "all";
         const { rows, unlocked, total, games } = achievementSummary(library.games, active, raw.achievements);
         const nintendoOnly = library.games.filter((g) => !g.hidden && g.platforms.every((p) => p === "nintendo")).length;
-        const shownEntries = new Map(
-          rows.flatMap((r) =>
-            r.game.entries
-              .filter((e) => r.platforms.includes(e.platform) && (active === "all" || e.id === r.key))
-              .map((e) => [e.id, { game: r.game, platform: e.platform }] as const),
-          ),
-        );
-        const recent = raw.achievements
-          .filter((a) => a.unlocked_at && shownEntries.has(a.platform_game_id))
-          .sort((a, b) => (b.unlocked_at ?? "").localeCompare(a.unlocked_at ?? ""))
-          .slice(0, 8);
+        const shown = shownEntries(rows, active);
+        const recent = recentUnlocks(raw.achievements, shown, 8);
         const rareLimit = readRareLimit(raw.settings);
         // Rare ones I have, rarest first. In «Zusammen» the same achievement on PC and PlayStation
         // appears once, with the lower share.
-        const rareByKey = new Map<string, (typeof raw.achievements)[number]>();
-        for (const a of raw.achievements) {
-          if (!a.unlocked_at || !shownEntries.has(a.platform_game_id) || !isRare(a.rarity_percent, rareLimit)) continue;
-          const key = `${shownEntries.get(a.platform_game_id)!.game.id}|${a.name.trim().toLowerCase()}`;
-          const known = rareByKey.get(key);
-          if (!known || (a.rarity_percent ?? 100) < (known.rarity_percent ?? 100)) rareByKey.set(key, a);
-        }
-        const rare = [...rareByKey.values()].sort((a, b) => (a.rarity_percent ?? 100) - (b.rarity_percent ?? 100));
+        const rare = rareUnlocks(raw.achievements, shown, (p) => isRare(p, rareLimit));
         const rareUnlocked = rare.length;
         const rareShown = allRare ? rare : rare.slice(0, 10);
         const saveRareLimit = async (next: RareLimit) => {
@@ -201,7 +185,7 @@ export default function AchievementsPage() {
                     </p>
                     <ol className="flex flex-col gap-1">
                       {rareShown.map((a, i) => {
-                        const row = shownEntries.get(a.platform_game_id)!;
+                        const row = shown.get(a.platform_game_id)!;
                         const percent = a.rarity_percent ?? 0;
                         return (
                           <li key={`${a.platform_game_id}-${a.external_id}`} className="flex items-center gap-3 rounded-2xl p-1.5 hover:bg-section-soft">
@@ -246,7 +230,7 @@ export default function AchievementsPage() {
               <Card title="Zuletzt freigeschaltet" icon="medal" tone="chronicle">
                 <ul className="flex flex-col gap-2 text-sm">
                   {recent.map((a) => {
-                    const row = shownEntries.get(a.platform_game_id)!;
+                    const row = shown.get(a.platform_game_id)!;
                     return (
                       <li key={`${a.platform_game_id}-${a.external_id}`} className="flex justify-between gap-2">
                         <span className="min-w-0">

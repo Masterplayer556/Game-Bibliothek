@@ -8,6 +8,7 @@
 //   filter  – search, filters and sort order of the library list
 //   game    – numbers of one game
 //   health  – sync health
+//   period  – the periods under «Statistiken» and their totals
 export * from "./rows";
 export * from "./model";
 export * from "./stats";
@@ -15,3 +16,4 @@ export * from "./series";
 export * from "./filter";
 export * from "./game";
 export * from "./health";
+export * from "./period";

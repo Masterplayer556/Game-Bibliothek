@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { achievementKey, achievementPlatforms, achievementSummary, dedupeSharedTrophyLists, mergeAchievements } from "./achievements";
+import {
+  achievementKey,
+  achievementPlatforms,
+  achievementSummary,
+  dedupeSharedTrophyLists,
+  mergeAchievements,
+  rareUnlocks,
+  recentUnlocks,
+  shownEntries,
+} from "./achievements";
+import { isRare, readRareLimit } from "./rare";
 import { buildLibrary, type AchievementRow, type RawData } from "./library";
 
 type Entry = RawData["platformGames"][number];
@@ -134,5 +144,54 @@ describe("dedupeSharedTrophyLists", () => {
     const separate = [0, 1, 2].flatMap((n) => [trophy("ps4", "NPWR1_00", n, n < 2), trophy("ps5", "NPWR2_00", n, n < 2)]);
     const input = raw(separate);
     expect(dedupeSharedTrophyLists(input)).toBe(input);
+  });
+});
+
+describe("achievements page lists", () => {
+  const rows = [
+    ach("hk-steam", 1, "Erster Schritt", "2026-01-01T10:00:00Z", 80),
+    ach("hk-psn", 1, "ERSTER SCHRITT ", "2026-01-03T10:00:00Z", 60),
+    ach("hk-steam", 2, "Pantheon", "2026-02-01T10:00:00Z", 2.5),
+    ach("hk-psn", 2, "Pantheon", "2026-02-05T10:00:00Z", 1.5),
+    ach("astro", 1, "Retter", "2026-03-01T10:00:00Z", 4),
+    ach("astro", 2, "Gesperrt", null, 1),
+    ach("yt", 1, "App", "2026-03-02T10:00:00Z", 1),
+  ];
+
+  it("shows every entry of a game for «all», one entry for a platform", () => {
+    const all = shownEntries(achievementSummary(library.games, "all", rows).rows, "all");
+    expect([...all.keys()].sort()).toEqual(["astro", "hk-psn", "hk-steam"]);
+    const psn = shownEntries(achievementSummary(library.games, "psn", rows).rows, "psn");
+    expect([...psn.keys()].sort()).toEqual(["astro", "hk-psn"]);
+    expect(psn.get("astro")?.game.id).toBe("g-ps");
+  });
+
+  it("lists the latest unlocks of the shown entries", () => {
+    const shown = shownEntries(achievementSummary(library.games, "all", rows).rows, "all");
+    expect(recentUnlocks(rows, shown, 2).map((a) => a.name)).toEqual(["Retter", "Pantheon"]);
+  });
+
+  it("lists rare unlocks once per game and name, with the lower share, rarest first", () => {
+    const shown = shownEntries(achievementSummary(library.games, "all", rows).rows, "all");
+    const rare = rareUnlocks(rows, shown, (p) => isRare(p, "5"));
+    expect(rare.map((a) => [a.name, a.rarity_percent])).toEqual([
+      ["Pantheon", 1.5],
+      ["Retter", 4],
+    ]);
+  });
+});
+
+describe("rare limit", () => {
+  it("reads the stored limit or falls back to 10 %", () => {
+    expect(readRareLimit({ rareLimit: "3" })).toBe("3");
+    expect(readRareLimit({ rareLimit: "7" })).toBe("10");
+    expect(readRareLimit({})).toBe("10");
+  });
+
+  it("counts «<1» as below one percent and unknown shares as not rare", () => {
+    expect(isRare(1, "1")).toBe(true);
+    expect(isRare(1, "<1")).toBe(false);
+    expect(isRare(0.5, "<1")).toBe(true);
+    expect(isRare(null, "10")).toBe(false);
   });
 });

@@ -15,19 +15,18 @@ import {
   distribution,
   lifetimeDistribution,
   lifetimeTopGames,
+  periodTotals,
+  RANGE_KEYS,
+  rangeFor,
   topGames,
-  totalInRange,
-  undatedTime,
   type Grouping,
-  type Range,
+  type RangeKey,
 } from "@/core/library";
-import { addDays, toLocalDate } from "@/core/time";
+import { toLocalDate } from "@/core/time";
 import { errorMessage } from "@/lib/errors";
 import { saveSettings } from "@/lib/library-data";
 import { getSupabase } from "@/lib/supabase";
 import type { DeviceKind, LocalDate, PlatformId } from "@/core/types";
-
-type RangeKey = "30d" | "3m" | "6m" | "12m" | "year" | "all";
 
 const RANGE_LABEL: Record<RangeKey, string> = {
   "30d": "Letzte 30 Tage",
@@ -37,23 +36,6 @@ const RANGE_LABEL: Record<RangeKey, string> = {
   year: "Dieses Jahr",
   all: "Alles",
 };
-
-function rangeFor(key: RangeKey, today: LocalDate, firstDay: LocalDate | undefined): Range {
-  switch (key) {
-    case "30d":
-      return { from: addDays(today, -29), to: today };
-    case "3m":
-      return { from: addDays(today, -91), to: today };
-    case "6m":
-      return { from: addDays(today, -182), to: today };
-    case "12m":
-      return { from: addDays(today, -364), to: today };
-    case "year":
-      return { from: `${today.slice(0, 4)}-01-01`, to: today };
-    case "all":
-      return { from: firstDay ?? today, to: today };
-  }
-}
 
 export default function StatisticsPage() {
   const [rangeKey, setRangeKey] = useState<RangeKey>("all");
@@ -68,17 +50,8 @@ export default function StatisticsPage() {
         // «Alles» also counts what was played before the first sync: the platforms report it in
         // their totals, but without a date, so it cannot appear in any shorter range.
         const everything = rangeKey === "all";
-        const undated = everything ? undatedTime(library.games, library.days) : [];
-        const undatedMinutes = undated.reduce((sum, u) => sum + u.minutes, 0);
-        const dated = totalInRange(library.days, range);
-        // «App-Zeit mitzählen»: the total adds the time in apps; everything else stays games only.
         const withApps = countsAppsInTotal(raw.settings);
-        const appDated = totalInRange(library.appDays, range);
-        const appUndated = everything ? undatedTime(library.games, library.appDays, "apps").reduce((sum, u) => sum + u.minutes, 0) : 0;
-        const appMinutes = appDated.minutes + appUndated;
-        const total = withApps
-          ? { minutes: dated.minutes + undatedMinutes + appMinutes, estimated: dated.estimated || appDated.estimated }
-          : { minutes: dated.minutes + undatedMinutes, estimated: dated.estimated };
+        const { undated, undatedMinutes, appMinutes, total, playedDays } = periodTotals(library, range, everything, withApps);
         const toggleApps = async (on: boolean) => {
           setSavingApps(true);
           setAppsError(null);
@@ -96,7 +69,6 @@ export default function StatisticsPage() {
           everything ? lifetimeDistribution(library.days, undated, by, library.byId) : distribution(library.days, range, by, library.byId);
         // Platforms whose day-by-day data starts inside the chosen range.
         const lateStart = (Object.entries(library.dataSince) as [PlatformId, LocalDate][]).filter(([, since]) => !everything && since > range.from);
-        const playedDays = new Set(library.days.filter((d) => d.date >= range.from && d.date <= range.to).map((d) => d.date)).size;
         const coverage = Object.entries(library.dataSince) as [PlatformId, LocalDate][];
 
         return (
@@ -121,7 +93,7 @@ export default function StatisticsPage() {
                   <Icon name="filter" className="h-5 w-5" />
                 </span>
                 <select className={`${fieldClass} min-w-0 flex-1 !rounded-full font-semibold`} aria-label="Zeitraum" value={rangeKey} onChange={(e) => setRangeKey(e.target.value as RangeKey)}>
-                {(Object.keys(RANGE_LABEL) as RangeKey[]).map((k) => (
+                {RANGE_KEYS.map((k) => (
                   <option key={k} value={k}>{RANGE_LABEL[k]}</option>
                 ))}
               </select>
