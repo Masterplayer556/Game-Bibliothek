@@ -291,6 +291,35 @@ describe("buildWrapped: new games by PlayStation's «first played» date", () =>
     expect(new Set(all).size).toBe(all.length);
   });
 
+  it("ignores a few minutes tried elsewhere before tracking began", () => {
+    // started on the PS5 in May, but opened once for a minute on Steam before tracking began
+    const tried: RawData = {
+      ...raw,
+      games: [...raw.games, game("ps-tried"), game("ps-played-pc")],
+      platformGames: [
+        ...raw.platformGames,
+        entry("p-tried-ps", "ps-tried", "psn", 2364, "2026-05-16T10:00:00Z"),
+        entry("p-tried-pc", "ps-tried", "steam", 1),
+        // the same with 11 minutes on Steam: more than tried, its start stays unknown
+        entry("p-pc-ps", "ps-played-pc", "psn", 600, "2026-05-16T10:00:00Z"),
+        entry("p-pc-pc", "ps-played-pc", "steam", 11),
+      ],
+      snapshots: [
+        ...raw.snapshots,
+        snapshot("p-tried-ps", FIRST_PSN_SYNC, 2364),
+        snapshot("p-tried-pc", "2026-11-12T06:00:00Z", 1),
+        snapshot("p-pc-ps", FIRST_PSN_SYNC, 600),
+        snapshot("p-pc-pc", "2026-11-12T06:00:00Z", 11),
+      ],
+    };
+    const lib = buildLibrary(tried);
+    const newGames = buildWrapped(lib, tried, 2026, options).newGames;
+    expect(newGames).toContain("ps-tried");
+    expect(newGames).not.toContain("ps-played-pc");
+    const start = buildChronicle(lib, tried, { isRare: () => false }).find((e) => e.kind === "start" && e.gameId === "ps-tried");
+    expect(start?.date).toBe("2026-05-16");
+  });
+
   it("never lists a game both as new and as rediscovered", () => {
     const w = buildWrapped(library, raw, 2026, options);
     expect(w.rediscovered.map((r) => r.gameId)).not.toContain("ps-comeback");

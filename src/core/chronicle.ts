@@ -52,9 +52,15 @@ const KIND_ORDER: ChronicleKind[] = ["finished", "platinum", "complete", "milest
  *   before – had playtime when tracking began and the day it started is unknown: its first
  *            snapshot shows minutes on the first sync day of its platform, it has imported
  *            history, or its time has no date at all (entered by hand)
+ *   brief  – like «before», but only tried: it has never had more than `BRIEF_MINUTES` (a game
+ *            started for a minute on Steam and then played on the PS5 still counts as started
+ *            when the PS5 says so)
  * Entries never played are left out.
  */
-type EntryStart = "new" | "sony" | "before";
+type EntryStart = "new" | "sony" | "before" | "brief";
+
+/** Playtime from before tracking up to which an entry only counts as tried. */
+export const BRIEF_MINUTES = 10;
 
 function entryStarts(library: Library, raw: Pick<RawData, "daily" | "snapshots">): Map<string, EntryStart> {
   const platformOf = new Map(library.games.flatMap((g) => g.entries.map((e) => [e.id, e.platform] as const)));
@@ -104,6 +110,7 @@ function entryStarts(library: Library, raw: Pick<RawData, "daily" | "snapshots">
         const played = [firstPlayedSnapshot.get(e.id), day].filter((d): d is LocalDate => !!d).sort()[0];
         if (!played || sony <= played) how = "sony";
       }
+      if (how === "before" && !imported.has(e.id) && snapshot && e.totalMinutes <= BRIEF_MINUTES) how = "brief";
       out.set(e.id, how);
     }
   }
@@ -129,8 +136,9 @@ function firstPlayedDay(game: LibraryGame, days: readonly GameDay[]): LocalDate 
  * since tracking began, or it is on PlayStation and Sony reports the day it was first played
  * (so a PS5 game started before the first sync still counts, on Sony's day). One entry that
  * already had playtime at the first sync without such a date (Steam, the Switch, imported
- * history, entered by hand) leaves the game out: it may have been played long before. The day
- * is `firstPlayedDay`, the earliest date known for any of its entries.
+ * history, entered by hand) leaves the game out: it may have been played long before – unless it
+ * only has a few minutes (`BRIEF_MINUTES`), then it was just tried and is ignored. The day is
+ * `firstPlayedDay`, the earliest date known for any of its entries.
  */
 export function startedGames(library: Library, raw: Pick<RawData, "daily" | "snapshots">): Map<string, LocalDate> {
   const starts = entryStarts(library, raw);
@@ -142,7 +150,8 @@ export function startedGames(library: Library, raw: Pick<RawData, "daily" | "sna
   }
   const out = new Map<string, LocalDate>();
   for (const game of library.games) {
-    const hows = game.entries.flatMap((e) => starts.get(e.id) ?? []);
+    // Entries only tried before tracking neither block nor make a start.
+    const hows = game.entries.flatMap((e) => starts.get(e.id) ?? []).filter((h) => h !== "brief");
     if (hows.length === 0 || hows.includes("before")) continue;
     const day = firstPlayedDay(game, daysByGame.get(game.id) ?? []);
     if (day) out.set(game.id, day);
