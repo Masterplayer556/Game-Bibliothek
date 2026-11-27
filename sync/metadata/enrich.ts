@@ -224,12 +224,19 @@ async function mergeByProviderId(
     byId.set(g.igdb_id, list);
   }
   const entryCount = (gameId: string) => entries.filter((e) => e.game_id === gameId).length;
+  // A game holding entries linked by hand (split off or merged by the user) never takes in other games.
+  const handLinked = (gameId: string) => entries.some((e) => e.game_id === gameId && e.game_link_locked);
   let merged = 0;
   for (const group of byId.values()) {
     if (group.length < 2) continue;
     const [target, ...others] = [...group].sort(
-      (a, b) => Number(b.igdb_locked) - Number(a.igdb_locked) || entryCount(b.id) - entryCount(a.id) || a.id.localeCompare(b.id),
+      (a, b) =>
+        Number(handLinked(a.id)) - Number(handLinked(b.id)) ||
+        Number(b.igdb_locked) - Number(a.igdb_locked) ||
+        entryCount(b.id) - entryCount(a.id) ||
+        a.id.localeCompare(b.id),
     );
+    if (handLinked(target!.id)) continue; // every game here was linked by hand
     for (const other of others) {
       const movable = entries.filter((e) => e.game_id === other.id && !e.game_link_locked);
       for (const e of movable) {

@@ -109,13 +109,17 @@ describe("enrichMetadata", () => {
 
   it("keeps entries that were split off by hand", async () => {
     // split the Steam Kirby off again, locked
-    const id = "99999999-9999-9999-9999-999999999999";
+    // a low id: it sorts before the other Kirby, so only the lock keeps it from absorbing that one
+    const id = "00000000-0000-4000-8000-000000000000";
     await pg.query("insert into game_bibliothek.games (id, user_id, title, normalized_title, igdb_id) values ($1, $2, 'Kirby (Steam)', 'kirby steam', 7)", [id, USER]);
     await pg.query("update game_bibliothek.platform_games set game_id = $1, game_link_locked = true where external_id = '999'", [id]);
     const { provider } = fakeProvider();
     await run(provider);
     const steam = await rows<{ game_id: string }>("select game_id from game_bibliothek.platform_games where external_id = '999'");
     expect(steam[0]!.game_id).toBe(id);
+    // the other Kirby is not pulled into the game split off by hand
+    const nintendo = await rows<{ game_id: string }>("select game_id from game_bibliothek.platform_games where external_id = '0100A'");
+    expect(nintendo[0]!.game_id).not.toBe(id);
   });
 });
 
