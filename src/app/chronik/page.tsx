@@ -15,14 +15,14 @@ type Filter = "all" | "start" | "hours" | "achievements";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Alles" },
-  { id: "start", label: "Starts" },
+  { id: "start", label: "Start/Ziel" },
   { id: "hours", label: "Stunden" },
   { id: "achievements", label: "Erfolge" },
 ];
 
 const FILTER_KINDS: Record<Filter, ChronicleKind[] | null> = {
   all: null,
-  start: ["start"],
+  start: ["start", "finished"],
   hours: ["milestone"],
   achievements: ["platinum", "complete", "rare"],
 };
@@ -33,6 +33,7 @@ const LOOK: Record<ChronicleKind, { icon: IconName; tone: Section }> = {
   milestone: { icon: "flag", tone: "stats" },
   complete: { icon: "trophy", tone: "achievements" },
   platinum: { icon: "crown", tone: "chronicle" },
+  finished: { icon: "check", tone: "add" },
   rare: { icon: "star", tone: "review" },
   device: { icon: "gamepad", tone: "platforms" },
   tracking: { icon: "sync", tone: "home" },
@@ -77,6 +78,8 @@ function describe(event: ChronicleEvent, library: Library): { title: ReactNode; 
       return { title: `Alle ${event.count} Erfolge`, line: `${name} · ${platformName(event)}` };
     case "platinum":
       return { title: "Platin-Trophäe", line: `${name}${event.achievement?.rarityPercent != null ? ` · ${event.achievement.rarityPercent.toLocaleString("de-CH")} % der Spieler` : ""}` };
+    case "finished":
+      return { title: name, line: game?.rating != null ? `Durchgespielt · ${"★".repeat(game.rating)}` : "Durchgespielt" };
     case "rare":
       return {
         title: event.achievement?.name ?? "Seltener Erfolg",

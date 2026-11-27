@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { DEVICE_LABEL, formatHours, formatMinutes, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
 import { deviceTotals } from "@/core/library";
+import { RATING_MAX } from "@/core/my-data";
 import { toLocalDate } from "@/core/time";
 import type { DeviceKind, PlatformId } from "@/core/types";
 import { ShareBars } from "./charts";
@@ -59,6 +60,18 @@ export function GameDetail({ id }: { id: string }) {
                   {game.status ? (
                     <span className={`self-start rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${STATUS_LOOK[game.status]}`}>{STATUS_LABEL[game.status]}</span>
                   ) : null}
+                  {game.rating != null || game.completedOn ? (
+                    <span className="text-sm text-white/85">
+                      {game.rating != null ? (
+                        <span aria-label={`Bewertung ${game.rating} von ${RATING_MAX}`} className="tracking-wider text-highlight">
+                          {"★".repeat(game.rating)}
+                          <span className="text-white/35">{"★".repeat(RATING_MAX - game.rating)}</span>
+                        </span>
+                      ) : null}
+                      {game.rating != null && game.completedOn ? " · " : ""}
+                      {game.completedOn ? `durchgespielt am ${formatDay(game.completedOn)}` : ""}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <dl className="relative mx-4 mb-4 grid grid-cols-2 gap-3 rounded-[1.25rem] border border-white/15 bg-white/10 p-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] sm:mx-6 sm:mb-6 sm:grid-cols-3">
@@ -110,7 +123,7 @@ export function GameDetail({ id }: { id: string }) {
               )}
             </Card>
 
-            <MyData key={`${game.id}-${game.note}`} game={game} userId={userId} reload={() => reload(["userData"])} />
+            <MyData key={`${game.id}-${game.note}-${game.completedOn ?? ""}`} game={game} userId={userId} reload={() => reload(["userData"])} />
             <Achievements game={game} raw={raw} />
             <Entries game={game} games={library.games} userId={userId} reload={() => reload(["games", "platformGames", "snapshots", "userData"])} />
             <IgdbCard game={game} reload={() => reload(["games", "platformGames", "userData"])} />

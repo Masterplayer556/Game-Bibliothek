@@ -46,7 +46,7 @@ const library = buildLibrary({
   daily: [],
   snapshots: [],
   achievements: [],
-  userData: [{ game_id: "g-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true }],
+  userData: [{ game_id: "g-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null }],
   connections: [],
   settings: {},
 });

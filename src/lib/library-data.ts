@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ADAPTER_CATALOG } from "@/core/adapter-catalog";
 import type { RawData } from "@/core/library";
 import { normalizeTitle } from "@/core/normalize-title";
-import type { DeviceKind, GameStatus } from "@/core/types";
+import type { DeviceKind, GameStatus, LocalDate } from "@/core/types";
 import { fetchAll, persistBatch, recomputeDailyTotals } from "@/data/persist";
 
 export type RawPart = Exclude<keyof RawData, never>;
@@ -53,7 +53,7 @@ export async function loadRawParts(db: SupabaseClient, parts: readonly RawPart[]
           "platform_game_id, external_id, name, description, icon_url, unlocked_at, rarity_percent, tier",
         )
       ).map((a) => ({ ...a, rarity_percent: a.rarity_percent == null ? null : Number(a.rarity_percent) })),
-    userData: () => all("game_user_data", "game_id, status, favorite, note, hide_from_pile, hidden", "game_id"),
+    userData: () => all("game_user_data", "game_id, status, favorite, note, hide_from_pile, hidden, rating, completed_on", "game_id"),
     connections: () =>
       all(
         "platform_connections",
@@ -112,6 +112,8 @@ export interface UserDataPatch {
   note?: string | null;
   hide_from_pile?: boolean;
   hidden?: boolean;
+  rating?: number | null;
+  completed_on?: LocalDate | null;
 }
 
 export async function saveUserData(

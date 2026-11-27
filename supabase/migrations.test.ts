@@ -92,6 +92,27 @@ describe("migrations", () => {
   });
 });
 
+describe("rating and «Durchgespielt am»", () => {
+  it("lets the owner save them, a rating only from 1 to 5", async () => {
+    const saved = await as("authenticated", owner, async () =>
+      (await db.query<{ rating: number; completed_on: string }>(
+        "update game_bibliothek.game_user_data set rating = 4, completed_on = '2026-11-20' returning rating, completed_on::text",
+      )).rows,
+    );
+    expect(saved).toEqual([{ rating: 4, completed_on: "2026-11-20" }]);
+    await expect(
+      as("authenticated", owner, () => db.query("update game_bibliothek.game_user_data set rating = 6")),
+    ).rejects.toThrow(/check constraint/);
+  });
+
+  it("keeps them unreadable for another user", async () => {
+    const rows = await as("authenticated", stranger, async () =>
+      (await db.query("update game_bibliothek.game_user_data set rating = 1 returning game_id")).rows.length,
+    );
+    expect(rows).toBe(0);
+  });
+});
+
 describe("sharing a project with another app", () => {
   it("leaves the other app's tables and rights untouched", async () => {
     const rights = await db.query<{ anon: boolean; authenticated: boolean; rows: number }>(`

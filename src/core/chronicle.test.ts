@@ -59,7 +59,7 @@ function raw(): RawData {
       { platform_game_id: "p-c", external_id: "1", name: "Anfang", description: null, icon_url: null, unlocked_at: "2024-05-01T10:00:00Z", rarity_percent: 80, tier: null },
       { platform_game_id: "p-c", external_id: "2", name: "Meister", description: null, icon_url: null, unlocked_at: "2024-06-01T10:00:00Z", rarity_percent: 3.5, tier: null },
     ],
-    userData: [{ game_id: "g-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true }],
+    userData: [{ game_id: "g-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null }],
     connections: [],
     settings: {},
   };
@@ -114,6 +114,23 @@ describe("buildChronicle", () => {
     expect(events.some((e) => e.gameId === "g-app")).toBe(false);
     const dates = events.map((e) => e.date);
     expect(dates).toEqual([...dates].sort().reverse());
+  });
+});
+
+describe("finished games", () => {
+  it("adds «Durchgespielt» on the entered day, not for apps", () => {
+    const withDays = {
+      ...data,
+      userData: [
+        { game_id: "g-app", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: 3, completed_on: "2025-05-01" },
+        { game_id: "g-b", status: "completed" as const, favorite: false, note: null, hide_from_pile: false, hidden: false, rating: 5, completed_on: "2025-03-02" },
+      ],
+    };
+    const finished = buildChronicle(buildLibrary(withDays), withDays, { isRare: () => false }).filter((e) => e.kind === "finished");
+    expect(finished.map((e) => [e.gameId, e.date])).toEqual([["g-b", "2025-03-02"]]);
+    // On the same day as the platinum, it comes first.
+    const sameDay = buildChronicle(buildLibrary(withDays), withDays, { isRare: () => false }).filter((e) => e.date === "2025-03-02");
+    expect(sameDay[0]!.kind).toBe("finished");
   });
 });
 

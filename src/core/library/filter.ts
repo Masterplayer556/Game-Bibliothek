@@ -2,7 +2,7 @@
 import type { DeviceKind, GameStatus, PlatformId } from "../types";
 import type { LibraryGame } from "./model";
 
-export const SORT_KEYS = ["lastPlayed", "playtime", "name", "achievements", "releaseYear"] as const;
+export const SORT_KEYS = ["lastPlayed", "playtime", "name", "achievements", "releaseYear", "rating"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 
 export interface LibraryFilter {
@@ -89,6 +89,8 @@ const SORTS: Record<SortKey, (a: LibraryGame, b: LibraryGame) => number> = {
   achievements: (a, b) => descending(achievementShare(a), achievementShare(b)),
   // Newest first; games without a known year last.
   releaseYear: (a, b) => descending(a.releaseYear, b.releaseYear),
+  // Best rated first; games without a rating last.
+  rating: (a, b) => descending(a.rating, b.rating),
 };
 
 export function allGenres(games: readonly LibraryGame[]): string[] {

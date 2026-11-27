@@ -53,8 +53,8 @@ function raw(): RawData {
     ],
     achievements: [],
     userData: [
-      { game_id: "g-yt", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true },
-      { game_id: "g-hk", status: "playing", favorite: true, note: "Speedrun", hide_from_pile: false, hidden: false },
+      { game_id: "g-yt", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null },
+      { game_id: "g-hk", status: "playing", favorite: true, note: "Speedrun", hide_from_pile: false, hidden: false, rating: null, completed_on: null },
     ],
     connections: [],
     settings: {},
@@ -246,6 +246,8 @@ describe("filterLibrary", () => {
     // Hollow Knight 34/63, Minecraft 10/50, Peggle without achievements
     expect(filterLibrary(lib.games, { sort: "achievements" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
     expect(filterLibrary(lib.games, { sort: "releaseYear" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
+    const rated = buildLibrary({ ...raw(), userData: [...raw().userData, { game_id: "g-peg", status: null, favorite: false, note: null, hide_from_pile: false, hidden: false, rating: 4, completed_on: null }] });
+    expect(filterLibrary(rated.games, { sort: "rating" }).map((g) => g.id)).toEqual(["g-peg", "g-hk", "g-mc"]);
   });
 
   it("orders titles like German localeCompare (umlauts next to their base letter)", () => {

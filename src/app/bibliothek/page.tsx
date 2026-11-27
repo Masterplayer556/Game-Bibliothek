@@ -28,6 +28,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   name: "Name",
   achievements: "Erfolge (Fortschritt)",
   releaseYear: "Erscheinungsjahr",
+  rating: "Bewertung",
 };
 const VIEWS: { id: View; label: string }[] = [
   { id: "shelf", label: "Raster" },

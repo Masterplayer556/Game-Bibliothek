@@ -68,6 +68,10 @@ export interface UserDataRow {
   note: string | null;
   hide_from_pile: boolean;
   hidden: boolean;
+  /** 1 to 5 stars, null = not rated. */
+  rating: number | null;
+  /** «Durchgespielt am». */
+  completed_on: LocalDate | null;
 }
 
 export interface ConnectionRow {

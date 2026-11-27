@@ -40,6 +40,10 @@ export interface LibraryGame {
   hideFromPile: boolean;
   /** Not a game (YouTube, system apps): hidden from lists and statistics. */
   hidden: boolean;
+  /** My rating, 1 to 5 stars; null = not rated. */
+  rating: number | null;
+  /** The day I finished it («Durchgespielt am»). */
+  completedOn: LocalDate | null;
 }
 
 /** One played day of one game, with everything needed to group it. */
@@ -160,6 +164,8 @@ export function buildLibrary(raw: RawData): Library {
       note: user?.note ?? "",
       hideFromPile: user?.hide_from_pile ?? false,
       hidden: user?.hidden ?? false,
+      rating: user?.rating ?? null,
+      completedOn: user?.completed_on ?? null,
     });
   }
   const byId = new Map(games.map((g) => [g.id, g]));
