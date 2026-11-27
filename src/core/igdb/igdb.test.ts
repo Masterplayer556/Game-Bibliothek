@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { coverUrl, germanGenre, login, parseGame, searchMany, type IgdbGame } from "./client";
 import { pickBestMatch, searchTitle, titleNumbers, titleSimilarity } from "./match";
+import { fetchTimeToBeat, parseTimeToBeat } from "./time-to-beat";
 
 const game = (over: Partial<IgdbGame>): IgdbGame => ({
   igdbId: 1,
@@ -151,5 +152,38 @@ describe("IGDB client", () => {
   it("explains rejected credentials", async () => {
     const fakeFetch = (async () => new Response('{"status":403,"message":"invalid client secret"}', { status: 403 })) as typeof fetch;
     await expect(login(fakeFetch, { clientId: "c", clientSecret: "s" })).rejects.toThrow(/IGDB_CLIENT_SECRET/);
+  });
+});
+
+describe("time to beat", () => {
+  it("reads seconds as minutes and drops rows without any time", () => {
+    expect(parseTimeToBeat({ id: 1, game_id: 7, hastily: 36000, normally: 43230, completely: 0, count: 12 })).toEqual({
+      igdbId: 7,
+      time: { hastily: 600, normally: 721, completely: null, count: 12 },
+    });
+    expect(parseTimeToBeat({ game_id: 7, count: 3 })).toBeNull();
+    expect(parseTimeToBeat({ hastily: 100 })).toBeNull();
+    expect(parseTimeToBeat("x")).toBeNull();
+  });
+
+  it("asks for up to 500 games per request", async () => {
+    const bodies: string[] = [];
+    const fakeFetch = (async (url: string, init: RequestInit) => {
+      expect(url).toBe("https://api.igdb.com/v4/game_time_to_beats");
+      bodies.push(String(init.body));
+      return new Response(JSON.stringify([{ game_id: 2, normally: 3600, count: 1 }]), { status: 200 });
+    }) as unknown as typeof fetch;
+    const ids = Array.from({ length: 501 }, (_, i) => i + 1);
+    const times = await fetchTimeToBeat({ clientId: "c", accessToken: "t", fetch: fakeFetch }, [...ids, 2], 0);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0]).toContain("where game_id = (1,2,3,");
+    expect(bodies[0]).toContain("limit 500;");
+    expect(bodies[1]).toContain("where game_id = (501);");
+    expect(times.get(2)).toEqual({ hastily: null, normally: 60, completely: null, count: 1 });
+  });
+
+  it("reports an error answer", async () => {
+    const fakeFetch = (async () => new Response("", { status: 400 })) as unknown as typeof fetch;
+    await expect(fetchTimeToBeat({ clientId: "c", accessToken: "t", fetch: fakeFetch }, [1], 0)).rejects.toThrow(/Status 400/);
   });
 });

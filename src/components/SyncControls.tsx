@@ -10,7 +10,7 @@ import { Button, Card, fieldClass, Notice } from "./ui";
 
 const SOURCES = [...ADAPTER_CATALOG.filter((a) => a.credentialSource !== "none"), { id: "igdb", displayName: "IGDB" }];
 
-const STATUS_TEXT: Record<SyncRun["status"], string> = {
+export const STATUS_TEXT: Record<SyncRun["status"], string> = {
   queued: "wartet auf GitHub …",
   running: "läuft …",
   success: "fertig",
@@ -18,7 +18,7 @@ const STATUS_TEXT: Record<SyncRun["status"], string> = {
   error: "fehlgeschlagen",
 };
 
-const OUTCOME_TEXT: Record<string, string> = {
+export const OUTCOME_TEXT: Record<string, string> = {
   ok: "ok",
   error: "Fehler",
   auth_expired: "Anmeldung abgelaufen",
@@ -26,7 +26,8 @@ const OUTCOME_TEXT: Record<string, string> = {
   skipped_disabled: "ausgeschaltet",
 };
 
-function sourceName(id: string): string {
+export function sourceName(id: string): string {
+  if (id === "github") return "GitHub";
   return SOURCES.find((s) => s.id === id)?.displayName ?? id;
 }
 

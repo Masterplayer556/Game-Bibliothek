@@ -56,11 +56,14 @@ describe("loadRawData", () => {
 describe("actions", () => {
   it("saves my own data and settings", async () => {
     const game = await find("Cuphead");
-    const current = { status: null, favorite: false, note: null, hide_from_pile: false, hidden: false };
+    const current = { status: null, favorite: false, note: null, hide_from_pile: false, hidden: false, rating: null, completed_on: null };
     await saveUserData(db, USER, game.id, current, { status: "completed", note: "Alle Bosse" });
     await saveUserData(db, USER, game.id, { ...current, status: "completed", note: "Alle Bosse" }, { favorite: true });
     const after = await find("Cuphead");
     expect([after.status, after.note, after.favorite]).toEqual(["completed", "Alle Bosse", true]);
+    await saveUserData(db, USER, game.id, { ...current, status: "completed", note: "Alle Bosse", favorite: true }, { rating: 4, completed_on: "2026-11-20" });
+    const rated = await find("Cuphead");
+    expect([rated.rating, rated.completedOn, rated.note]).toEqual([4, "2026-11-20", "Alle Bosse"]);
 
     await saveSettings(db, USER, { rareLimit: "5" });
     expect((await loadRawData(db)).settings).toEqual({ rareLimit: "5" });

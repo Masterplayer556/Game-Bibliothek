@@ -67,6 +67,37 @@ export interface WrappedYear {
    * year are incomplete.
    */
   coverageGaps: CoverageGap[];
+  /** Games finished this year («Durchgespielt am» in the year), in the order they were finished. */
+  finished: string[];
+  /** My best rated games among those played or finished this year, best first (at most 3). */
+  topRated: { gameId: string; rating: number }[];
+}
+
+/**
+ * «Durchgespielt» and «Bestbewertet» of a year, from «Meine Angaben». A rated game counts for
+ * a year if it was played or finished in it; equal ratings go to the one played more that year.
+ */
+export function finishedAndRated(
+  library: Pick<Library, "games" | "days">,
+  range: Range,
+  limit = 3,
+): Pick<WrappedYear, "finished" | "topRated"> {
+  const games = library.games.filter((g) => !g.hidden);
+  const finished = games
+    .filter((g) => g.completedOn && g.completedOn >= range.from && g.completedOn <= range.to)
+    .sort((a, b) => a.completedOn!.localeCompare(b.completedOn!) || a.id.localeCompare(b.id))
+    .map((g) => g.id);
+  const minutes = new Map<string, number>();
+  for (const d of library.days) {
+    if (d.date >= range.from && d.date <= range.to) minutes.set(d.gameId, (minutes.get(d.gameId) ?? 0) + d.minutes);
+  }
+  const finishedSet = new Set(finished);
+  const topRated = games
+    .filter((g) => g.rating != null && (minutes.has(g.id) || finishedSet.has(g.id)))
+    .sort((a, b) => b.rating! - a.rating! || (minutes.get(b.id) ?? 0) - (minutes.get(a.id) ?? 0) || a.id.localeCompare(b.id))
+    .slice(0, limit)
+    .map((g) => ({ gameId: g.id, rating: g.rating! }));
+  return { finished, topRated };
 }
 
 /** «Barely touched» before the year means less than this; «real playtime» means past it. */
@@ -272,5 +303,6 @@ export function buildWrapped(
     achievements: { unlocked, rarest },
     rediscovered,
     coverageGaps,
+    ...finishedAndRated(library, range),
   };
 }

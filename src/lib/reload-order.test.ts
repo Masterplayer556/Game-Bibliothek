@@ -5,7 +5,7 @@ import { ALL_PARTS, ReloadOrder } from "./library-data";
 const full = (note: string): RawData => ({
   games: [], platformGames: [], devices: [], daily: [], snapshots: [], achievements: [], connections: [],
   settings: { note },
-  userData: [{ game_id: "g", status: null, favorite: false, note, hide_from_pile: false, hidden: false }],
+  userData: [{ game_id: "g", status: null, favorite: false, note, hide_from_pile: false, hidden: false, rating: null, completed_on: null }],
 });
 
 describe("ReloadOrder", () => {

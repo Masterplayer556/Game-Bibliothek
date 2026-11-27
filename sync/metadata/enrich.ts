@@ -12,6 +12,10 @@ import type { GameMetadata, LookupRequest, MetadataProvider } from "./types";
 export const MAX_LOOKUPS_PER_RUN = 200;
 /** A title without a match is asked again after this many days. */
 export const RETRY_MISSES_AFTER_DAYS = 30;
+/** How long a game takes is asked again after this many days (players keep answering). */
+export const RECHECK_TIME_TO_BEAT_AFTER_DAYS = 30;
+/** Games whose time is looked up per run (IGDB: 500 per request). */
+export const MAX_TIME_TO_BEAT_PER_RUN = 500;
 
 const PLATFORM_DEVICE: Partial<Record<PlatformId, DeviceKind>> = { steam: "pc", psn: "ps5", nintendo: "switch2" };
 
@@ -36,6 +40,8 @@ export interface EnrichSummary {
   fromCache: number;
   matched: number;
   merged: number;
+  /** Games that got a time to beat in this run. */
+  timeToBeat: number;
 }
 
 function fail(error: { message: string } | null): void {
@@ -56,7 +62,7 @@ export async function enrichMetadata(options: {
   log: Logger;
 }): Promise<EnrichSummary> {
   const { db, userId, provider } = options;
-  const summary: EnrichSummary = { looked: 0, fromCache: 0, matched: 0, merged: 0 };
+  const summary: EnrichSummary = { looked: 0, fromCache: 0, matched: 0, merged: 0, timeToBeat: 0 };
 
   const games = await fetchAll<GameRow>((from, to) =>
     db.from("games").select("id, title, igdb_id, igdb_locked, cover_url").eq("user_id", userId).order("id").range(from, to),
@@ -136,10 +142,72 @@ export async function enrichMetadata(options: {
 
   // 4. Same IGDB id = same game: join them
   summary.merged = await mergeByProviderId(db, userId, games, entries);
+
+  // 5. How long the games take. Optional: when it fails, covers and genres still count.
+  if (provider.timeToBeat) {
+    try {
+      summary.timeToBeat = await refreshTimeToBeat(options);
+    } catch {
+      options.log.warn(`${provider.id}: time to beat failed, asked again with the next sync`);
+    }
+  }
   options.log.info(
-    `${provider.id}: ${summary.looked} looked up, ${summary.fromCache} from cache, ${summary.matched} matched, ${summary.merged} merged`,
+    `${provider.id}: ${summary.looked} looked up, ${summary.fromCache} from cache, ${summary.matched} matched, ${summary.merged} merged, ${summary.timeToBeat} times to beat`,
   );
   return summary;
+}
+
+/**
+ * Looks up how long the games with a provider id take: those never asked and those asked
+ * longer than RECHECK_TIME_TO_BEAT_AFTER_DAYS ago. A game the provider knows nothing about
+ * keeps what it had and is asked again later. Returns how many games got a time.
+ */
+async function refreshTimeToBeat(options: {
+  db: SupabaseClient;
+  userId: string;
+  provider: MetadataProvider;
+  env: Readonly<Record<string, string | undefined>>;
+  fetch: typeof fetch;
+  now: Date;
+}): Promise<number> {
+  const { db, userId, provider } = options;
+  const rows = await fetchAll<{ id: string; igdb_id: number | null; time_to_beat_checked_at: string | null }>((from, to) =>
+    db.from("games").select("id, igdb_id, time_to_beat_checked_at").eq("user_id", userId).order("id").range(from, to),
+  );
+  const recheckBefore = options.now.getTime() - RECHECK_TIME_TO_BEAT_AFTER_DAYS * 86_400_000;
+  const due = rows
+    .filter((r) => r.igdb_id != null && (!r.time_to_beat_checked_at || new Date(r.time_to_beat_checked_at).getTime() < recheckBefore))
+    // never asked first, then the longest ago
+    .sort((a, b) => (a.time_to_beat_checked_at ?? "").localeCompare(b.time_to_beat_checked_at ?? ""))
+    .slice(0, MAX_TIME_TO_BEAT_PER_RUN);
+  if (due.length === 0 || !provider.timeToBeat) return 0;
+  const times = await provider.timeToBeat(options.env, options.fetch, due.map((r) => Number(r.igdb_id)));
+  const checkedAt = options.now.toISOString();
+  let found = 0;
+  const unknown: string[] = [];
+  for (const r of due) {
+    const time = times.get(Number(r.igdb_id));
+    if (!time) {
+      unknown.push(r.id);
+      continue;
+    }
+    const { error } = await db
+      .from("games")
+      .update({ time_to_beat: time, time_to_beat_checked_at: checkedAt })
+      .eq("id", r.id)
+      .eq("user_id", userId);
+    fail(error);
+    found++;
+  }
+  for (let i = 0; i < unknown.length; i += 100) {
+    const { error } = await db
+      .from("games")
+      .update({ time_to_beat_checked_at: checkedAt })
+      .in("id", unknown.slice(i, i + 100))
+      .eq("user_id", userId);
+    fail(error);
+  }
+  return found;
 }
 
 async function mergeByProviderId(
@@ -156,12 +224,19 @@ async function mergeByProviderId(
     byId.set(g.igdb_id, list);
   }
   const entryCount = (gameId: string) => entries.filter((e) => e.game_id === gameId).length;
+  // A game holding entries linked by hand (split off or merged by the user) never takes in other games.
+  const handLinked = (gameId: string) => entries.some((e) => e.game_id === gameId && e.game_link_locked);
   let merged = 0;
   for (const group of byId.values()) {
     if (group.length < 2) continue;
     const [target, ...others] = [...group].sort(
-      (a, b) => Number(b.igdb_locked) - Number(a.igdb_locked) || entryCount(b.id) - entryCount(a.id) || a.id.localeCompare(b.id),
+      (a, b) =>
+        Number(handLinked(a.id)) - Number(handLinked(b.id)) ||
+        Number(b.igdb_locked) - Number(a.igdb_locked) ||
+        entryCount(b.id) - entryCount(a.id) ||
+        a.id.localeCompare(b.id),
     );
+    if (handLinked(target!.id)) continue; // every game here was linked by hand
     for (const other of others) {
       const movable = entries.filter((e) => e.game_id === other.id && !e.game_link_locked);
       for (const e of movable) {

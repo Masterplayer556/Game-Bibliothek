@@ -15,6 +15,10 @@ import {
   totalInRange,
   undatedTime,
   countsAppsInTotal,
+  periodTotals,
+  rangeFor,
+  readStoredFilter,
+  timeToBeatSummary,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -22,10 +26,10 @@ import {
 function raw(): RawData {
   return {
     games: [
-      { id: "g-mc", title: "Minecraft", cover_url: null, genres: ["Sandbox"], release_year: 2011, igdb_id: null },
-      { id: "g-hk", title: "Hollow Knight", cover_url: null, genres: ["Platformer", "Metroidvania"], release_year: 2017, igdb_id: null },
-      { id: "g-yt", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null },
-      { id: "g-peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null },
+      { id: "g-mc", title: "Minecraft", cover_url: null, genres: ["Sandbox"], release_year: 2011, igdb_id: null, time_to_beat: null },
+      { id: "g-hk", title: "Hollow Knight", cover_url: null, genres: ["Platformer", "Metroidvania"], release_year: 2017, igdb_id: null, time_to_beat: null },
+      { id: "g-yt", title: "YouTube", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
+      { id: "g-peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null },
     ],
     platformGames: [
       // Minecraft on PS5 (lifetime totals, snapshots) and Switch (per-day data, two consoles)
@@ -50,8 +54,8 @@ function raw(): RawData {
     ],
     achievements: [],
     userData: [
-      { game_id: "g-yt", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true },
-      { game_id: "g-hk", status: "playing", favorite: true, note: "Speedrun", hide_from_pile: false, hidden: false },
+      { game_id: "g-yt", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null },
+      { game_id: "g-hk", status: "playing", favorite: true, note: "Speedrun", hide_from_pile: false, hidden: false, rating: null, completed_on: null },
     ],
     connections: [],
     settings: {},
@@ -238,6 +242,15 @@ describe("filterLibrary", () => {
     expect(filterLibrary(lib.games, { sort: "name" }).map((g) => g.title)).toEqual(["Hollow Knight", "Minecraft", "Peggle"]);
   });
 
+  it("filters favourites and sorts by achievement progress or release year, unknown last", () => {
+    expect(filterLibrary(lib.games, { favorite: true }).map((g) => g.id)).toEqual(["g-hk"]);
+    // Hollow Knight 34/63, Minecraft 10/50, Peggle without achievements
+    expect(filterLibrary(lib.games, { sort: "achievements" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
+    expect(filterLibrary(lib.games, { sort: "releaseYear" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
+    const rated = buildLibrary({ ...raw(), userData: [...raw().userData, { game_id: "g-peg", status: null, favorite: false, note: null, hide_from_pile: false, hidden: false, rating: 4, completed_on: null }] });
+    expect(filterLibrary(rated.games, { sort: "rating" }).map((g) => g.id)).toEqual(["g-peg", "g-hk", "g-mc"]);
+  });
+
   it("orders titles like German localeCompare (umlauts next to their base letter)", () => {
     const titles = ["Zelda", "Ökolopoly", "Oxenfree", "Ori", "ark", "Äpfel"];
     expect([...titles].sort(compareTitles)).toEqual([...titles].sort((a, b) => a.localeCompare(b, "de")));
@@ -278,5 +291,95 @@ describe("format", () => {
     expect(formatMinutes(120)).toBe("2 Std.");
     expect(formatHours(90)).toBe("1.5 Std."); // Swiss decimal point
     expect(formatHours(6000)).toBe("100 Std.");
+  });
+});
+
+describe("rangeFor", () => {
+  it("counts back from today, the year from 1 January", () => {
+    expect(rangeFor("30d", "2026-03-31", undefined)).toEqual({ from: "2026-03-02", to: "2026-03-31" });
+    expect(rangeFor("12m", "2026-03-31", undefined)).toEqual({ from: "2025-04-01", to: "2026-03-31" });
+    expect(rangeFor("year", "2026-03-31", undefined)).toEqual({ from: "2026-01-01", to: "2026-03-31" });
+  });
+
+  it("starts «all» on the first played day, or today without any", () => {
+    expect(rangeFor("all", "2026-03-31", "2024-05-01")).toEqual({ from: "2024-05-01", to: "2026-03-31" });
+    expect(rangeFor("all", "2026-03-31", undefined)).toEqual({ from: "2026-03-31", to: "2026-03-31" });
+  });
+});
+
+describe("periodTotals", () => {
+  const library = buildLibrary(raw());
+  const all = rangeFor("all", "2026-03-10", library.days[0]?.date);
+
+  it("adds the time without a date only for everything", () => {
+    const dated = totalInRange(library.days, all).minutes;
+    const undated = undatedTime(library.games, library.days).reduce((s, u) => s + u.minutes, 0);
+    const everything = periodTotals(library, all, true, false);
+    expect(everything.undatedMinutes).toBe(undated);
+    expect(everything.total.minutes).toBe(dated + undated);
+    const range = periodTotals(library, all, false, false);
+    expect(range.undated).toEqual([]);
+    expect(range.total.minutes).toBe(dated);
+  });
+
+  it("adds the time in apps only when it counts", () => {
+    const without = periodTotals(library, all, true, false);
+    const withApps = periodTotals(library, all, true, true);
+    expect(without.appMinutes).toBe(500);
+    expect(withApps.total.minutes).toBe(without.total.minutes + 500);
+  });
+
+  it("counts played days of games only", () => {
+    // Minecraft on 1, 2 and 9 March; YouTube (an app) on 5 March does not count.
+    expect(periodTotals(library, all, false, false).playedDays).toBe(3);
+  });
+});
+
+describe("readStoredFilter", () => {
+  it("restores a stored filter", () => {
+    const filter = { search: "zelda", platform: "nintendo", status: "playing", favorite: true, sort: "name" };
+    expect(readStoredFilter(JSON.stringify(filter))).toEqual(filter);
+  });
+
+  it("drops unknown or malformed values", () => {
+    expect(readStoredFilter(null)).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter("{kaputt")).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter("[1]")).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter(JSON.stringify({ sort: "random", search: 5, favorite: "yes", extra: 1 }))).toEqual({ sort: "lastPlayed" });
+  });
+});
+
+describe("time to beat", () => {
+  const withTimes = () => {
+    const r = raw();
+    r.games = r.games.map((g) =>
+      g.id === "g-hk" ? { ...g, time_to_beat: { hastily: 1200, normally: 1800, completely: 3600, count: 50 } }
+      : g.id === "g-mc" ? { ...g, time_to_beat: { hastily: null, normally: null, completely: 6000, count: 3 } }
+      : g,
+    );
+    return buildLibrary(r);
+  };
+
+  it("compares my playtime with the usual length", () => {
+    const hk = withTimes().byId.get("g-hk")!;
+    expect(timeToBeatSummary(hk)).toEqual({
+      steps: [
+        { kind: "hastily", minutes: 1200 },
+        { kind: "normally", minutes: 1800 },
+        { kind: "completely", minutes: 3600 },
+      ],
+      mainMinutes: 1800,
+      mineMinutes: 30,
+      progress: 30 / 1800,
+    });
+    // only «everything» known: that is the length; more than it is capped at 100 %
+    const mc = withTimes().byId.get("g-mc")!;
+    expect(timeToBeatSummary(mc)).toMatchObject({ mainMinutes: 6000, progress: 1150 / 6000 });
+    expect(timeToBeatSummary({ timeToBeat: { hastily: 10, normally: null, completely: null, count: 1 }, totalMinutes: 50 })?.progress).toBe(1);
+    expect(timeToBeatSummary(withTimes().byId.get("g-peg")!)).toBeNull();
+  });
+
+  it("sorts short games first, unknown length last", () => {
+    expect(filterLibrary(withTimes().games, { sort: "short" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
   });
 });

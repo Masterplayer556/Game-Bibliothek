@@ -9,6 +9,7 @@ import { Icon } from "./Icon";
 import { LibraryProvider } from "./LibraryProvider";
 import { LoginForm } from "./LoginForm";
 import { PixelIcon } from "./PixelIcon";
+import { ServiceWorker } from "./ServiceWorker";
 import { Logo } from "./Logo";
 import { currentItem, NAV } from "./navigation";
 import { sectionStyle } from "./section";
@@ -109,6 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {session ? <TabBar /> : null}
+      <ServiceWorker />
     </div>
   );
 }

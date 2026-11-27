@@ -4,6 +4,7 @@
 import { useId, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
 import { sectionStyle, type Section } from "./section";
+import { isRare, type RareLimit } from "@/core/rare";
 
 function CardHeading({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: IconName }) {
   return (
@@ -248,26 +249,8 @@ export function Medal({ tier }: { tier: string | null | undefined }) {
   );
 }
 
-/** The limits offered for «rare», as stored in the settings (`rareLimit`). */
-export const RARE_LIMITS = ["10", "5", "3", "2", "1", "<1"] as const;
-export type RareLimit = (typeof RARE_LIMITS)[number];
-export const DEFAULT_RARE_LIMIT: RareLimit = "10";
-
-export function rareLimitLabel(limit: RareLimit): string {
-  return limit === "<1" ? "unter 1 %" : `höchstens ${limit} %`;
-}
-
-/** The stored limit, or the default if nothing valid is stored. */
-export function readRareLimit(settings: Record<string, unknown>): RareLimit {
-  const stored = settings.rareLimit;
-  return RARE_LIMITS.includes(stored as RareLimit) ? (stored as RareLimit) : DEFAULT_RARE_LIMIT;
-}
-
-/** Rare: at most the limit in percent of players have it; «<1» means fewer than one percent. */
-export function isRare(percent: number | null | undefined, limit: RareLimit): boolean {
-  if (percent == null) return false;
-  return limit === "<1" ? percent < 1 : percent <= Number(limit);
-}
+// The rule for «rare» lives in src/core/rare.ts; offered here as well, next to RareBadge.
+export { DEFAULT_RARE_LIMIT, isRare, RARE_LIMITS, rareLimitLabel, readRareLimit, type RareLimit } from "@/core/rare";
 
 /** A gold tag for an achievement that few players have. Nothing if the share is unknown or common. */
 export function RareBadge({ percent, limit }: { percent: number | null | undefined; limit: RareLimit }) {

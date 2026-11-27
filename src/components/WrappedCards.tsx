@@ -263,6 +263,56 @@ function buildCards(w: WrappedYear, library: Library): CardDef[] {
     });
   }
 
+  if (w.finished.length > 0) {
+    cards.push({
+      id: "finished",
+      icon: "check",
+      tone: "add",
+      body: (
+        <>
+          <Label>Durchgespielt</Label>
+          <Big>{w.finished.length}</Big>
+          <ul className="grid grid-cols-3 gap-x-2 gap-y-3">
+            {w.finished.slice(0, 6).map((id) => (
+              <li key={id} className="flex min-w-0 flex-col gap-1">
+                <Cover library={library} id={id} className="w-full" />
+                <span className="truncate text-xs">{title(library, id)}</span>
+              </li>
+            ))}
+          </ul>
+          {w.finished.length > 6 ? <p className="text-muted">und {w.finished.length - 6} weitere</p> : null}
+        </>
+      ),
+    });
+  }
+
+  if (w.topRated.length > 0) {
+    cards.push({
+      id: "rated",
+      icon: "star",
+      tone: "review",
+      body: (
+        <>
+          <Label>Bestbewertet</Label>
+          <ol className="flex flex-col gap-3">
+            {w.topRated.map((r) => (
+              <li key={r.gameId} className="flex items-center gap-3">
+                <Cover library={library} id={r.gameId} className="w-12 shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 font-display text-lg font-semibold leading-tight">{title(library, r.gameId)}</span>
+                  <span className="text-highlight" aria-label={`${r.rating} von 5 Sternen`}>
+                    {"★".repeat(r.rating)}
+                    <span className="opacity-30">{"★".repeat(5 - r.rating)}</span>
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </>
+      ),
+    });
+  }
+
   cards.push({
     id: "achievements",
       icon: "trophy",

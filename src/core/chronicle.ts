@@ -11,13 +11,14 @@
 //   device     – the first day on a console, from day-by-day data (only after that platform's
 //                days had begun, otherwise the date would only be the start of tracking)
 //   tracking   – the day a platform's day-by-day data starts
+//   finished   – «Durchgespielt am», as entered under «Meine Angaben»
 import { achievementKey } from "./achievements";
 import { NINTENDO_IMPORT_ID } from "./nintendo/import";
 import { undatedTime, type AchievementRow, type GameDay, type Library, type LibraryGame, type RawData } from "./library";
 import { toLocalDate } from "./time";
 import type { DeviceKind, LocalDate, PlatformId } from "./types";
 
-export type ChronicleKind = "start" | "milestone" | "complete" | "platinum" | "rare" | "device" | "tracking";
+export type ChronicleKind = "start" | "milestone" | "complete" | "platinum" | "finished" | "rare" | "device" | "tracking";
 
 export interface ChronicleEvent {
   id: string;
@@ -39,7 +40,7 @@ export interface ChronicleEvent {
 export const MILESTONE_HOURS = [10, 25, 50, 100, 250, 500, 1000, 2000] as const;
 
 /** Order of events on the same day: the big ones first. */
-const KIND_ORDER: ChronicleKind[] = ["platinum", "complete", "milestone", "rare", "start", "device", "tracking"];
+const KIND_ORDER: ChronicleKind[] = ["finished", "platinum", "complete", "milestone", "rare", "start", "device", "tracking"];
 
 /**
  * Games played for the first time since tracking began. A platform entry blocks the game if it
@@ -136,6 +137,7 @@ export function buildChronicle(
   }
 
   for (const game of visible) {
+    if (game.completedOn) events.push({ id: `finished-${game.id}`, kind: "finished", date: game.completedOn, gameId: game.id });
     const gameDays = daysByGame.get(game.id) ?? [];
     const before = undatedByGame.get(game.id) ?? 0;
 

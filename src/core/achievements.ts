@@ -166,6 +166,91 @@ export function achievementSummary(
   };
 }
 
+/**
+ * Order of an achievement list. «date»: unlocked ones, newest first, then the locked ones by
+ * name. «next» («Was hole ich als Nächstes?»): the locked ones first, the one most players have
+ * (the easiest) on top and those without a known share after them; then the unlocked ones,
+ * newest first.
+ */
+export type AchievementOrder = "date" | "next";
+
+export function orderAchievements<T>(
+  items: readonly T[],
+  order: AchievementOrder,
+  get: { unlockedAt: (x: T) => string | null; rarity: (x: T) => number | null; name: (x: T) => string },
+): T[] {
+  const byDate = (a: T, b: T) => (get.unlockedAt(b) ?? "").localeCompare(get.unlockedAt(a) ?? "");
+  return [...items].sort((a, b) => {
+    if (order === "next") {
+      const lockedA = !get.unlockedAt(a);
+      const lockedB = !get.unlockedAt(b);
+      if (lockedA !== lockedB) return lockedA ? -1 : 1;
+      if (lockedA) {
+        const ra = get.rarity(a);
+        const rb = get.rarity(b);
+        if (ra !== rb) {
+          if (ra === null) return 1;
+          if (rb === null) return -1;
+          return rb - ra;
+        }
+      }
+    }
+    return byDate(a, b) || compareTitles(get.name(a), get.name(b));
+  });
+}
+
+/** A platform entry shown on the achievements page, with its game. */
+export interface ShownEntry {
+  game: LibraryGame;
+  platform: PlatformId;
+}
+
+/**
+ * The platform entries behind the progress rows: for «all» every entry of the row's platforms,
+ * for one platform only the entry of that row.
+ */
+export function shownEntries(rows: readonly ProgressRow[], filter: AchievementFilter): Map<string, ShownEntry> {
+  return new Map(
+    rows.flatMap((r) =>
+      r.game.entries
+        .filter((e) => r.platforms.includes(e.platform) && (filter === "all" || e.id === r.key))
+        .map((e) => [e.id, { game: r.game, platform: e.platform }] as const),
+    ),
+  );
+}
+
+/** The latest unlocks of the shown entries, newest first. */
+export function recentUnlocks(
+  achievements: readonly RawAchievement[],
+  entries: ReadonlyMap<string, unknown>,
+  limit: number,
+): RawAchievement[] {
+  return achievements
+    .filter((a) => a.unlocked_at && entries.has(a.platform_game_id))
+    .sort((a, b) => (b.unlocked_at ?? "").localeCompare(a.unlocked_at ?? ""))
+    .slice(0, limit);
+}
+
+/**
+ * Rare achievements I have, rarest first. The same achievement of one game on PC and
+ * PlayStation (same name) appears once, with the lower share.
+ */
+export function rareUnlocks(
+  achievements: readonly RawAchievement[],
+  entries: ReadonlyMap<string, ShownEntry>,
+  isRare: (percent: number | null) => boolean,
+): RawAchievement[] {
+  const byKey = new Map<string, RawAchievement>();
+  for (const a of achievements) {
+    const entry = entries.get(a.platform_game_id);
+    if (!a.unlocked_at || !entry || !isRare(a.rarity_percent)) continue;
+    const key = `${entry.game.id}|${a.name.trim().toLowerCase()}`;
+    const known = byKey.get(key);
+    if (!known || (a.rarity_percent ?? 100) < (known.rarity_percent ?? 100)) byKey.set(key, a);
+  }
+  return [...byKey.values()].sort((a, b) => (a.rarity_percent ?? 100) - (b.rarity_percent ?? 100));
+}
+
 /** The trophy list of a PlayStation trophy («NPWR12345_00:7» → «NPWR12345_00»). */
 function trophyList(externalId: string): string | null {
   const cut = externalId.lastIndexOf(":");

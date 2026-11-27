@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSampleBatches } from "../testing/sample-library";
 import { buildLibrary, type AchievementRow, type GameDay, type Library, type RawData } from "./library";
-import { availableYears, bestDay, buildWrapped, longestStreak, yearRange } from "./wrapped";
+import { availableYears, bestDay, buildWrapped, finishedAndRated, longestStreak, yearRange } from "./wrapped";
 
 const day = (date: string, minutes: number, gameId = "g1", estimated = false): GameDay => ({
   platformGameId: `e-${gameId}`,
@@ -62,7 +62,7 @@ function demoRaw(now: Date): RawData {
       const key = g.title.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z]/g, "").replace(/(fornintendoswitch|javaedition)$/, "");
       if (!gameIds.has(key)) {
         gameIds.set(key, key);
-        raw.games.push({ id: key, title: g.title, cover_url: null, genres: key.startsWith("pokemon") ? ["RPG"] : [], release_year: null, igdb_id: null });
+        raw.games.push({ id: key, title: g.title, cover_url: null, genres: key.startsWith("pokemon") ? ["RPG"] : [], release_year: null, igdb_id: null, time_to_beat: null });
       }
       const daily = batch.dailyPlaytime.filter((r) => r.gameExternalId === g.externalId);
       const total = g.totalPlaytimeMinutes ?? daily.reduce((s, r) => s + r.minutes, 0);
@@ -147,7 +147,7 @@ describe("buildWrapped with demo data", () => {
 });
 
 describe("buildWrapped: new games", () => {
-  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null });
+  const game = (id: string) => ({ id, title: id, cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null });
   const entry = (id: string, platform: "steam" | "psn" | "nintendo", total: number, firstPlayedAt: string | null = null) => ({
     id: `p-${id}`, game_id: id, platform, source: platform === "nintendo" ? "nintendo-parental" : platform, external_id: id, title: id,
     cover_url: null, device_kind: null, owned: true, first_played_at: firstPlayedAt, last_played_at: null,
@@ -250,7 +250,7 @@ describe("buildWrapped: achievements", () => {
     unlocked_at: unlockedAt, rarity_percent: rarity, tier: null,
   });
   const raw: RawData = {
-    games: [{ id: "hk", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+    games: [{ id: "hk", title: "Hollow Knight", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null }],
     platformGames: [entry("hk-steam", "hk", "steam"), entry("hk-psn", "hk", "psn")],
     devices: [], daily: [], snapshots: [], userData: [], connections: [], settings: {},
     achievements: [
@@ -281,7 +281,7 @@ describe("buildWrapped: achievements", () => {
   });
 
   it("leaves out games marked «Kein Spiel»", () => {
-    const hidden = { ...raw, userData: [{ game_id: "hk", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true }] };
+    const hidden = { ...raw, userData: [{ game_id: "hk", status: null, favorite: false, note: null, hide_from_pile: false, hidden: true, rating: null, completed_on: null }] };
     expect(buildWrapped(buildLibrary(hidden), hidden, 2026, { today: "2026-12-05" }).achievements).toEqual({ unlocked: 0, rarest: null });
   });
 });
@@ -289,7 +289,7 @@ describe("buildWrapped: achievements", () => {
 describe("buildWrapped: games added by hand", () => {
   it("do not show up as a platform tracked only from a later day", () => {
     const raw: RawData = {
-      games: [{ id: "peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null }],
+      games: [{ id: "peg", title: "Peggle", cover_url: null, genres: [], release_year: null, igdb_id: null, time_to_beat: null }],
       platformGames: [{
         id: "p-peg", game_id: "peg", platform: "manual", source: "manual", external_id: "manual:1", title: "Peggle",
         cover_url: null, device_kind: "xbox360", owned: true, first_played_at: null, last_played_at: null,
@@ -302,5 +302,34 @@ describe("buildWrapped: games added by hand", () => {
     const w = buildWrapped(buildLibrary(raw), raw, 2026, { today: "2026-12-05" });
     expect(w.coverageGaps).toEqual([]);
     expect(w.previousYear).toBeNull();
+  });
+});
+
+describe("finishedAndRated", () => {
+  const raw = demoRaw(new Date("2026-11-11T12:00:00Z"));
+  const rate = (gameId: string, rating: number | null, completed: string | null) => ({
+    game_id: gameId, status: null, favorite: false, note: null, hide_from_pile: false, hidden: false, rating, completed_on: completed,
+  });
+  const library = buildLibrary({
+    ...raw,
+    userData: [rate("haste", 5, "2026-03-01"), rate("oneshot", 4, "2026-02-10"), rate("counterstrike", 5, "2025-06-01"), rate("pokemonpokopia", 2, null)],
+  });
+  const year = yearRange(2026, "2026-11-11");
+
+  it("lists the games finished in the year, in order", () => {
+    expect(finishedAndRated(library, year).finished).toEqual(["oneshot", "haste"]);
+    expect(finishedAndRated(library, yearRange(2025, "2026-11-11")).finished).toEqual(["counterstrike"]);
+  });
+
+  it("ranks rated games played or finished in the year, best first", () => {
+    const { topRated } = finishedAndRated(library, year);
+    expect(topRated[0]).toEqual({ gameId: expect.stringMatching(/haste|counterstrike/), rating: 5 });
+    expect(topRated.map((r) => r.rating)).toEqual([...topRated.map((r) => r.rating)].sort((a, b) => b - a));
+    expect(topRated.length).toBeLessThanOrEqual(3);
+  });
+
+  it("is empty without ratings, so the review shows no extra cards", () => {
+    const plain = buildLibrary(raw);
+    expect(finishedAndRated(plain, year)).toEqual({ finished: [], topRated: [] });
   });
 });

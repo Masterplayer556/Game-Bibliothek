@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { dedupeSharedTrophyLists } from "@/core/achievements";
 import { buildLibrary, type Library, type RawData } from "@/core/library";
 import { loadRawData, loadRawParts, ReloadOrder, type RawPart } from "@/lib/library-data";
+import { readCache, writeCache } from "@/lib/offline-cache";
 import { getSupabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/errors";
 import { useSyncRun, type SyncRunState } from "./sync-run";
@@ -24,6 +25,11 @@ interface LibraryContextValue {
   reload: (parts?: readonly RawPart[]) => Promise<void>;
   /** The sync run started (or seen) under «Synchronisieren»; kept while browsing other pages. */
   sync: SyncRunState;
+  /**
+   * Set while the data shown is the copy kept in the browser (start, or no connection): when it
+   * was read from the database. null once fresh data has arrived.
+   */
+  cachedAt: string | null;
 }
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -31,6 +37,8 @@ const LibraryContext = createContext<LibraryContextValue | null>(null);
 export function LibraryProvider({ session, children }: { session: Session; children: ReactNode }) {
   const [raw, setRaw] = useState<RawData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const userId = session.user.id;
 
   const loadedAt = useRef(0);
   // Answers can arrive out of order (a slow full reload after a quick one): only newer tables
@@ -53,6 +61,7 @@ export function LibraryProvider({ session, children }: { session: Session; child
         } else {
           show(ticket, await loadRawData(getSupabase()));
           loadedAt.current = Date.now();
+          setCachedAt(null);
         }
         setError(null);
       } catch (e) {
@@ -64,12 +73,21 @@ export function LibraryProvider({ session, children }: { session: Session; child
 
   useEffect(() => {
     let active = true;
+    // The copy kept in the browser gets the older ticket: it is shown only while nothing fresher
+    // is there, and never replaces data from the database.
+    const cacheTicket = order.current.begin();
     const ticket = order.current.begin();
+    void readCache(userId).then((cached) => {
+      if (!active || !cached || shownRef.current) return;
+      show(cacheTicket, cached.raw);
+      if (shownRef.current) setCachedAt(cached.savedAt);
+    });
     loadRawData(getSupabase()).then(
       (data) => {
         if (!active) return;
         show(ticket, data);
         loadedAt.current = Date.now();
+        setCachedAt(null);
       },
       (e: unknown) => {
         if (active) setError(errorMessage(e));
@@ -79,12 +97,32 @@ export function LibraryProvider({ session, children }: { session: Session; child
     const onVisible = () => {
       if (document.visibilityState === "visible" && Date.now() - loadedAt.current > RELOAD_ON_RETURN_AFTER_MS) void reload();
     };
+    // Back online: read again (the cached copy or an old state is on screen).
+    const onOnline = () => void reload();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
     return () => {
       active = false;
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
     };
-  }, [reload, show]);
+  }, [reload, show, userId]);
+
+  // A login refreshed after a failed load (e.g. it had expired while offline): try again.
+  const failedRef = useRef(false);
+  useEffect(() => {
+    failedRef.current = error !== null;
+  }, [error]);
+  useEffect(() => {
+    if (failedRef.current) void reload();
+  }, [session.access_token, reload]);
+
+  // Keep what is shown for the next start, once it came from the database (not the cached copy).
+  useEffect(() => {
+    if (!raw || cachedAt) return;
+    const timer = setTimeout(() => void writeCache(userId, raw, new Date(loadedAt.current || Date.now())), 1500);
+    return () => clearTimeout(timer);
+  }, [raw, cachedAt, userId]);
 
   const sync = useSyncRun(useCallback(() => void reload(), [reload]));
 
@@ -93,8 +131,8 @@ export function LibraryProvider({ session, children }: { session: Session; child
   const shown = useMemo(() => (raw ? dedupeSharedTrophyLists(raw) : null), [raw]);
   const library = useMemo(() => (shown ? buildLibrary(shown) : null), [shown]);
   const value = useMemo(
-    () => ({ session, raw: shown, library, error, reload, sync }),
-    [session, shown, library, error, reload, sync],
+    () => ({ session, raw: shown, library, error, reload, sync, cachedAt }),
+    [session, shown, library, error, reload, sync, cachedAt],
   );
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }
