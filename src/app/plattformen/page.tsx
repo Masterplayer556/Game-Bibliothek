@@ -8,6 +8,7 @@ import { NintendoConnect } from "@/components/NintendoConnect";
 import { NintendoImport } from "@/components/NintendoImport";
 import { PlayStationConnect } from "@/components/PlayStationConnect";
 import { SyncControls } from "@/components/SyncControls";
+import { SyncHistory } from "@/components/SyncHistory";
 import { Button, Card } from "@/components/ui";
 import { ADAPTER_CATALOG, type AdapterInfo } from "@/core/adapter-catalog";
 import type { ConnectionRow } from "@/core/library";
@@ -126,6 +127,7 @@ export default function PlatformsPage() {
             </Card>
 
             <SyncControls />
+            <SyncHistory />
 
             {/* Open by themselves only when something needs doing (never connected or expired). */}
             <PlayStationConnect
