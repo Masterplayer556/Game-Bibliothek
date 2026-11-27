@@ -27,6 +27,11 @@ Alle Phasen sind gebaut. Offen:
 2. **Marcel:** Weitere Switch-Spiele als Video aufnehmen und im Claude-Projekt mit dem Prompt aus `PROMPT-NINTENDO-VIDEO-IMPORT.md` in CSV-Dateien umwandeln; dann in der App importieren.
 3. **Später:** Minecraft-Mods (`ADDING-A-PLATFORM.md`).
 
+## Neue Funktionen (27.11.2026)
+
+- **Aufgeräumt**: `src/core/library.ts` ist ein Ordner `src/core/library/` (rows, model, stats, series, filter, game, health, period); das Spiel-Detail hat eine Datei pro Karte (`src/components/game-detail/`). Die Rechnungen der Seiten Statistiken (Zeitraum, Summe mit/ohne Apps: `period.ts`) und Erfolge (seltene, neueste: `achievements.ts`) sowie die Regel für «selten» (`src/core/rare.ts`) liegen in `src/core` und sind getestet.
+- **Bibliothek merkt sich Suche, Filter und Sortierung** für den Besuch (sessionStorage `gb-library-filter`, geprüft mit `readStoredFilter`): Spiel öffnen und zurück findet alles wieder. Neu: Filter «Nur Favoriten», Sortierung nach Erfolgs-Fortschritt und nach Erscheinungsjahr (Unbekanntes zuletzt).
+
 ## Redesign «Liquid Arcade» (17.11.2026)
 
 Wünsche von Marcel: Das Wechseln über die Leiste ruckelte stark; mit «Animationen» war ein Liquid-Glass-Effekt wie in der Leiste der Google-Drive-App gemeint, nur für die Leiste. Das Design war zu schlicht (Pixel-Icons, wenig Farbe, langweiliger Hintergrund): komplett neu, hell und dunkel dürfen verschieden aussehen. Pile of Shame entfernen; an seine Stelle kommt die **Chronik** (von Marcel gewählt aus Glücksrad, Chronik, Fast geschafft, Status-Regale). Unter Erfolge steht «Fortschritt pro Spiel» zuerst, mit einem Abschnitt pro Erfolg im Balken.

@@ -17,6 +17,7 @@ import {
   countsAppsInTotal,
   periodTotals,
   rangeFor,
+  readStoredFilter,
   type ConnectionRow,
   type RawData,
 } from "./library";
@@ -240,6 +241,13 @@ describe("filterLibrary", () => {
     expect(filterLibrary(lib.games, { sort: "name" }).map((g) => g.title)).toEqual(["Hollow Knight", "Minecraft", "Peggle"]);
   });
 
+  it("filters favourites and sorts by achievement progress or release year, unknown last", () => {
+    expect(filterLibrary(lib.games, { favorite: true }).map((g) => g.id)).toEqual(["g-hk"]);
+    // Hollow Knight 34/63, Minecraft 10/50, Peggle without achievements
+    expect(filterLibrary(lib.games, { sort: "achievements" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
+    expect(filterLibrary(lib.games, { sort: "releaseYear" }).map((g) => g.id)).toEqual(["g-hk", "g-mc", "g-peg"]);
+  });
+
   it("orders titles like German localeCompare (umlauts next to their base letter)", () => {
     const titles = ["Zelda", "Ökolopoly", "Oxenfree", "Ori", "ark", "Äpfel"];
     expect([...titles].sort(compareTitles)).toEqual([...titles].sort((a, b) => a.localeCompare(b, "de")));
@@ -321,5 +329,19 @@ describe("periodTotals", () => {
   it("counts played days of games only", () => {
     // Minecraft on 1, 2 and 9 March; YouTube (an app) on 5 March does not count.
     expect(periodTotals(library, all, false, false).playedDays).toBe(3);
+  });
+});
+
+describe("readStoredFilter", () => {
+  it("restores a stored filter", () => {
+    const filter = { search: "zelda", platform: "nintendo", status: "playing", favorite: true, sort: "name" };
+    expect(readStoredFilter(JSON.stringify(filter))).toEqual(filter);
+  });
+
+  it("drops unknown or malformed values", () => {
+    expect(readStoredFilter(null)).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter("{kaputt")).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter("[1]")).toEqual({ sort: "lastPlayed" });
+    expect(readStoredFilter(JSON.stringify({ sort: "random", search: 5, favorite: "yes", extra: 1 }))).toEqual({ sort: "lastPlayed" });
   });
 });

@@ -1,16 +1,34 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { GameCard, GameListRow } from "@/components/game-ui";
 import { LibraryGate } from "@/components/LibraryGate";
 import { Icon } from "@/components/Icon";
 import { Card, fieldClass, Notice, Segmented } from "@/components/ui";
 import { DEVICE_LABEL, PLATFORM_LABEL, STATUS_LABEL } from "@/core/labels";
-import { allGenres, filterLibrary, type LibraryFilter, type LibraryGame, type SortKey } from "@/core/library";
+import { allGenres, filterLibrary, readStoredFilter, type LibraryFilter, type LibraryGame, type SortKey } from "@/core/library";
 import { DEVICE_KINDS, GAME_STATUSES, PLATFORM_IDS, type DeviceKind, type GameStatus, type PlatformId } from "@/core/types";
 
 type View = "shelf" | "list";
 const VIEW_KEY = "gb-library-view";
+/** Search, filters and sort order: kept for this visit (back from a game finds them again). */
+const FILTER_KEY = "gb-library-filter";
+
+function storedFilter(): LibraryFilter {
+  try {
+    return readStoredFilter(typeof window !== "undefined" ? sessionStorage.getItem(FILTER_KEY) : null);
+  } catch {
+    return readStoredFilter(null);
+  }
+}
+
+const SORT_LABEL: Record<SortKey, string> = {
+  lastPlayed: "Zuletzt gespielt",
+  playtime: "Spielzeit",
+  name: "Name",
+  achievements: "Erfolge (Fortschritt)",
+  releaseYear: "Erscheinungsjahr",
+};
 const VIEWS: { id: View; label: string }[] = [
   { id: "shelf", label: "Raster" },
   { id: "list", label: "Liste" },
@@ -36,10 +54,17 @@ export default function LibraryPage() {
 }
 
 function LibraryView({ all }: { all: readonly LibraryGame[] }) {
-  const [filter, setFilter] = useState<LibraryFilter>({ sort: "lastPlayed" });
+  const [filter, setFilter] = useState<LibraryFilter>(storedFilter);
   const set = (patch: Partial<LibraryFilter>) => setFilter((f) => ({ ...f, ...patch }));
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(FILTER_KEY, JSON.stringify(filter));
+    } catch {
+      // Without storage the filter holds until the page is left.
+    }
+  }, [filter]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const activeFilters = [filter.platform, filter.device, filter.genre, filter.status].filter(Boolean).length;
+  const activeFilters = [filter.platform, filter.device, filter.genre, filter.status, filter.favorite].filter(Boolean).length;
   // Shelf or list: remembered in this browser.
   const [view, setView] = useState<View>(() => {
     try {
@@ -124,16 +149,20 @@ function LibraryView({ all }: { all: readonly LibraryGame[] }) {
             <option value="none">Ohne Status</option>
           </select>
           <select className={fieldClass} aria-label="Sortierung" value={filter.sort} onChange={(e) => set({ sort: e.target.value as SortKey })}>
-            <option value="lastPlayed">Zuletzt gespielt</option>
-            <option value="playtime">Spielzeit</option>
-            <option value="name">Name</option>
+            {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+              <option key={k} value={k}>{SORT_LABEL[k]}</option>
+            ))}
           </select>
+          <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-5">
+            <input type="checkbox" checked={filter.favorite ?? false} onChange={(e) => set({ favorite: e.target.checked })} />
+            Nur Favoriten
+          </label>
         </div>
         {filtersOpen && activeFilters > 0 ? (
           <button
             type="button"
             className="link self-start text-sm"
-            onClick={() => set({ platform: "", device: "", genre: "", status: "" })}
+            onClick={() => set({ platform: "", device: "", genre: "", status: "", favorite: false })}
           >
             Filter zurücksetzen
           </button>
