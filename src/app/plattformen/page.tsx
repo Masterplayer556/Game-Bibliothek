@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDateTime, formatDay, relativeAge } from "@/components/game-ui";
+import { DataExport } from "@/components/DataExport";
 import { KeyGenerator } from "@/components/KeyGenerator";
 import { LibraryGate } from "@/components/LibraryGate";
 import { NintendoConnect } from "@/components/NintendoConnect";
@@ -97,7 +98,7 @@ function AdapterCard({ adapter, row, now }: { adapter: AdapterInfo; row: Connect
 export default function PlatformsPage() {
   return (
     <LibraryGate>
-      {({ raw, reload, userId }) => {
+      {({ library, raw, reload, userId }) => {
         const now = new Date();
         const nintendo = raw.connections.find((c) => c.adapter_id === "nintendo-parental");
         const psn = raw.connections.find((c) => c.adapter_id === "psn");
@@ -142,6 +143,7 @@ export default function PlatformsPage() {
               <div>
                 <Button onClick={() => getSupabase().auth.signOut()}>Abmelden</Button>
               </div>
+              <DataExport games={library.games} />
               <KeyGenerator />
             </Card>
           </>
