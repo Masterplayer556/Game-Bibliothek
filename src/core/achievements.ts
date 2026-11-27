@@ -166,6 +166,39 @@ export function achievementSummary(
   };
 }
 
+/**
+ * Order of an achievement list. «date»: unlocked ones, newest first, then the locked ones by
+ * name. «next» («Was hole ich als Nächstes?»): the locked ones first, the one most players have
+ * (the easiest) on top and those without a known share after them; then the unlocked ones,
+ * newest first.
+ */
+export type AchievementOrder = "date" | "next";
+
+export function orderAchievements<T>(
+  items: readonly T[],
+  order: AchievementOrder,
+  get: { unlockedAt: (x: T) => string | null; rarity: (x: T) => number | null; name: (x: T) => string },
+): T[] {
+  const byDate = (a: T, b: T) => (get.unlockedAt(b) ?? "").localeCompare(get.unlockedAt(a) ?? "");
+  return [...items].sort((a, b) => {
+    if (order === "next") {
+      const lockedA = !get.unlockedAt(a);
+      const lockedB = !get.unlockedAt(b);
+      if (lockedA !== lockedB) return lockedA ? -1 : 1;
+      if (lockedA) {
+        const ra = get.rarity(a);
+        const rb = get.rarity(b);
+        if (ra !== rb) {
+          if (ra === null) return 1;
+          if (rb === null) return -1;
+          return rb - ra;
+        }
+      }
+    }
+    return byDate(a, b) || compareTitles(get.name(a), get.name(b));
+  });
+}
+
 /** A platform entry shown on the achievements page, with its game. */
 export interface ShownEntry {
   game: LibraryGame;

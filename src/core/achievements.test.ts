@@ -5,6 +5,7 @@ import {
   achievementSummary,
   dedupeSharedTrophyLists,
   mergeAchievements,
+  orderAchievements,
   rareUnlocks,
   recentUnlocks,
   shownEntries,
@@ -193,5 +194,31 @@ describe("rare limit", () => {
     expect(isRare(1, "<1")).toBe(false);
     expect(isRare(0.5, "<1")).toBe(true);
     expect(isRare(null, "10")).toBe(false);
+  });
+});
+
+describe("orderAchievements", () => {
+  const rows = [
+    ach("e", 1, "Alt", "2026-01-01T10:00:00Z", 90),
+    ach("e", 2, "Neu", "2026-02-01T10:00:00Z", 5),
+    ach("e", 3, "Leicht offen", null, 70),
+    ach("e", 4, "Schwer offen", null, 2),
+    ach("e", 5, "Ohne Anteil", null, null),
+    ach("e", 6, "Auch leicht", null, 70),
+  ];
+  const get = { unlockedAt: (a: AchievementRow) => a.unlocked_at, rarity: (a: AchievementRow) => a.rarity_percent, name: (a: AchievementRow) => a.name };
+
+  it("lists unlocked ones newest first, then the locked ones by name", () => {
+    expect(orderAchievements(rows, "date", get).map((a) => a.name)).toEqual(["Neu", "Alt", "Auch leicht", "Leicht offen", "Ohne Anteil", "Schwer offen"]);
+  });
+
+  it("puts the easiest locked ones first for «Als Nächstes»", () => {
+    expect(orderAchievements(rows, "next", get).map((a) => a.name)).toEqual(["Auch leicht", "Leicht offen", "Schwer offen", "Ohne Anteil", "Neu", "Alt"]);
+  });
+
+  it("leaves the input as it is", () => {
+    const copy = [...rows];
+    orderAchievements(rows, "next", get);
+    expect(rows).toEqual(copy);
   });
 });

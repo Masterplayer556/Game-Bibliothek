@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { achievementSummary, mergeAchievements, type AchievementFilter } from "@/core/achievements";
+import { achievementSummary, mergeAchievements, orderAchievements, type AchievementFilter, type AchievementOrder } from "@/core/achievements";
 import { ACHIEVEMENT_PLATFORM_LABEL, PLATFORM_LABEL } from "@/core/labels";
-import { compareTitles, type LibraryGame, type RawData } from "@/core/library";
+import type { LibraryGame, RawData } from "@/core/library";
 import type { PlatformId } from "@/core/types";
 import { formatDay } from "../game-ui";
 import { Icon } from "../Icon";
@@ -22,6 +22,7 @@ function AchievementIcon({ url }: { url: string | null }) {
 
 export function Achievements({ game, raw }: { game: LibraryGame; raw: RawData }) {
   const [filter, setFilter] = useState<AchievementFilter>("all");
+  const [order, setOrder] = useState<AchievementOrder>("date");
   const rareLimit = readRareLimit(raw.settings);
   const withAchievements = game.entries.filter((e) => e.achievements && e.achievements.total > 0);
   if (withAchievements.length === 0) {
@@ -42,10 +43,28 @@ export function Achievements({ game, raw }: { game: LibraryGame; raw: RawData })
   const visible = shown.length > 0 ? shown : withAchievements;
   const platformOf = new Map(visible.map((e) => [e.id, e.platform] as const));
   const stored = raw.achievements.filter((a) => platformOf.has(a.platform_game_id));
-  const byDate = <T,>(date: (x: T) => string | null, name: (x: T) => string) => (a: T, b: T) =>
-    (date(b) ?? "").localeCompare(date(a) ?? "") || compareTitles(name(a), name(b));
-  const merged = joined ? mergeAchievements(stored, platformOf).sort(byDate((m) => m.unlockedAt, (m) => m.name)) : [];
-  const list = joined ? [] : [...stored].sort(byDate((a) => a.unlocked_at, (a) => a.name));
+  const merged = joined
+    ? orderAchievements(mergeAchievements(stored, platformOf), order, { unlockedAt: (m) => m.unlockedAt, rarity: (m) => m.rarityPercent, name: (m) => m.name })
+    : [];
+  const list = joined ? [] : orderAchievements(stored, order, { unlockedAt: (a) => a.unlocked_at, rarity: (a) => a.rarity_percent, name: (a) => a.name });
+  const locked = joined ? merged.some((m) => !m.unlockedAt) : list.some((a) => !a.unlocked_at);
+  // «Als Nächstes»: the locked ones most players have first, i.e. the easiest still open.
+  const orderSwitch = locked ? (
+    <div className="mt-2 flex flex-col gap-1">
+      <Segmented
+        label="Reihenfolge"
+        options={[
+          { id: "date" as AchievementOrder, label: "Neueste" },
+          { id: "next" as AchievementOrder, label: "Als Nächstes" },
+        ]}
+        value={order}
+        onChange={setOrder}
+      />
+      {order === "next" ? (
+        <span className="text-xs text-muted">Offene zuerst: die, die die meisten Spieler haben, also die leichtesten.</span>
+      ) : null}
+    </div>
+  ) : null;
   const together = joined ? achievementSummary([game], "all", raw.achievements).rows[0] : undefined;
 
   return (
@@ -92,6 +111,7 @@ export function Achievements({ game, raw }: { game: LibraryGame; raw: RawData })
       {merged.length > 0 ? (
         <details>
           <summary className="cursor-pointer text-sm font-semibold text-section">Alle {merged.length} Erfolge anzeigen</summary>
+          {orderSwitch}
           <ul className="mt-2 flex flex-col gap-2">
             {merged.map((m) => (
               <li key={m.key} className={`flex gap-3 text-sm ${m.unlockedAt ? "" : "opacity-50"}`}>
@@ -118,6 +138,7 @@ export function Achievements({ game, raw }: { game: LibraryGame; raw: RawData })
       {list.length > 0 ? (
         <details>
           <summary className="cursor-pointer text-sm font-semibold text-section">Alle {list.length} Erfolge anzeigen</summary>
+          {orderSwitch}
           <ul className="mt-2 flex flex-col gap-2">
             {list.map((a) => (
               <li key={`${a.platform_game_id}-${a.external_id}`} className={`flex gap-3 text-sm ${a.unlocked_at ? "" : "opacity-50"}`}>

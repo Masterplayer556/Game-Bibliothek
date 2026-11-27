@@ -31,6 +31,7 @@ Alle Phasen sind gebaut. Offen:
 
 - **Aufgeräumt**: `src/core/library.ts` ist ein Ordner `src/core/library/` (rows, model, stats, series, filter, game, health, period); das Spiel-Detail hat eine Datei pro Karte (`src/components/game-detail/`). Die Rechnungen der Seiten Statistiken (Zeitraum, Summe mit/ohne Apps: `period.ts`) und Erfolge (seltene, neueste: `achievements.ts`) sowie die Regel für «selten» (`src/core/rare.ts`) liegen in `src/core` und sind getestet.
 - **Bibliothek merkt sich Suche, Filter und Sortierung** für den Besuch (sessionStorage `gb-library-filter`, geprüft mit `readStoredFilter`): Spiel öffnen und zurück findet alles wieder. Neu: Filter «Nur Favoriten», Sortierung nach Erfolgs-Fortschritt und nach Erscheinungsjahr (Unbekanntes zuletzt).
+- **«Was hole ich als Nächstes?»**: In der Erfolgsliste eines Spiels schaltet «Als Nächstes» die offenen Erfolge nach oben, den mit dem höchsten Anteil Spieler (den leichtesten) zuerst (`orderAchievements` in `achievements.ts`).
 
 ## Redesign «Liquid Arcade» (17.11.2026)
 
