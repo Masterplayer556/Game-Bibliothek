@@ -194,7 +194,7 @@ Bericht mit allen Funden, bewusst offenen Punkten und «Was tun, wenn ein Schlü
 
 ### Regeln im Jahresrückblick
 
-- «Neu angefangen» = erstes Spieldatum (über alle Plattformen) im gewählten Jahr.
+- «Neu angefangen» = Spiele, deren erster Tag bekannt ist und im gewählten Jahr liegt, gleich wie «Erstmals gespielt» in der Chronik (`startedGames` in `chronicle.ts`): Jeder Plattform-Eintrag mit Spielzeit ist seit Beginn der Erfassung neu, oder er ist auf der PlayStation und Sony meldet «erstmals gespielt» (`first_played_at`, auch vor dem ersten Sync; so zählen PS5-Spiele, die 2026 vor Mitte November angefangen wurden). Der Tag ist das früheste bekannte Datum. Hatte ein Eintrag beim ersten Sync schon Zeit ohne solches Datum (Steam, Switch, importierte Historie, von Hand), zählt das Spiel nicht: es kann viel früher angefangen worden sein. Ausnahme: Hat so ein Eintrag höchstens 10 Minuten (`BRIEF_MINUTES`), gilt er als nur angetestet und zählt nicht mit (Wunsch 27.11.2026: Nine Sols, 1 Min. auf Steam, angefangen im Mai auf der PS5). Liegt Sonys Datum nach einem Sync, der schon Spielzeit zeigte, gilt es nicht. Ein neues Spiel ist nie «wiederentdeckt».
 - «Aus dem Pile of Shame geholt» = vor dem 1. Januar schon angespielt, aber unter der Pile-Grenze, und im Jahr darüber. Nie gespielte Spiele zählen nicht, weil ohne Kaufdatum nicht erkennbar ist, ob sie schon auf dem Stapel lagen. Liefert PSN (Phase 6) ein Kaufdatum, kann die Regel erweitert werden.
 - Das laufende Jahr zählt bis heute.
 

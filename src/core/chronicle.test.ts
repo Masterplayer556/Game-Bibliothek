@@ -71,14 +71,15 @@ const events = buildChronicle(library, data, { isRare: (p) => p != null && p <= 
 const ids = events.map((e) => e.id);
 
 describe("buildChronicle", () => {
-  it("shows «first played» only for games that are new since tracking began", () => {
+  it("shows «first played» only for games whose first day is known", () => {
     const starts = events.filter((e) => e.kind === "start").map((e) => [e.gameId, e.date]);
     expect(starts).toEqual([
       ["g-e", "2025-07-02"], // first seen on the Switch after tracking began
       ["g-d", "2025-04-01"], // 0 minutes at the first sync
+      ["g-b", "2024-01-05"], // played before tracking began, on the day Sony reports
     ]);
-    // Not: games played on the first synced day (Alpha, Beta), with time before (Gamma, Gamma Two),
-    // or with imported history (Phi, even though it first showed up as new)
+    // Not: games played on the first synced day without such a date (Alpha), with time before
+    // (Gamma, Gamma Two), or with imported history (Phi, even though it first showed up as new)
   });
 
   it("puts milestones on the day the total passed the mark, counting time before tracking", () => {
